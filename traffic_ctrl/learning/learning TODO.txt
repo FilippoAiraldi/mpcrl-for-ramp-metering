@@ -1,0 +1,33 @@
+MULTI START
+	1. How much noise to apply? 10% zero-mean Gaussian noise.
+	2. Can noise starting points be infeasible or do we need to clip the noise back into feasibility (this might be difficult in some cases)
+	3. Parallel for loop - Can ipopt be run in parallel? Yes
+
+
+LOGGING
+	1. use python logging mechanism to log data during learning.
+	2. Structure of the log: something like a csv, i.e., first row is the header, and then each row contains N numbers.
+	3. In binary or human-readable?
+	4. Create util to quickly read and plot the logging.
+	
+	
+LEARNING
+	1. create scenario where there's an evident discrepancy in performance between MPC with perfect knowledge and MPC with modified parameters 
+		- modified a 
+		- modified learnable rho crit
+		- modified learnable v_free
+
+	2. create a learning algorithm 
+		- it learns
+			- parameters rho_crit and v_free
+			- cost function: quadratic in state and control (with rho_crit tracking) 
+				-> look at S. Gros' students' papers
+		- RL
+			- Q learning with experience replay
+			- learning rate
+			- discount
+			- introduce random disturbance in cost to induce exploration?
+			- introduce cost for constraint violation, i.e., w^T * max(0, g(x))
+
+	(might need to log intermediate results since simulations will be long)
+    
