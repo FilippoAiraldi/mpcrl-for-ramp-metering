@@ -1,10 +1,8 @@
-% clc, clearvars, close all %#ok<*SAGROW> 
+% clc, close all 
+clearvars
 
-
-% filename = 'data\base.mat';
-% filename = 'data\slack_1d_weight_10.mat';
-filename = 'result_good2.mat';
-step = 2;
+filename = 'data/result_20220315_114938.mat';
+step = 1;
 
 
 %% load
@@ -14,7 +12,7 @@ warning('on', 'all');
 
 
 %% create table
-for i = 1:2
+for i = 1:2 %#ok<*SAGROW> 
     a(i) = MPCs(i).a;
     v_free(i) = MPCs(i).v_free; 
     rho_crit(i) = MPCs(i).rho_crit;
@@ -22,13 +20,14 @@ for i = 1:2
 end
 T = table(a', v_free', rho_crit', TTS', [sum(objectives{1}); sum(objectives{2})], exec_time_tot', ...
     'VariableNames', {'a','v_free', 'rho_crit', 'TTS', 'J', 'exec_time (total)'});
+disp(filename)
 disp(T)
 
 
 %% plot
 figure;
 tiledlayout(5, 2, 'Padding', 'none', 'TileSpacing', 'compact')
-% sgtitle(filename)
+sgtitle(filename, 'Interpreter', 'none')
 
 ax(1) = nexttile; hold on,
 plot(time(1:step:end), link_speed{1}(:, 1:step:end-1)', '-')

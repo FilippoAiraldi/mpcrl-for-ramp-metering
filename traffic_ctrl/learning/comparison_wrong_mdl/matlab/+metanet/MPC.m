@@ -87,7 +87,6 @@ classdef MPC
             obj.vars.rho = obj.opti.variable(3, obj.M * obj.Np + 1);   
             obj.vars.v = obj.opti.variable(3, obj.M * obj.Np + 1);      
             obj.vars.r = obj.opti.variable(1, obj.Nc);
-%             obj.vars.slack = obj.opti.variable(1, 1);
             obj.vars.slack = obj.opti.variable(1, obj.M * obj.Np + 1);
             obj.pars = struct;
             obj.pars.d = obj.opti.parameter(2, obj.M * obj.Np);       
@@ -133,8 +132,8 @@ classdef MPC
 
             % set solver for opti
             plugin_opts = struct('expand', false, 'print_time', false);
-%             solver_opts = struct('print_level', 0, 'max_iter', 3e3, ...
-%                 'max_cpu_time', 3e2);
+            % solver_opts = struct('print_level', 0, 'max_iter', 3e3, ...
+            %   'max_cpu_time', 3e2);
             solver_opts = struct('print_level', 0, 'max_iter', 3e3);
             obj.opti.solver('ipopt', plugin_opts, solver_opts);
             % plugin_opts = struct('qpsol', 'osqp', 'expand', true, 'print_time', false);

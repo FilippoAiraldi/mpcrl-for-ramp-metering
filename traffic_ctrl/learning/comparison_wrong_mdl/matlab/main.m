@@ -1,6 +1,13 @@
 clc, clearvars, close all
 
 
+%% logging and saving
+runname = datestr(datetime,'yyyymmdd_HHMMSS');
+log_filename = strcat('log_', runname, '.txt');
+result_filename = strcat('result_', runname, '.mat');
+diary(log_filename)   
+
+
 %% Model
 % simulation
 Tstage = 1.5;                   % simulation time per stage (h)
@@ -31,30 +38,25 @@ a = [1.867, 2.111];             % model parameter (adim)
 v_free = [102, 130];            % free flow speed (km/h)
 rho_crit = [33.5, 27];          % critical capacity (veh/km/lane)
 
-% 1) good, but a lot different (O1 200), but runs fast <--- CHOSEN ONE
-% a = [1.927, 1.867];             % model parameter (adim)
-% v_free = [120, 102];            % free flow speed (km/h)
-% rho_crit = [27, 33.5];          % critical capacity (veh/km/lane)
-
-% 2) shitty in terms of execution of 1 (O1 200)
-% a = [1.927, 1.867];             % model parameter (adim)
-% v_free = [110, 102];            % free flow speed (km/h)
-% rho_crit = [30, 33.5];          % critical capacity (veh/km/lane)
-
-% 3) extremely shitty in terms of execution of 2, but results are very good (O1 200)
-% a = [1.927, 1.867];             % model parameter (adim)
-% v_free = [120, 110];            % free flow speed (km/h)
-% rho_crit = [27, 31.5];          % critical capacity (veh/km/lane)
-
-% % 4) back to O2,
-% a = [randbetween(1.5, 2.2), randbetween(1.5, 2.2)];             % model parameter (adim)
-% v_free = [randbetween(90, 130), randbetween(90, 130)];            % free flow speed (km/h)
-% rho_crit = [randbetween(27, 37), randbetween(27, 37)];          % critical capacity (veh/km/lane)
-
 
 %% Disturbances
-d1 = util.create_profile(t, [0, .25, 1, 1.25], [1000, 3500, 3500, 1000]);
-d2 = util.create_profile(t, [.25, .37, .62, .75], [500, 1750, 1750, 500]);
+% original disturbance
+% d1 = util.create_profile(t, [0, .25, 1, 1.25], [1000, 3500, 3500, 1000]);
+% d2 = util.create_profile(t, [.25, .37, .62, .75], [500, 1750, 1750, 500]);
+
+% result 1 disturbance - small difference in cost, no slack
+% d1 = util.create_profile(t, [0, .3, .95, 1.25], [1000, 3100, 3100, 1000]);
+% d2 = util.create_profile(t, [.15, .32, .57, .75], [500, 1800, 1800, 500]);
+
+% result 2 disturbance - more difference in cost, some slack
+d1 = util.create_profile(t, [0, .3, .95, 1.25], [1000, 3150, 3150, 1000]);
+d2 = util.create_profile(t, [.15, .32, .57, .75], [500, 1800, 1800, 500]);
+
+% non-piecewise disturbances
+% d1 = 2500 * (math.sigmoid(20 * (t - 0.15)) - math.sigmoid(20 * (t - 1.1))) + 1000;
+% d2 = 1250 * (math.sigmoid(40 * (t - 0.225)) - math.sigmoid(40 * (t - 0.66))) + 500;
+
+% assemble and plot disturbances
 D = [d1; d2];
 % plot(t, d1, t, d2),
 % legend('O1', 'O2'), xlabel('time (h)'), ylabel('demand (h)')
@@ -124,7 +126,7 @@ for k = 1:K
 %                 w_last{i}, rho_last{i}, v_last{i}, r_last{i});
             if isfield(info, 'error')
                 any_error = true; 
-                print_progress(k, K, t(k), toc(start_time), sprintf('(%i) %s', i, info.error));
+                util.logging(k, K, t(k), toc(start_time), sprintf('(%i) %s', i, info.error));
             end
 
             % save infos
@@ -135,7 +137,7 @@ for k = 1:K
 
     % report progress
     if ~any_error && mod(k, 4 * M) == 1
-        print_progress(k, K, t(k), toc(start_time));
+        util.logging(k, K, t(k), toc(start_time));
     end
 
     for i = 1:2
@@ -165,6 +167,7 @@ for i = 1:2
     J = sum(objectives{i}, 'all');
     fprintf('(%i) TTS = %f, J = %f\n', i, TTS(i), J)
 end
+diary off
 
 % perform save
 time = t;
@@ -176,7 +179,7 @@ link_flow = q;
 link_density = rho;
 link_speed = v;
 warning('off', 'all');
-save('result.mat', 'exec_time', 'MPCs', 'TTS', 'objectives', 'time', ...
+save(result_filename, 'exec_time', 'MPCs', 'TTS', 'objectives', 'time', ...
     'origin_flow', 'origin_queue', 'origin_demand', 'origin_rate', ...
     'link_flow', 'link_density', 'link_speed', 'slack');
 warning('on', 'all');
