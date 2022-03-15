@@ -6,17 +6,25 @@ sys.path.append(os.path.expanduser('~\\Documents\\git\\metanet'))
 import metanet
 from metanet import control
 
+from lib import run_sim_with_MPC
+
 import time
+import logging
 import matplotlib.pyplot as plt
 
-################################### SCENARIO ##################################
+
+############################# LOGGING and SAVING ##############################
 
 
 # This is also an exercise to run two simulations at the same time, which only
 # share the dynamics
-use_mpc = True
-save_results = True
-save_name = 'result'
+run_name = time.strftime('%Y%m%d_%H%M%S')
+save_name = 'result_' + run_name
+
+logging.basicConfig(
+    filename='log_' + run_name + '.txt', level=logging.INFO,
+    format='[%(levelname)s|%(asctime)s] - %(message)s', datefmt='%H:%M:%S')
+logger = logging.getLogger(__name__)
 
 
 #################################### MODEL ####################################
@@ -84,10 +92,24 @@ sim_true, sim_nom = sims
 ################################# DISTURBANCES ################################
 
 
+# # original disturbance
+# d1 = np.tile(metanet.util.create_profile(
+#     t[:Kstage], [0, .25, 1, 1.25], [1000, 3500, 3500, 1000]), stages).tolist()
+# d2 = np.tile(metanet.util.create_profile(
+#     t[:Kstage], [.25, .37, .62, .75], [500, 1750, 1750, 500]), stages).tolist()
+
+# # result 1 disturbance - small difference in cost, no slack
+# d1 = np.tile(metanet.util.create_profile(
+#     t[:Kstage], [0, .3, .95, 1.25], [1000, 3100, 3100, 1000]), stages).tolist()
+# d2 = np.tile(metanet.util.create_profile(
+#     t[:Kstage], [.15, .32, .57, .75], [500, 1800, 1800, 500]), stages).tolist()
+
+# result 2 disturbance - more difference in cost, some slack
 d1 = np.tile(metanet.util.create_profile(
-    t[:Kstage], [0, .25, 1, 1.25], [1000, 3500, 3500, 1000]), stages).tolist()
+    t[:Kstage], [0, .3, .95, 1.25], [1000, 3150, 3150, 1000]), stages).tolist()
 d2 = np.tile(metanet.util.create_profile(
-    t[:Kstage], [.25, .37, .62, .75], [500, 1750, 1750, 500]), stages).tolist()
+    t[:Kstage], [.15, .32, .57, .75], [500, 1800, 1800, 500]), stages).tolist()
+
 
 # plt.figure(figsize=(4, 3), constrained_layout=True)
 # plt.plot(t, d1, '-', label='$O_1$')
@@ -108,7 +130,7 @@ Np, Nc, M = 7, 3, 6
 cost = lambda s, v, p: (control.TTS(s, v, p) +
                         control.input_variability_penalty(s, v, p, 0.4) +
                         control.slacks_penalty(s, v, p, 10))
-max_iter, max_cpu_time = 3000, 300
+max_iter = 3000
 w2_constraint = 100
 MPCs = []
 
@@ -116,28 +138,22 @@ MPCs = []
 for sim in sims:
     plugin_opts = {'expand': True, 'print_time': False,
                    'calc_lam_x': True, 'calc_multipliers': True}
-    solver_opts = {'print_level': 0, 'max_iter': max_iter,
-                   'max_cpu_time': max_cpu_time}
+    solver_opts = {'print_level': 0, 'max_iter': max_iter}
 
     # OPTI mpc
-    # mpc = control.OptiMPC(
-    #     sim=sim, Np=Np, Nc=Nc, M=M, cost=cost, solver='ipopt',
-    #     plugin_opts=plugin_opts, solver_opts=solver_opts)
-    # slack1 = mpc.add_slack('1', mpc.vars[f'w_{sim.net.O2}'].shape)
-    # mpc.opti.subject_to(mpc.vars[f'w_{sim.net.O2}'] - slack1 <= w2_constraint)
-
-    # NLP mpc
-    # mpc = control.NlpSolver(
-    #     sim=sim, Np=Np, Nc=Nc, M=M, cost=cost, solver='ipopt',
-    #     solver_opts={**plugin_opts, 'ipopt': solver_opts})
-
-    # NLP mpc
-    mpc = control.NlpSolMPC(
+    mpc = control.OptiMPC(
         sim=sim, Np=Np, Nc=Nc, M=M, cost=cost, solver='ipopt',
         plugin_opts=plugin_opts, solver_opts=solver_opts)
     slack1 = mpc.add_slack('1', mpc.vars[f'w_{sim.net.O2}'].shape)
-    mpc.add_constraint(-np.inf,
-                       mpc.vars[f'w_{sim.net.O2}'] - slack1, w2_constraint)
+    mpc.opti.subject_to(mpc.vars[f'w_{sim.net.O2}'] - slack1 <= w2_constraint)
+
+    # # NLP mpc
+    # mpc = control.NlpSolMPC(
+    #     sim=sim, Np=Np, Nc=Nc, M=M, cost=cost, solver='ipopt',
+    #     plugin_opts=plugin_opts, solver_opts=solver_opts)
+    # slack1 = mpc.add_slack('1', mpc.vars[f'w_{sim.net.O2}'].shape)
+    # mpc.add_constraint(-np.inf,
+    #                    mpc.vars[f'w_{sim.net.O2}'] - slack1, w2_constraint)
 
     MPCs.append(mpc)
 
@@ -166,9 +182,8 @@ for sim in sims:
 
 
 # simulations
-exec_time1 = control.run_sim_with_MPC(sim_true, MPCs[0], K, use_mpc=use_mpc)
-exec_time2 = control.run_sim_with_MPC(sim_nom, MPCs[1], K, sim_true=sim_true,
-                                      use_mpc=use_mpc)
+exec_time1 = run_sim_with_MPC(sim_true, MPCs[0], t, logger)
+exec_time2 = run_sim_with_MPC(sim_nom, MPCs[1], t, logger, sim_true=sim_true)
 
 
 ################################## PLOT/SAVE ##################################
@@ -182,29 +197,25 @@ for sim in sims:
         **{f'v_{l}': np.hstack(l.speed) for l in sim.net.links},
         **{f'w_{o}': np.hstack(o.queue) for o in sim.net.origins},
     }, None)
-    print(f'{sim.net.name}: TTS = {tts}, J = {sum(sim.objective)}')
+    logger.info(f'{sim.net.name}: TTS = {tts}, J = {sum(sim.objective)}')
     ttss.append(float(tts))
 
 # save results
-if save_results:
-    import platform
-    data = {
-        'platform': str(platform.platform()),
-        'algorithms': [mpc.__class__.__name__ for mpc in MPCs],
-        'otps': {
-            'Np': Np, 'Nc': Nc, 'M': M,
-            'max_iter': max_iter, 'max_cpu_time': max_cpu_time
-        },
-        'execution_times': (exec_time1, exec_time2),
-        'a': a,
-        'v_free': v_free,
-        'rho_crit': rho_crit,
-        'TTS': ttss,
-        'J': [sum(sim.objective) for sim in sims],
-        'w2_constraint': w2_constraint
-    }
-    metanet.io.save_sims(save_name + '.pkl', *sims, **data)
-    # metanet.io.save_sims(save_name + '.mat', *sims, **data)
+import platform
+data = {
+    'platform': str(platform.platform()),
+    'algorithms': [mpc.__class__.__name__ for mpc in MPCs],
+    'otps': {'Np': Np, 'Nc': Nc, 'M': M, 'max_iter': max_iter},
+    'execution_times': (exec_time1, exec_time2),
+    'a': a,
+    'v_free': v_free,
+    'rho_crit': rho_crit,
+    'TTS': ttss,
+    'J': [sum(sim.objective) for sim in sims],
+    'w2_constraint': w2_constraint
+}
+metanet.io.save_sims(save_name + '.pkl', *sims, **data)
+# metanet.io.save_sims(save_name + '.mat', *sims, **data)
 
 # plot results
 fig, axs = sim_true.plot(t, sharex=True)
