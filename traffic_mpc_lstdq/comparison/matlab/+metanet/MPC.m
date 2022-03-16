@@ -1,4 +1,4 @@
-classdef MPC
+classdef MPC < handle
     % MPC Wrapper around casadi.Opti to facilitate solving MPC problem for
     % the given 3-link metanet problem.
     
