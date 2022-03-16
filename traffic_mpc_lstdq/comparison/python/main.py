@@ -19,10 +19,10 @@ import matplotlib.pyplot as plt
 # This is also an exercise to run two simulations at the same time, which only
 # share the dynamics
 run_name = time.strftime('%Y%m%d_%H%M%S')
-save_name = 'result_' + run_name
+save_name = run_name + '_data'
 
 logging.basicConfig(
-    filename='log_' + run_name + '.txt', level=logging.INFO,
+    filename=run_name + '_log.txt', level=logging.INFO,
     format='[%(levelname)s|%(asctime)s] - %(message)s', datefmt='%H:%M:%S')
 logger = logging.getLogger(__name__)
 
@@ -136,24 +136,23 @@ MPCs = []
 
 # create MPC controllers for true and nominal models
 for sim in sims:
-    plugin_opts = {'expand': True, 'print_time': False,
-                   'calc_lam_x': True, 'calc_multipliers': True}
+    plugin_opts = {'expand': True, 'print_time': False, }
     solver_opts = {'print_level': 0, 'max_iter': max_iter}
 
-    # OPTI mpc
-    mpc = control.OptiMPC(
-        sim=sim, Np=Np, Nc=Nc, M=M, cost=cost, solver='ipopt',
-        plugin_opts=plugin_opts, solver_opts=solver_opts)
-    slack1 = mpc.add_slack('1', mpc.vars[f'w_{sim.net.O2}'].shape)
-    mpc.opti.subject_to(mpc.vars[f'w_{sim.net.O2}'] - slack1 <= w2_constraint)
-
-    # # NLP mpc
-    # mpc = control.NlpSolMPC(
+    # # OPTI mpc
+    # mpc = control.OptiMPC(
     #     sim=sim, Np=Np, Nc=Nc, M=M, cost=cost, solver='ipopt',
     #     plugin_opts=plugin_opts, solver_opts=solver_opts)
     # slack1 = mpc.add_slack('1', mpc.vars[f'w_{sim.net.O2}'].shape)
-    # mpc.add_constraint(-np.inf,
-    #                    mpc.vars[f'w_{sim.net.O2}'] - slack1, w2_constraint)
+    # mpc.opti.subject_to(mpc.vars[f'w_{sim.net.O2}'] - slack1 <= w2_constraint)
+
+    # NLP mpc
+    mpc = control.NlpSolMPC(
+        sim=sim, Np=Np, Nc=Nc, M=M, cost=cost, solver='ipopt',
+        plugin_opts=plugin_opts, solver_opts=solver_opts)
+    slack1 = mpc.add_slack('1', mpc.vars[f'w_{sim.net.O2}'].shape)
+    mpc.add_constraint(-np.inf,
+                       mpc.vars[f'w_{sim.net.O2}'] - slack1, w2_constraint)
 
     MPCs.append(mpc)
 
