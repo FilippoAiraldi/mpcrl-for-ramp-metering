@@ -3,8 +3,8 @@ clc, clearvars, close all
 
 %% logging and saving
 runname = datestr(datetime,'yyyymmdd_HHMMSS');
-log_filename = strcat('log_', runname, '.txt');
-result_filename = strcat('result_', runname, '.mat');
+log_filename = strcat(runname, '_log.txt');
+result_filename = strcat(runname, '_data.mat');
 diary(log_filename)   
 
 

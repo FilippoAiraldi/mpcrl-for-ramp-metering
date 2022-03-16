@@ -132,8 +132,6 @@ classdef MPC
 
             % set solver for opti
             plugin_opts = struct('expand', false, 'print_time', false);
-            % solver_opts = struct('print_level', 0, 'max_iter', 3e3, ...
-            %   'max_cpu_time', 3e2);
             solver_opts = struct('print_level', 0, 'max_iter', 3e3);
             obj.opti.solver('ipopt', plugin_opts, solver_opts);
             % plugin_opts = struct('qpsol', 'osqp', 'expand', true, 'print_time', false);
