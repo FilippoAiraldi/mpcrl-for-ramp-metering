@@ -1,12 +1,11 @@
 clc, close all, clear all
 
 
+
 %% logging and saving
 runname = datestr(datetime,'yyyymmdd_HHMMSS');
 log_filename = strcat(runname, '_log.txt');
 result_filename = strcat(runname, '_data.mat');
-% diary(log_filename)   
-fprintf('# Fields: [Realtime_tot|Episode_n|Realtime_episode] - [Sim_time|Sim_iter|Sim_perc] - Message\n')
 
 
 
@@ -63,27 +62,60 @@ Nc = 3;
 M = 6;
 plugin_opts = struct('expand', false, 'print_time', false);
 solver_opts = struct('print_level', 0, 'max_iter', 3e3);
+slack_penalty = 1e1;
 mpc = struct;
 for name = ["Q", "V"]
     % instantiate an MPC
-    controller = rlmpc.NMPC(Np, Nc, M);
-    controller.init_opti(F); 
+    ctrl = rlmpc.NMPC(Np, Nc, M);
+    ctrl.init_opti(F); 
 
     % set solver
-    controller.set_ipopt_opts(plugin_opts, solver_opts);
+    ctrl.set_ipopt_opts(plugin_opts, solver_opts);
 
-    % set objective
-    slack = controller.add_var('slack', [1, M * Np + 1]);
-    % ...
+    % set soft constraint on ramp queue
+    slack = ctrl.add_var('slack', 1, M * Np + 1);
+    ctrl.opti.subject_to(slack >= 0);
+    ctrl.opti.subject_to(ctrl.vars.w(2, :) - slack <= max_queue)
+
+    % get the costs components
+    [Vcost, Lcost, Tcost] = rlmpc.get_learnable_costs( ...
+        size(ctrl.vars.w, 1), size(ctrl.vars.v, 1), ...
+        2 * max_queue, rho_max, 1.2 * v_free, ... % normalization are constant
+        T, L, lanes, ...
+        'constant', 'posdef', 'posdef');
+
+    % create required parameters
+    weight_V = ctrl.add_par('weight_V', size(Vcost.mx_in(3)));
+    weight_L_rho = ctrl.add_par('weight_L_rho', size(Lcost.mx_in(5)));
+    weight_L_v = ctrl.add_par('weight_L_v', size(Lcost.mx_in(6)));
+    weight_T = ctrl.add_par('weight_T', size(Tcost.mx_in(2)));
+    r_last = ctrl.add_par('r_last', size(ctrl.vars.r, 1), 1);
+
+    % compute the actual symbolic cost expression with opti vars and pars
+    cost = ...
+        Vcost(ctrl.vars.w(:, 1), ctrl.vars.rho(:, 1), ...
+            ctrl.vars.v(:, 1), weight_V) + ...                              % initial cost
+        Tcost(ctrl.vars.rho(:, end), ctrl.pars.rho_crit, weight_T) + ...    % terminal cost
+        slack_penalty * slack(end) + ...                                    % terminal slack penalty
+        metanet.rate_variability(r_last, ctrl.vars.r);                      % terminal rate variability
+    for k = 1:M * Np
+        cost = cost + ...
+            slack_penalty * slack(k) + ...                                  % stage slack penalty
+            Lcost(ctrl.vars.w(:, k), ctrl.vars.rho(:, k), ...               
+                ctrl.vars.v(:, k), ctrl.pars.rho_crit, ...
+                ctrl.pars.v_free, weight_L_rho, weight_L_v);                % stage cost (includes TTS)
+    end
+
+    % assign cost to opti
+    ctrl.set_cost(cost);
 
     % save to struct
-    mpc.(name) = controller;
+    mpc.(name) = ctrl;
 end
 
 % Q approximator has additional constraint on first action
-r_first = mpc.Q.add_param('r_first', [1, 1]);
+r_first = mpc.Q.add_par('r_first', 1, 1);
 mpc.Q.opti.subject_to(mpc.Q.vars.r(:, 1) == r_first);
-
 
 
 %% Simulation
@@ -118,9 +150,12 @@ last_sol.v = repmat(v, 1, M * Np + 1);
 
 % simulation details
 rl_update_at = [round(K / 2), K];
-save_freq = 2;
+save_freq = 5;
 
 % simulate episodes
+% diary(log_filename)
+fprintf(['# Fields: [Realtime_tot|Episode_n|Realtime_episode] ', ...
+    '- [Sim_time|Sim_iter|Sim_perc] - Message\n'])
 start_tot_time = tic;
 for i = 1:episodes
     % preallocate episode result containers
@@ -139,9 +174,12 @@ for i = 1:episodes
         % compute MPC control action 
         if mod(k, M) == 1
             % assemble inputs
-            % ...
+            d = util.get_future_demand(D, k, K, M, Np);
 
             % run MPC
+            % ...
+
+            % print if error
             % ...
 
             % assign results
@@ -149,7 +187,8 @@ for i = 1:episodes
             objective{i}{end + 1} = 1;
             slack{i}{end + 1} = ones(1, M * Np + 1)';
 
-            % store transition in replay memory (from M states ago)
+            % store transition in replay memory (from M states ago) only if
+            % no errors occurred
             % ...
         end
 
@@ -189,7 +228,7 @@ for i = 1:episodes
     end
 
     % log intermediate results -> sum of objective at least
-    msg = sprintf('episode %i terminated: cost=%f', i, sum(objective{i}));
+    msg = sprintf('episode %i terminated: cost=%.3f', i, sum(objective{i}));
     util.logging(toc(start_tot_time), i, exec_times{i}, t(end), K, K, msg);
 end
 diary off

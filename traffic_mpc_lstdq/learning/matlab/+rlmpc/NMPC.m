@@ -35,10 +35,9 @@ classdef NMPC < handle
             obj.pars.w0 = obj.opti.parameter(2, 1);                     % initial values
             obj.pars.rho0 = obj.opti.parameter(3, 1);                   
             obj.pars.v0 = obj.opti.parameter(3, 1);
-            obj.pars.r_last = obj.opti.parameter(1, 1);                 % last action
 
-            % learnable params
-            obj.pars.a = obj.opti.parameter(1, 1);                      % model params
+            % params for the system dynamics
+            obj.pars.a = obj.opti.parameter(1, 1);
             obj.pars.v_free = obj.opti.parameter(1, 1);
             obj.pars.rho_crit = obj.opti.parameter(1, 1);
 
@@ -78,22 +77,33 @@ classdef NMPC < handle
             obj.opti.solver('ipopt', plugin_opts, solver_opts);
         end
 
-        function par = add_param(obj, name, size)
+        function set_cost(obj, cost)
+            obj.opti.minimize(cost) 
+        end
+
+        function par = add_par(obj, name, nrows, ncols)
             assert(all(~strcmp(fieldnames(obj.pars), name), 'all'), ...
                 'parameter name already in use')
-            par = obj.opti.parameter(size(1), size(2));
+            if nargin < 4
+                ncols = nrows(2);
+                nrows = nrows(1);
+            end
+            par = obj.opti.parameter(nrows, ncols);
             obj.pars.(name) = par;
         end
 
-        function var = add_var(obj, name, size)
+        function var = add_var(obj, name, nrows, ncols)
             assert(all(~strcmp(fieldnames(obj.vars), name), 'all'), ...
                 'variable name already in use')
-            var = obj.opti.variable(size(1), size(2));
+            if nargin < 4
+                ncols = nrows(2);
+                nrows = nrows(1);
+            end
+            var = obj.opti.variable(nrows, ncols);
             obj.vars.(name) = var;
         end
 
-        function set_cost(obj)
-        end
+
 
 
 

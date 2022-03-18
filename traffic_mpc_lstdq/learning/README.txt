@@ -45,11 +45,11 @@ LEARNING
 
 
 ## NOTES
-do not use solutions where casadi has not converged to optimal
+1. do not use solutions where casadi has not converged to optimal
 
-remember to normalize
+2. remember to normalize
 
-MPC
+3. MPC
 	- initial
 		affine term (EMPC) in states (can be also a parameter to learn)
 
@@ -60,5 +60,5 @@ MPC
 	- terminal
 		quadratic in density with tracking of rho_crit
 
-RL
+   RL
 	same stage cost as MPC + constraint violation penalty (weights are fixed)
