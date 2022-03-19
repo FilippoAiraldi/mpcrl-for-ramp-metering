@@ -1,7 +1,6 @@
 function [init_cost, stage_cost, terminal_cost] = get_learnable_costs(...
     n_origins, n_links, ...
     w_max, rho_max, v_max, ...
-    T, L, lanes, ...
     init_type, stage_type, final_type)
 
 
@@ -26,15 +25,11 @@ function [init_cost, stage_cost, terminal_cost] = get_learnable_costs(...
 
     init_cost = casadi.Function('init_cost', ...
         {w, rho, v, weight}, {J0}, ...
-        {'w', 'rho', 'v', 'weight'}, {'J_affine'});
+        {'w', 'rho', 'v', 'weight'}, {init_type});
     assert(isequal(size(J0), [1, 1]))
 
 
     %% stage cost
-    % total time spent in traffic cost (not normalized!!)
-    TTS = metanet.TTS(w, rho, T, L, lanes);
-
-    % learnable cost term
     switch stage_type
         case 'full'
             weight_rho = casadi.SX.sym('weight_rho', n_links, n_links);
@@ -58,16 +53,14 @@ function [init_cost, stage_cost, terminal_cost] = get_learnable_costs(...
     yv = (v - v_free) / v_max;
     Jk = yr' * Q_rho * yr + yv' * Q_v * yv;
 
-    % sum the components together
     stage_cost = casadi.Function('stage_cost', ...
-        {w, rho, v, rho_crit, v_free, weight_rho, weight_v}, {Jk + TTS}, ...
-        {'w', 'rho', 'v', 'rho_crit', 'v_free', 'weight_rho', 'weight_v'}, ... 
-        {sprintf('J_%s', final_type)});
+        {rho, v, rho_crit, v_free, weight_rho, weight_v}, {Jk}, ...
+        {'rho', 'v', 'rho_crit', 'v_free', 'weight_rho', 'weight_v'}, ... 
+        {stage_type});
     assert(isequal(size(Jk), [1, 1]))
 
 
     %% final/terminal cost
-    % create weights
     switch final_type
         case 'full'
             weight = casadi.SX.sym('weight', n_links, n_links);
@@ -82,12 +75,11 @@ function [init_cost, stage_cost, terminal_cost] = get_learnable_costs(...
             error('Invalid final type (''full'', ''diag'', ''posdef'')')
     end
 
-    % compute cost and create function
     yr = (rho - rho_crit) / rho_max;
     JN = yr' * Q * yr;
 
     terminal_cost = casadi.Function('terminal_cost', ...
         {rho, rho_crit, weight}, {JN}, ...
-        {'rho', 'rho_crit', 'weight'}, {sprintf('J_%s', final_type)});
+        {'rho', 'rho_crit', 'weight'}, {final_type});
     assert(isequal(size(JN), [1, 1]))
 end
