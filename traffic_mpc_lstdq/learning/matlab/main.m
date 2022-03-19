@@ -1,17 +1,12 @@
+% run with MATLAB 2021b
 clc, close all, clear all
-
-
-
-%% logging and saving
 runname = datestr(datetime,'yyyymmdd_HHMMSS');
-log_filename = strcat(runname, '_log.txt');
-result_filename = strcat(runname, '_data.mat');
 
 
 
 %% Model
 % simulation
-episodes = 50;                  % number of episodes to repeat
+episodes = 02;                  % number of episodes to repeat
 Tfin = 2;                       % simulation time per episode (h)
 T = 10 / 3600;                  % simulation step size (h)
 K = Tfin / T;                   % simulation steps per episode (integer)
@@ -32,13 +27,11 @@ eta = 60;                       % model parameter (km^2/lane)
 rho_max = 180;                  % maximum capacity (veh/km/lane)
 delta = 0.0122;                 % merging phenomenum parameter
 
-% true (unknown) and known (wrong) model parameters
-true_pars.a = 1.867;            % model parameter (adim)
-true_pars.v_free = 102;         % free flow speed (km/h)
-true_pars.rho_crit = 33.5;      % critical capacity (veh/km/lane)
-a = 2.111;
-v_free = 130;
-rho_crit = 27;
+% known (wrong) and true (unknown) model parameters
+a = 2.111;                      % model parameter (adim)
+v_free = 130;                   % free flow speed (km/h)
+rho_crit = 27;                  % critical capacity (veh/km/lane)
+true_pars = struct('a', 1.867, 'v_free', 102, 'rho_crit', 33.5);
 
 
 
@@ -56,13 +49,17 @@ D = [d1; d2];
 % create a symbolic casadi function for the dynamics
 F = metanet.get_dynamics(T, L, lanes, C2, rho_max, tau, delta, eta, kappa);
 
-% build mpc-based value function approximators
+% parameters
 Np = 7;
 Nc = 3;
 M = 6;
 plugin_opts = struct('expand', false, 'print_time', false);
 solver_opts = struct('print_level', 0, 'max_iter', 3e3);
-slack_penalty = 1e1;
+rate_var_penalty = 0.4;
+discount = 1;   % rl discount factor
+lr = 1e-3;      % rl learning rate
+
+% build mpc-based value function approximators
 mpc = struct;
 for name = ["Q", "V"]
     % instantiate an MPC
@@ -78,32 +75,36 @@ for name = ["Q", "V"]
     ctrl.opti.subject_to(ctrl.vars.w(2, :) - slack <= max_queue)
 
     % get the costs components
-    [Vcost, Lcost, Tcost] = rlmpc.get_learnable_costs( ...
-        size(ctrl.vars.w, 1), size(ctrl.vars.v, 1), ...
+    n_origins = size(ctrl.vars.w, 1);
+    n_links = size(ctrl.vars.v, 1);
+    [Vcost, Lcost, Tcost] = rlmpc.get_learnable_costs(...
+        n_origins, n_links, ...
         2 * max_queue, rho_max, 1.2 * v_free, ... % normalization are constant
-        T, L, lanes, ...
         'constant', 'posdef', 'posdef');
+    TTS = metanet.TTS(n_origins, n_links, T, L, lanes);
+    rate_var = metanet.rate_variability(size(ctrl.vars.r, 1), Nc);
 
     % create required parameters
     weight_V = ctrl.add_par('weight_V', size(Vcost.mx_in(3)));
-    weight_L_rho = ctrl.add_par('weight_L_rho', size(Lcost.mx_in(5)));
-    weight_L_v = ctrl.add_par('weight_L_v', size(Lcost.mx_in(6)));
+    weight_L_rho = ctrl.add_par('weight_L_rho', size(Lcost.mx_in(4)));
+    weight_L_v = ctrl.add_par('weight_L_v', size(Lcost.mx_in(5)));
     weight_T = ctrl.add_par('weight_T', size(Tcost.mx_in(2)));
+    weight_slack = ctrl.add_par('weight_slack', 1, 1);
     r_last = ctrl.add_par('r_last', size(ctrl.vars.r, 1), 1);
 
     % compute the actual symbolic cost expression with opti vars and pars
-    cost = ...
-        Vcost(ctrl.vars.w(:, 1), ctrl.vars.rho(:, 1), ...
-            ctrl.vars.v(:, 1), weight_V) + ...                              % initial cost
-        Tcost(ctrl.vars.rho(:, end), ctrl.pars.rho_crit, weight_T) + ...    % terminal cost
-        slack_penalty * slack(end) + ...                                    % terminal slack penalty
-        metanet.rate_variability(r_last, ctrl.vars.r);                      % terminal rate variability
+    cost = Vcost(ctrl.vars.w(:, 1), ctrl.vars.rho(:, 1), ...            % initial cost
+            ctrl.vars.v(:, 1), weight_V) + ...                              
+        Tcost(ctrl.vars.rho(:, end), ctrl.pars.rho_crit, weight_T) + ...% terminal cost
+        weight_slack * slack(end) + ...                                 % terminal slack penalty
+        rate_var_penalty * rate_var(r_last, ctrl.vars.r);               % terminal rate variability
     for k = 1:M * Np
         cost = cost + ...
-            slack_penalty * slack(k) + ...                                  % stage slack penalty
-            Lcost(ctrl.vars.w(:, k), ctrl.vars.rho(:, k), ...               
-                ctrl.vars.v(:, k), ctrl.pars.rho_crit, ...
-                ctrl.pars.v_free, weight_L_rho, weight_L_v);                % stage cost (includes TTS)
+            weight_slack * slack(k) + ...                               % stage slack penalty
+            Lcost(ctrl.vars.rho(:, k), ctrl.vars.v(:, k), ...           % stage cost
+                ctrl.pars.rho_crit, ctrl.pars.v_free, ...
+                weight_L_rho, weight_L_v) + ...                         
+            TTS(ctrl.vars.w(:, k), ctrl.vars.rho(:, k));                % TTS
     end
 
     % assign cost to opti
@@ -119,12 +120,22 @@ mpc.Q.opti.subject_to(mpc.Q.vars.r(:, 1) == r_first);
 
 
 %% Simulation
-% create experience buffer
-replaymem = rlmpc.ReplayMem(1e3);
+% initial conditions
+r = 1;                                  % ramp metering rate
+[w, rho, v] = util.steady_state(F, ...  % queue, density, speed
+    [0; 0], [5; 5; 18], [100; 198; 90], r, D(:, 1), ...
+    true_pars.a, true_pars.v_free, true_pars.rho_crit);
 
-% preallocate containers for data
+% initial function approx weights
+weight_V = ones(size(Vcost.mx_in(3)));
+weight_L_rho = ones(size(Lcost.mx_in(4))) * 2;
+weight_L_v = ones(size(Lcost.mx_in(5))) * 2;
+weight_T = ones(size(Tcost.mx_in(2))) * 5;
+weight_slack = 10;
+
+% preallocate containers for data (don;t use struct(var, cells))
 origins.queue = cell(1, episodes);
-origins.flow = cell(1, episodes);          
+origins.flow = cell(1, episodes);
 origins.rate = cell(1, episodes);
 links.flow = cell(1, episodes);
 links.density = cell(1, episodes);
@@ -132,41 +143,39 @@ links.speed = cell(1, episodes);
 objective = cell(1, episodes);      % of which mpc? V probably
 slack = cell(1, episodes);          % of which mpc? V probably
 exec_times = cell(1, episodes);
-learned_pars.a = {a};
-learned_pars.v_free = {v_free};
-learned_pars.rho_crit = {rho_crit};
-
-% initial conditions
-r = 1;                                  % ramp metering rate
-[w, rho, v] = util.steady_state(F, ...  % queue, density, speed
-    [0; 0], [5; 5; 18], [100; 198; 90], r, D(:, 1), ...
-    true_pars.a, true_pars.v_free, true_pars.rho_crit);
+rl_pars.v_free = {v_free};
+rl_pars.rho_crit = {rho_crit};
+rl_pars.weight_V = {weight_V};
+rl_pars.weight_L_rho = {weight_L_rho};
+rl_pars.weight_L_v = {weight_L_v};
+rl_pars.weight_T = {weight_T};
+rl_pars.weight_slack = {weight_slack};
 
 % initialize last solutions
-last_sol.w = repmat(w, 1, M * Np + 1);
-last_sol.r = ones(size(mpc.V.vars.r, 1), Nc);
-last_sol.rho = repmat(rho, 1, M * Np + 1);
-last_sol.v = repmat(v, 1, M * Np + 1);
+last_sol = struct('w', repmat(w, 1, M * Np + 1), ...
+    'r', ones(size(mpc.V.vars.r)), 'rho', repmat(rho, 1, M * Np + 1), ...
+    'v', repmat(v, 1, M * Np + 1), 'slack', zeros(size(mpc.V.vars.slack)));
 
 % simulation details
 rl_update_at = [round(K / 2), K];
 save_freq = 5;
+replaymem = rlmpc.ReplayMem(1e3);
 
 % simulate episodes
-% diary(log_filename)
+% diary(strcat(runname, '_log.txt'))
 fprintf(['# Fields: [Realtime_tot|Episode_n|Realtime_episode] ', ...
     '- [Sim_time|Sim_iter|Sim_perc] - Message\n'])
 start_tot_time = tic;
-for i = 1:episodes
+for ep = 1:episodes
     % preallocate episode result containers
-    origins.queue{i} = nan(size(mpc.V.vars.w, 1), K + 1);        
-    origins.flow{i} = nan(size(mpc.V.vars.w, 1), K);          
-    origins.rate{i} = nan(size(mpc.V.vars.r, 1), K);
-    links.flow{i} = nan(size(mpc.V.vars.v, 1), K);
-    links.density{i} = nan(size(mpc.V.vars.rho, 1), K + 1);
-    links.speed{i} = nan(size(mpc.V.vars.v, 1), K + 1);
-    objective{i} = {}; 
-    slack{i} = {};
+    origins.queue{ep} = nan(size(mpc.V.vars.w, 1), K);        
+    origins.flow{ep} = nan(size(mpc.V.vars.w, 1), K);          
+    origins.rate{ep} = nan(size(mpc.V.vars.r, 1), K);
+    links.flow{ep} = nan(size(mpc.V.vars.v, 1), K);
+    links.density{ep} = nan(size(mpc.V.vars.rho, 1), K);
+    links.speed{ep} = nan(size(mpc.V.vars.v, 1), K);
+    objective{ep} = {}; 
+    slack{ep} = {};
 
     % simulate episode (do RL update at specific iterations)
     start_ep_time = tic;
@@ -177,32 +186,41 @@ for i = 1:episodes
             d = util.get_future_demand(D, k, K, M, Np);
 
             % run MPC
-            % ...
+            pars = struct('d', d, 'w0', w, 'rho0', rho, 'v0', v, ...
+                'a', a, 'v_free', v_free, 'rho_crit', rho_crit, ...
+                'weight_V', weight_V, 'weight_L_rho', weight_L_rho, ...
+                'weight_L_v', weight_L_v, 'weight_T', weight_T, ...
+                'weight_slack', weight_slack, 'r_last', r);
+            % last_sol.slack = zeros(size(mpc.V.vars.slack));
+            [last_sol, info] = mpc.V.solve(pars, last_sol);
 
-            % print if error
-            % ...
+            % check if error during solver
+            if ~info.success
+                util.logging(toc(start_tot_time), ep, ...
+                    toc(start_ep_time), t(k), k, K, info.error);
+            else
+                % store transition in replay memory (from M states ago) 
+                % only if no errors occurred in this and previous iteration
+
+            end
 
             % assign results
-            r = 1;
-            objective{i}{end + 1} = 1;
-            slack{i}{end + 1} = ones(1, M * Np + 1)';
-
-            % store transition in replay memory (from M states ago) only if
-            % no errors occurred
-            % ...
+            r = last_sol.r(:, 1);
+            objective{ep}{end + 1} = info.f;
+            slack{ep}{end + 1} = last_sol.slack';
         end
 
         % step state (according to the true dynamics)
         [q_o, w_next, q, rho_next, v_next] = F(w, rho, v, r, D(:, k), ...
             true_pars.a, true_pars.v_free, true_pars.rho_crit);
 
-        % assign current state
-        origins.queue{i}(:, k) = full(w);
-        origins.flow{i}(:, k) = full(q_o);
-        origins.rate{i}(:, k) = full(r);
-        links.flow{i}(:, k) = full(q);
-        links.density{i}(:, k) = full(rho);
-        links.speed{i}(:, k) = full(v);
+        % save current state
+        origins.queue{ep}(:, k) = full(w);
+        origins.flow{ep}(:, k) = full(q_o);
+        origins.rate{ep}(:, k) = full(r);
+        links.flow{ep}(:, k) = full(q);
+        links.density{ep}(:, k) = full(rho);
+        links.speed{ep}(:, k) = full(v);
 
         % set next state as current
         w = full(w_next);
@@ -214,25 +232,40 @@ for i = 1:episodes
             % ...
         end
     end
-    exec_times{i} = toc(start_ep_time);
+    exec_times{ep} = toc(start_ep_time);
     
     % perform some final conversions
-    objective{i} = cell2mat(objective{i});
-    slack{i} = cell2mat(slack{i});
+    objective{ep} = cell2mat(objective{ep});
+    slack{ep} = cell2mat(slack{ep});
 
     % save every episode in a while
-    if mod(i - 1, 2) == 0
+    if mod(ep - 1, save_freq) == 0
         warning('off');
         save('checkpoint.mat')
         warning('on');
     end
 
     % log intermediate results -> sum of objective at least
-    msg = sprintf('episode %i terminated: cost=%.3f', i, sum(objective{i}));
-    util.logging(toc(start_tot_time), i, exec_times{i}, t(end), K, K, msg);
+    msg = sprintf('episode %i terminated: cost=%.4f (TTS=%.4f)', ep, ...
+        sum(objective{ep}), sum(TTS(origins.queue{ep}, links.density{ep})));
+    util.logging(toc(start_tot_time), ep, exec_times{ep}, t(end), K, K, msg);
 end
+exec_time_tot = toc(start_tot_time);
 diary off
 
 
 
-%% Plotting
+%% Saving and plotting
+% build arrays
+rl_pars = structfun(@(x) cell2mat(x), rl_pars, 'UniformOutput', false);
+
+% clear useless variables
+clear cost ctrl d d1 d2 ep F info k last_sol log_filename msg name pars ...
+    q q_o r r_first r_last replaymem rho rho_next ...
+    save_freq start_ep_time start_tot_time v v_next w w_next
+
+% save
+warning('off');
+save(strcat(runname, '_data.mat'));
+warning('on');
+run visualization.m
