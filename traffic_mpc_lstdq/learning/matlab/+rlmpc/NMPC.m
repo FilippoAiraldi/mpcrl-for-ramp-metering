@@ -103,60 +103,42 @@ classdef NMPC < handle
             obj.vars.(name) = var;
         end
 
+        function [sol, info] = solve(obj, pars, vals)
+            % set parameter values
+            names = fieldnames(obj.pars);
+            for i = 1:numel(names)
+                obj.opti.set_value(obj.pars.(names{i}), pars.(names{i}));
+            end
 
+            % set initial conditions for the solver
+            names = fieldnames(obj.vars);
+            for i = 1:numel(names)
+                obj.opti.set_initial(obj.vars.(names{i}), vals.(names{i}));
+            end
 
+            % run solver
+            info = struct;
+            try
+                s = obj.opti.solve();
+                info.success = true;
+                get_value = @(o) s.value(o);
+            catch ME1
+                try
+                    stats = obj.opti.debug.stats();
+                    info.success = false;
+                    info.error = stats.return_status;
+                    get_value = @(o) obj.opti.debug.value(o);
+                catch ME2
+                    rethrow(addCause(ME2, ME1))
+                end   
+            end
 
-
-%         function solve(obj, is_Q)
-%             if is_Q
-%                 opti = obj.opti.copy();
-%                 opti.subject_to(obj.vars.r(:, 1) == ...)
-%             else
-%                 opti = obj.opti;
-%             end
-% 
-%             % ...
-%         end
-
-%         function [w_opt, rho_opt, v_opt, r_opt, info] = solve(obj,...
-%                 d, w0, rho0, v0, r0, w_last, rho_last, v_last, r_last)
-%             
-%             % set parameters
-%             obj.opti.set_value(obj.pars.d, d);
-%             obj.opti.set_value(obj.pars.w0, w0);
-%             obj.opti.set_value(obj.pars.rho0, rho0);
-%             obj.opti.set_value(obj.pars.v0, v0);
-%             obj.opti.set_value(obj.pars.r_last, r0);
-%         
-%             % warm start
-%             obj.opti.set_initial(obj.vars.w, w_last);
-%             obj.opti.set_initial(obj.vars.rho, rho_last);
-%             obj.opti.set_initial(obj.vars.v, v_last);
-%             obj.opti.set_initial(obj.vars.r, r_last);
-%             obj.opti.set_initial(obj.vars.slack, 0);
-% 
-%             % run solver
-%             try
-%                 sol = obj.opti.solve();
-%                 info = struct();
-%                 get_value = @(o) sol.value(o);
-%             catch ME1
-%                 try
-%                     stats = obj.opti.debug.stats();
-%                     info = struct('error', stats.return_status);
-%                     get_value = @(o) obj.opti.debug.value(o);
-%                 catch ME2
-%                     rethrow(addCause(ME2, ME1))
-%                 end   
-%             end
-% 
-%             % get outputs
-%             info.f = get_value(obj.opti.f);
-%             info.slack = get_value(obj.vars.slack);
-%             w_opt = get_value(obj.vars.w);
-%             rho_opt = get_value(obj.vars.rho);
-%             v_opt = get_value(obj.vars.v);
-%             r_opt = get_value(obj.vars.r);
-%         end
+            % get outputs
+            info.f = get_value(obj.opti.f);
+            sol = struct;
+            for i = 1:numel(names)
+                sol.(names{i}) = full(get_value(obj.vars.(names{i})));
+            end
+        end
     end
 end
