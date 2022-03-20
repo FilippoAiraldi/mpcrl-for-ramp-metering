@@ -105,15 +105,13 @@ classdef NMPC < handle
 
         function [sol, info] = solve(obj, pars, vals)
             % set parameter values
-            names = fieldnames(obj.pars);
-            for i = 1:numel(names)
-                obj.opti.set_value(obj.pars.(names{i}), pars.(names{i}));
+            for name = fieldnames(obj.pars)'
+                obj.opti.set_value(obj.pars.(name{1}), pars.(name{1}));
             end
 
             % set initial conditions for the solver
-            names = fieldnames(obj.vars);
-            for i = 1:numel(names)
-                obj.opti.set_initial(obj.vars.(names{i}), vals.(names{i}));
+            for name = fieldnames(obj.vars)'
+                obj.opti.set_initial(obj.vars.(name{1}), vals.(name{1}));
             end
 
             % run solver
@@ -121,6 +119,7 @@ classdef NMPC < handle
             try
                 s = obj.opti.solve();
                 info.success = true;
+                info.sol_obj = s;
                 get_value = @(o) s.value(o);
             catch ME1
                 try
@@ -135,9 +134,11 @@ classdef NMPC < handle
 
             % get outputs
             info.f = get_value(obj.opti.f);
+%             info.g = get_value(obj.opti.g);
+%             info.lam_g = get_value(obj.opti.lam_g);
             sol = struct;
-            for i = 1:numel(names)
-                sol.(names{i}) = full(get_value(obj.vars.(names{i})));
+            for name = fieldnames(obj.vars)'
+                sol.(name{1}) = full(get_value(obj.vars.(name{1})));
             end
         end
     end
