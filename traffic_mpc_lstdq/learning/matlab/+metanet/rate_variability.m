@@ -7,5 +7,5 @@ function J = rate_variability(n_ramps, Nc)
    assert(isequal(size(variability), [1, 1]));
 
     J = casadi.Function('rate_var_cost', {r_last, r}, {variability}, ...
-        {'r_last', 'r'}, {'J_rate_var'});
+        {'r_last', 'r'}, {'rate_var'});
 end

@@ -7,5 +7,5 @@ function J = TTS(n_origins, n_links, T, L, lanes)
     assert(isequal(size(TTS), [1, 1]));
     
     J = casadi.Function('tts_cost', {w, rho}, {TTS}, ...
-        {'w', 'rho'}, {'J_TTS'});
+        {'w', 'rho'}, {'TTS'});
 end
