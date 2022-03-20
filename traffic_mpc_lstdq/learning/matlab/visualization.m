@@ -6,12 +6,12 @@ clc
 % if no variables, load from file
 if isempty(who())
     warning('off');
-    load 20220319_124248_data.mat
+    load 20220320_155247_data.mat
     warning('on');
 end
 
 % plotting step (to reduce number of datapoints to be plot)
-step = 3;
+step = 1;
 
 
 
@@ -25,7 +25,7 @@ Table = {... % all entries must be strings
     'episodes', episodes; ...
     'tot exec time', duration(0, 0, exec_time_tot, 'Format', 'hh:mm:ss');...
     'mean ep exec time', ...
-        duration(0, 0, mean(cell2mat(exec_times)), 'Format', 'hh:mm:ss');
+        duration(0, 0, mean(exec_times), 'Format', 'hh:mm:ss');
 
     % MPC details
     'MPC', delimiter; ...
@@ -35,6 +35,7 @@ Table = {... % all entries must be strings
     'type cost terminal', Tcost.name_out(); ...
     'max iter', solver_opts.max_iter; ... 
     'rate var penalty weight', rate_var_penalty; ...
+    'explor. perturbation mag.', perturb_mag; ...
     'max queue', max_queue; ...
 
     % RL details
@@ -132,15 +133,10 @@ stairs(t_tot(1:step:end), origins_tot.rate(:, 1:step:end)')
 hlegend(8) = legend('r_{O2}');
 ylabel('metering rate')
 
-ax(9) = nexttile(7);
+ax(9) = nexttile(11);
 L_tot = full(Lrl(origins_tot.queue, links_tot.density));
 plot(t_tot(1:step:end), L_tot(:, 1:step:end))
 ylabel('L')
-
-ax(10) = nexttile(8);
-td_error_tot = 1:240; % placeholder
-plot(linspace(1, episodes, length(td_error_tot)), td_error_tot)
-ylabel('TD error \tau')
 
 linkaxes(ax, 'x')
 for i = 1:length(ax)
@@ -150,7 +146,7 @@ for i = 1:length(ax)
 %     hold(ax(i), 'on')
 %     plot(ax(i), (1:episodes) * Tfin, [0, ax(i).YLim(2)], ':k', 'LineWidth', 0.25)
 %     hold(ax(i), 'off')
-    if isa(hlegend(i), 'matlab.graphics.illustration.Legend')
+    if i <= length(hlegend) && isa(hlegend(i), 'matlab.graphics.illustration.Legend')
         hlegend(i).String = hlegend(i).String(1:end-episodes+1);
     end
     ax(i).YLim(1) = 0;
@@ -159,16 +155,43 @@ end
 
 % plot episode-based quantities
 ax = matlab.graphics.axis.Axes.empty;
-
 ax(1) = nexttile(3, [1, 2]);
 performance = arrayfun(@(ep) full(sum(Lrl(origins.queue{ep}, links.density{ep}))), 1:episodes);
-plot(1:episodes, performance)
+% plot(linspace(0, episodes, length(performance)), performance, 'o')
+% bar(performance)
+stairs(linspace(0, episodes, length(performance) + 1), [performance, performance(end)])
+ax(1).YLim(1) = 0;
 ylabel('J(\pi)')
 
-warning('still need to add plots for each learnable param ')
+ax(2) = nexttile(7, [1, 2]);
+td_error_tot = cell2mat(td_error);
+plot(linspace(0, episodes, length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
+ylabel('TD error \tau')
 
-% tiles 11, 12, 15, 16 for showing convergences of learned parameters
+ax(3) = nexttile(15); hold on
+stairs(linspace(0, episodes, length(rl_pars.v_free)), rl_pars.v_free)
+stairs(linspace(0, episodes, length(rl_pars.rho_crit)), rl_pars.rho_crit)
+ax(3).ColorOrderIndex = 1;
+plot([0, episodes], [true_pars.v_free, true_pars.v_free], '--')
+plot([0, episodes], [true_pars.rho_crit, true_pars.rho_crit], '--')
+legend('v_{free}', '\rho_{crit}')
+hold off
+ylabel('v_{free}, \rho_{crit}')
 
+ax(4) = nexttile(12, [2, 1]); hold on
+weights = fieldnames(rl_pars);
+legendStrings = {};
+for name = weights(3:end)' % first 2 are v_free and rho_crit
+    weight = rl_pars.(name{1});
+    for i = 1:size(weight, 1)
+        w = weight(i, :);
+        stairs(linspace(0, episodes, length(w)), w)
+        legendStrings{end + 1} = append(name, '_', string(i));
+    end
+end
+hold off
+legend(legendStrings{:}, 'interpreter', 'none')
+ylabel('weights')
 
 linkaxes(ax, 'x')
 for i = 1:length(ax)

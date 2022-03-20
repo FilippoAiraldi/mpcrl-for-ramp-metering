@@ -1,12 +1,12 @@
 % run with MATLAB 2021b
-clc, close all, clear all
-runname = datestr(datetime,'yyyymmdd_HHMMSS');
+clc, clearvars, close all
+runname = datestr(datetime, 'yyyymmdd_HHMMSS');
 
 
 
 %% Model
 % simulation
-episodes = 02;                  % number of episodes to repeat
+episodes = 10;                  % number of episodes to repeat
 Tfin = 2;                       % simulation time per episode (h)
 T = 10 / 3600;                  % simulation step size (h)
 K = Tfin / T;                   % simulation steps per episode (integer)
@@ -60,11 +60,12 @@ Nc = 3;                             % control horizon
 M = 6;                              % horizon spacing factor
 plugin_opts = struct('expand', false, 'print_time', false);
 solver_opts = struct('print_level', 0, 'max_iter', 3e3, 'tol', 1e-5);
+perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
 discount = 1;                       % rl discount factor
-lr = 1e-1;                          % rl learning rate
+lr = 1e-3;                          % rl learning rate
 con_violation_penalty = 30;         % rl penalty for constraint violations
-rl_update_freq = round(K / 2);      % when rl should update
+rl_update_freq = round(K / 2) * 1e3;      % when rl should update
 save_freq = 5;                      % checkpoint saving
 
 % cost terms (learnable MPC, metanet and RL)
@@ -177,7 +178,7 @@ last_sol = struct('w', repmat(w, 1, M * Np + 1), ...
 
 % simulate episodes
 replaymem = rlmpc.ReplayMem(1e3);
-% diary(strcat(runname, '_log.txt'))
+diary(strcat(runname, '_log.txt'))
 fprintf(['# Fields: [Realtime_tot|Episode_n|Realtime_episode] ', ...
     '- [Sim_time|Sim_iter|Sim_perc] - Message\n'])
 start_tot_time = tic;
@@ -227,7 +228,8 @@ for ep = 1:episodes
                 'weight_L_v', rl_pars.weight_L_v{end}, ...
                 'weight_T', rl_pars.weight_T{end}, ...
                 'weight_slack', rl_pars.weight_slack{end}, ...
-                'r_last', r, 'perturbation', (50 * 0.8^(ep - 1)) * randn);
+                'r_last', r, ...
+                'perturbation', (perturb_mag * 0.8^(ep - 1)) * randn);
             last_sol.slack = zeros(size(mpc.V.vars.slack));
             [last_sol, info_V] = mpc.V.solve(pars, last_sol);
 
@@ -252,7 +254,7 @@ for ep = 1:episodes
                         msg = sprintf('V: %s. ', info_V.error);
                     end
                     if ~info_Q.success
-                        msg = append(msg, sprintf('Q: %s.', info_V.error));
+                        msg = append(msg, sprintf('Q: %s.', info_Q.error));
                     end
                     util.logging(toc(start_tot_time), ep, ...
                         toc(start_ep_time), t(k), k, K, msg);
@@ -293,6 +295,8 @@ for ep = 1:episodes
             % first row is td error, then derivatives of Q w.r.t. weigths
             exp = cell2mat(replaymem.sample(300));
             td_err = exp(1, :);
+            util.logging(toc(start_tot_time), ep, toc(start_ep_time), ...
+                t(k), k, K, sprintf('RL update with %i samples', size(exp, 2)));
 
             % compute next parameters: w = w - lr * mean(td * dQ.theta) 
             i = 2;
@@ -305,9 +309,6 @@ for ep = 1:episodes
         end
     end
     exec_times(ep) = toc(start_ep_time);
-    
-    % perform some final conversions
-    slack{ep} = cell2mat(slack{ep});
 
     % save every episode in a while
     if mod(ep - 1, save_freq) == 0
@@ -318,7 +319,7 @@ for ep = 1:episodes
 
     % log intermediate results
     msg = sprintf('episode %i terminated: TTS=%.4f', ...
-        ep, sum(TTS(origins.queue{ep}, links.density{ep})));
+        ep, full(sum(TTS(origins.queue{ep}, links.density{ep}))));
     util.logging(toc(start_tot_time), ep, exec_times(ep), t(end), K, K, msg);
 end
 exec_time_tot = toc(start_tot_time);
@@ -331,9 +332,9 @@ diary off
 rl_pars = structfun(@(x) cell2mat(x), rl_pars, 'UniformOutput', false);
 
 % clear useless variables
-clear cost ctrl d d1 d2 ep F i info k last_sol log_filename msg name pars ...
+clear cost ctrl d d1 d2 ep exp F i info k last_sol log_filename msg name pars ...
     q q_o r r_first r_last r_prev replaymem rho rho_next rho_prev save_freq ...
-    start_ep_time start_tot_time sz v v_next v_prev w w_next w_prev
+    start_ep_time start_tot_time td_err sz v v_next v_prev w w_next w_prev
 
 % save
 warning('off');
