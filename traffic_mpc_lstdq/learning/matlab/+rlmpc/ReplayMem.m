@@ -32,7 +32,13 @@ classdef ReplayMem < handle
         end
         
         function [samples, idx_samples] = sample(obj, n)
+            % check if percentage
+            if floor(n) ~= n
+                n = round(n * obj.maxcapacity);
+            end
             n = min(n, obj.length);
+
+            % sample at random
             idx_samples = randperm(obj.length, n);
             samples = obj.data(idx_samples);
         end
