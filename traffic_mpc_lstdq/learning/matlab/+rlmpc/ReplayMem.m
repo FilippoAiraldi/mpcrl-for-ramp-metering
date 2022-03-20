@@ -31,10 +31,10 @@ classdef ReplayMem < handle
             end
         end
         
-        function samples = sample(obj, n)
+        function [samples, idx_samples] = sample(obj, n)
             n = min(n, obj.length);
-            idx = randperm(obj.length, n);
-            samples = obj.data(idx);
+            idx_samples = randperm(obj.length, n);
+            samples = obj.data(idx_samples);
         end
     end
 end
