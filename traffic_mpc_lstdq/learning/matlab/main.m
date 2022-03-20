@@ -1,5 +1,6 @@
 % run with MATLAB 2021b
 clc, clearvars, close all
+rng(42)
 runname = datestr(datetime, 'yyyymmdd_HHMMSS');
 
 
@@ -41,9 +42,10 @@ true_pars = struct('a', 1.867, 'v_free', 102, 'rho_crit', 33.5);
 
 
 %% Disturbances
-d1 = util.create_profile(t, [0, .35, 1, 1.35], [1000, 3150, 3150, 1000]);
+d1 = util.create_profile(t, [0, .35, 1, 1.35], [1000, 3500, 3500, 1000]);
 d2 = util.create_profile(t, [.15, .35, .6, .8], [500, 1800, 1800, 500]);
-D = [d1; d2];
+D = repmat([d1; d2], 1, episodes + 1); % +1 to avoid out-of-bound access
+% D = smoothdata(awgn(D, 1.5e1, 'measured')')';
 % plot(t, d1, t, d2),
 % legend('O1', 'O2'), xlabel('time (h)'), ylabel('demand (h)')
 % ylim([0, 4000])
@@ -63,9 +65,9 @@ solver_opts = struct('print_level', 0, 'max_iter', 3e3, 'tol', 1e-5);
 perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
 discount = 1;                       % rl discount factor
-lr = 1e-3;                          % rl learning rate
+lr = 1e-4;                          % rl learning rate
 con_violation_penalty = 30;         % rl penalty for constraint violations
-rl_update_freq = round(K / 2) * 1e3;      % when rl should update
+rl_update_freq = round(K / 4);      % when rl should update
 save_freq = 5;                      % checkpoint saving
 
 % cost terms (learnable MPC, metanet and RL)
@@ -161,6 +163,7 @@ exec_times = nan(1, episodes);
 origins.queue = cell(1, episodes);
 origins.flow = cell(1, episodes);
 origins.rate = cell(1, episodes);
+origins.demand = mat2cell(D(:, 1:K * episodes), 2, repmat(K, 1, episodes));
 links.flow = cell(1, episodes);
 links.density = cell(1, episodes);
 links.speed = cell(1, episodes);
@@ -177,11 +180,14 @@ last_sol = struct('w', repmat(w, 1, M * Np + 1), ...
     'v', repmat(v, 1, M * Np + 1), 'slack', zeros(size(mpc.V.vars.slack)));
 
 % simulate episodes
-replaymem = rlmpc.ReplayMem(1e3);
+replaymem = rlmpc.ReplayMem(rl_update_freq * 5);
 diary(strcat(runname, '_log.txt'))
 fprintf(['# Fields: [Realtime_tot|Episode_n|Realtime_episode] ', ...
     '- [Sim_time|Sim_iter|Sim_perc] - Message\n'])
 start_tot_time = tic;
+
+TODO: try running istantaneous Q-learning with small learning rate to see whether 
+    we have to add or subtract the learning term from the paramater update
 
 for ep = 1:episodes
     % preallocate episode result containers
@@ -202,8 +208,8 @@ for ep = 1:episodes
             k_mpc = ceil(k / M); % mpc iteration
 
             % run Q(s_k, a_k) - excluding very first iteration
-            if k_mpc > 1
-                pars = struct('d', util.get_future_demand(D, k - M, K, M, Np), ...
+            if ep > 1 || k_mpc > 1
+                pars = struct('d', util.get_future_demand(D, ep, k - M, K, M, Np), ...
                     'w0', w_prev, 'rho0', rho_prev, 'v0', v_prev, ...
                     'a', a, 'v_free', rl_pars.v_free{end}, ...
                     'rho_crit', rl_pars.rho_crit{end}, ...
@@ -219,7 +225,7 @@ for ep = 1:episodes
             end
 
             % run V(s_k)
-            pars = struct('d', util.get_future_demand(D, k, K, M, Np), ...
+            pars = struct('d', util.get_future_demand(D, ep, k, K, M, Np), ...
                 'w0', w, 'rho0', rho, 'v0', v, ...
                 'a', a, 'v_free', rl_pars.v_free{end}, ...
                 'rho_crit', rl_pars.rho_crit{end}, ...
@@ -234,7 +240,7 @@ for ep = 1:episodes
             [last_sol, info_V] = mpc.V.solve(pars, last_sol);
 
             % save to memory if no error; or log error 
-            if k_mpc > 1
+            if ep > 1 || k_mpc > 1
                 if info_V.success && info_Q.success
                     % compute td error
                     td_error{ep}(k_mpc) = full(Lrl(w_prev, rho_prev)) + ...
@@ -245,9 +251,12 @@ for ep = 1:episodes
                         dQ.(name{1}) = info_Q.sol_obj.value(dQlagr.(name{1}));
                     end
     
-                    % store everything in memory (as array takes much less space)
+                    % store everything in memory (array takes much less space)
                     replaymem.add([td_error{ep}(k_mpc); ...
                         cell2mat(struct2cell(dQ))]);
+
+                    util.logging(toc(start_tot_time), ep, ...
+                        toc(start_ep_time), t(k), k, K);
                 else
                     msg = '';
                     if ~info_V.success
@@ -293,19 +302,22 @@ for ep = 1:episodes
         % perform RL updates
         if mod(k, rl_update_freq) == 0
             % first row is td error, then derivatives of Q w.r.t. weigths
-            exp = cell2mat(replaymem.sample(300));
+            exp = cell2mat(replaymem.sample(0.3));
             td_err = exp(1, :);
-            util.logging(toc(start_tot_time), ep, toc(start_ep_time), ...
-                t(k), k, K, sprintf('RL update with %i samples', size(exp, 2)));
 
             % compute next parameters: w = w - lr * mean(td * dQ.theta) 
             i = 2;
             for name = fieldnames(rl_pars)'
                 sz = length(rl_pars.(name{1}){end});
-                rl_pars.(name{1}){end + 1} = rl_pars.(name{1}){end} - ...
+                rl_pars.(name{1}){end + 1} = rl_pars.(name{1}){end} + ...
                     lr * (exp(i:i+sz-1, :) * td_err') / length(td_err);
                 i = i + sz;
             end
+
+            % log update result
+            util.logging(toc(start_tot_time), ep, toc(start_ep_time), ...
+                t(k), k, K, sprintf('RL update with %i samples (v_free=%.3f, rho_crit=%.3f)', ...
+                size(exp, 2), rl_pars.v_free{end}, rl_pars.rho_crit{end}));
         end
     end
     exec_times(ep) = toc(start_ep_time);
@@ -332,11 +344,12 @@ diary off
 rl_pars = structfun(@(x) cell2mat(x), rl_pars, 'UniformOutput', false);
 
 % clear useless variables
-clear cost ctrl d d1 d2 ep exp F i info k last_sol log_filename msg name pars ...
+clear cost ctrl d D d1 d2 ep exp F i info k last_sol log_filename msg name pars ...
     q q_o r r_first r_last r_prev replaymem rho rho_next rho_prev save_freq ...
     start_ep_time start_tot_time td_err sz v v_next v_prev w w_next w_prev
 
 % save
+delete checkpoint.mat
 warning('off');
 save(strcat(runname, '_data.mat'));
 warning('on');

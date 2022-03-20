@@ -110,7 +110,7 @@ plot(linspace(t_tot(1), t_tot(end), length(slack_tot)), slack_tot);
 ylabel('slack \sigma')
 
 ax(5) = nexttile(9); 
-plot(t_tot(1:step:end), repmat(D(:, 1:step:end), 1, episodes)')
+plot(t_tot(1:step:end), origins_tot.demand(:, 1:step:end)')
 hlegend(5) = legend('d_{O1}', 'd_{O2}');
 ylabel('origin demand (veh/h)')
 % ax(5).YLim(2) = 4000;
@@ -155,6 +155,7 @@ end
 
 % plot episode-based quantities
 ax = matlab.graphics.axis.Axes.empty;
+
 ax(1) = nexttile(3, [1, 2]);
 performance = arrayfun(@(ep) full(sum(Lrl(origins.queue{ep}, links.density{ep}))), 1:episodes);
 % plot(linspace(0, episodes, length(performance)), performance, 'o')
