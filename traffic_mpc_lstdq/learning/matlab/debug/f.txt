@@ -1,0 +1,56 @@
+# Jcon at g=388, x=9
+g=388 is queue_next==queue
+x=9 is queue
+
+
+
+# MX variables and parameters
+[opti_x_1, opti_x_3, opti_x_4, opti_x_2] = [w, rho, v, r]
+[opti_p_1, opti_p_5, opti_p_6, opti_p_7] = [d, a, v_free, rho_crit]
+
+
+
+
+# Original jacobian
+@1=0.00277778, 									% T
+@2=(p_12+(x_8/@1)), 							% x_8=w(1, 5), p_12=d(1, 5) 
+@3=1, 											% @3 is the density (maybe its derivative?)
+@4=(p_135*exp(((-1/p_134)*pow(@3,p_134)))),     % p_134=a, p_135=v_free, p_136=rho_crit
+@5=(x_230 < @4), 								% x_230=v(1, 5)
+@6=2, 											% what is this?
+@7=((@5?(((@6*x_230)*p_136)*pow((-(p_134*log((x_230/p_135)))), (1./p_134))):0)+((!@5)?((@6*@4)*p_136):0)), 
+(-((!((x_8+(@1*(p_12-fmin(@2,@7))))<=0))*(@3-(@2<=@7))))
+
+
+
+
+# Symbolic substitutions by hand
+@2 = d1(5) + (w1(5) / T), 
+@5 = v1(5) < v_free * exp((-1 / a) * (rho_crit / rho_crit)^a)
+@7 = q_lim = v1(5) < v_free * exp((-1 / a) * (rho_crit / rho_crit)^a) ?
+			 [2 * v1(5) * rho_crit * (-a * log(v1(5) / v_free))^(1 / a))]:0
+			 [2 * v_free * exp(-1 / a) * rho_crit]:0 										% what does x:0 mean? First element of x?
+	 
+J_388x9 = -(!((w1(5) + (T * (d1(5) - fmin(d1(5) + (w1(5) / T), q_lim)))) <= 0)) *
+			(1 - (d1(5) + (w1(5) / T) <= q_lim))											% I think this it the boolean condition that brings the derivative to zero in case the fmin is not satisfied
+			 
+			 
+
+# Numerical (by using saved values)
+d1(5) = 981.211
+w1(5) = 73.9209
+v1(5) = -1.4872e-05
+a = 2.111
+v_free = 129.7751
+rho_crit = 24.9938
+T = 10/3600
+
+@2 = d1(5) + (w1(5) / T) = 27592.7
+@5 = v1(5) < v_free * exp((-1 / a) * (rho_crit / rho_crit)^a) = -1.4872e-05 < 80.8095
+@7 = v1(5) < v_free * exp((-1 / a) * (rho_crit / rho_crit)^a) ?				-1.4872e-05 < 80.8095 ?
+	 [2 * v1(5) * rho_crit * (-a * log(v1(5) / v_free))^(1 / a))]:0				-7.4340e-04 *  AHHHHHHHHHHHHH LOG OF A NEGATIVE NUMBER
+	 [2 * v_free * exp(-1 / a) * rho_crit]:0 										
+	 
+J_388x9 = -(!((w1(5) + (T * (981.211 - fmin(27592.7, q_lim)))) <= 0)) *
+			(1 - (27592.7 <= q_lim))											
+			
