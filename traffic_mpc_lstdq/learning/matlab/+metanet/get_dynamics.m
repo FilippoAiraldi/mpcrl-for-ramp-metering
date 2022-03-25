@@ -1,14 +1,19 @@
-function F = get_dynamics(T, L, lanes, C2, rho_max, tau, delta, eta, kappa)
-    % F = GET_DYNAMICS(T, L, lanes, C2, rho_max, tau, delta, eta, kappa) 
+function F = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
+        T, L, lanes, C2, rho_max, tau, delta, eta, kappa, eps)
+    % F = GET_DYNAMICS(T, L, lanes, C2, rho_max, tau, delta, eta, kappa, eps) 
     %   Creates a casadi.Function object represeting the dynamics equation 
     %   of the 3-link traffic network
 
+    if nargin < 14
+        eps = 0; % nonnegative constraint precision
+    end
+
     % states, input and disturbances
-    w = casadi.SX.sym('w', 2, 1);
-    rho = casadi.SX.sym('rho', 3, 1);
-    v = casadi.SX.sym('v', 3, 1);
-    r2 = casadi.SX.sym('r', 1, 1);
-    d = casadi.SX.sym('d', 2, 1);
+    w = casadi.SX.sym('w', n_origins, 1);
+    rho = casadi.SX.sym('rho', n_links, 1);
+    v = casadi.SX.sym('v', n_links, 1);
+    r = casadi.SX.sym('r', n_ramps, 1);
+    d = casadi.SX.sym('d', n_dist, 1);
 
     % parameters
     a = casadi.SX.sym('a', 1, 1);
@@ -16,11 +21,18 @@ function F = get_dynamics(T, L, lanes, C2, rho_max, tau, delta, eta, kappa)
     rho_crit = casadi.SX.sym('rho_crit', 1, 1);
 
     % run system dynamics function
-    [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r2, d, T, L, ...
+    [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, T, L, ...
         lanes, C2, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa);
 
+    % ensure nonnegativity
+    q_o = max(eps, q_o);
+    w_o_next = max(eps, w_o_next);
+    q = max(eps, q);
+    rho_next = max(eps, rho_next);
+    v_next = max(eps, v_next);
+
     % create casadi function
-    F = casadi.Function('F', {w, rho, v, r2, d, a, v_free, rho_crit}, ...
+    F = casadi.Function('F', {w, rho, v, r, d, a, v_free, rho_crit}, ...
         {q_o, w_o_next, q, rho_next, v_next}, ...
         {'w', 'rho', 'v', 'r', 'd', 'a', 'v_free', 'rho_crit'}, ...
         {'q_o', 'w_o_next', 'q', 'rho_next', 'v_next'});
@@ -45,7 +57,7 @@ function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r2, d, ...
 
     % step queue at origins O1 and O2
     q_o = [q_O1; q_O2];
-    w_o_next = w + T * (d - q_o);
+    w_o_next = w + T * (d(1:2) - q_o);
 
 
     %%% BOUNDARIES
@@ -59,7 +71,11 @@ function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r2, d, ...
     v_up = [v(1); v(1); v(2)];
 
     % compute downstream density
-    rho_down = [rho(2); rho(3); min(rho(3), rho_crit)];
+    if length(d) > 2
+        rho_down = [rho(2); rho(3); max(min(rho(3), rho_crit), d(3))];
+    else
+        rho_down = [rho(2); rho(3); min(rho(3), rho_crit)];
+    end
 
 
     %%% LINK
@@ -75,14 +91,6 @@ function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r2, d, ...
               + T / L * v .* (v_up - v) ...
               - eta * T / tau / L * (rho_down - rho) ./ (rho + kappa));
     v_next(3) = v_next(3) - delta * T / L / lanes * q_O2 * v(3) / (rho(3) + kappa);    
-
-
-    %%% OUT
-    q_o = max(0, q_o);
-    w_o_next = max(0, w_o_next);
-    q = max(0, q);
-    rho_next = max(0, rho_next);
-    v_next = max(0, v_next);
 end
 
 function V = Veq(rho, v_free, a, rho_crit)

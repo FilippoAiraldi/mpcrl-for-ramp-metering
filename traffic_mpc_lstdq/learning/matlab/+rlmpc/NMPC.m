@@ -21,7 +21,11 @@ classdef NMPC < handle
             obj.opti = casadi.Opti();
         end
 
-        function init_opti(obj, Fdyn)
+        function init_opti(obj, Fdyn, eps)
+            if nargin < 3
+                eps = 0; % nonnegative constraint precision
+            end
+
             % F:(w[2],rho[3],v[3],r,d[2],a,v_free,rho_crit)->(q_o[2],w_o_next[2],q[3],rho_next[3],v_next[3])
             n_links = size(Fdyn.mx_in(1), 1);   % number of links
             n_orig = size(Fdyn.mx_in(0), 1);    % number of origins
@@ -49,9 +53,9 @@ classdef NMPC < handle
 
             % constraints on domains
             obj.opti.subject_to(0.2 <= obj.vars.r <= 1) %#ok<CHAIN> 
-            obj.opti.subject_to(obj.vars.w(:) >= 0)
-            obj.opti.subject_to(obj.vars.rho(:) >= 0)
-            obj.opti.subject_to(obj.vars.v(:) >= 0)
+            obj.opti.subject_to(obj.vars.w(:) >= eps)
+            obj.opti.subject_to(obj.vars.rho(:) >= eps)
+            obj.opti.subject_to(obj.vars.v(:) >= eps)
             
             % constraints on initial conditions
             obj.opti.subject_to(obj.vars.w(:, 1) == obj.pars.w0)
