@@ -7,7 +7,7 @@ runname = datestr(datetime, 'yyyymmdd_HHMMSS');
 
 %% Model
 % simulation
-episodes = 10;                  % number of episodes to repeat
+episodes = 30;                  % number of episodes to repeat
 Tfin = 2;                       % simulation time per episode (h)
 T = 10 / 3600;                  % simulation step size (h)
 K = Tfin / T;                   % simulation steps per episode (integer)
@@ -42,23 +42,30 @@ true_pars = struct('a', 1.867, 'v_free', 102, 'rho_crit', 33.5);
 
 
 %% Disturbances
-d1 = util.create_profile(t, [0, .35, 1, 1.35], [1000, 3500, 3500, 1000]);
-d2 = util.create_profile(t, [.15, .35, .6, .8], [500, 1800, 1800, 500]);
-D = repmat([d1; d2; d_cong], 1, episodes + 1); % +1 to avoid out-of-bound access
+% d1 = util.create_profile(t, [0, .35, 1, 1.35], [1000, 3500, 3500, 1000]);
+% d2 = util.create_profile(t, [.15, .35, .6, .8], [500, 1800, 1800, 500]);
+
+d1 = util.create_profile(t, [0, .35, 1, 1.35], [1000, 3000, 3000, 1000]);
+d2 = util.create_profile(t, [.15, .35, .6, .8], [500, 1500, 1500, 500]);
+d_cong = util.create_profile(t, [0.5, .7, 1, 1.2], [20, 60, 60, 20]);
 
 % add noise
+D = repmat([d1; d2; d_cong], 1, episodes + 1); % +1 to avoid out-of-bound access
 [filter_num, filter_den] = butter(3, 0.2);
-D = filtfilt(filter_num, filter_den, (D + randn(size(D)) * 75)')';
+D = filtfilt(filter_num, filter_den, (D + randn(size(D)) .* [75; 75; 1.5])')';
 
-plot((0:length(D) - 1) * T, D'),
-legend('O1', 'O2'), xlabel('time (h)'), ylabel('demand (h)')
-ylim([0, 4000])
+% plot((0:length(D) - 1) * T, (D .* [1; 1; 50])'),
+% legend('O1', 'O2', 'cong_{\times50}'), xlabel('time (h)'), ylabel('demand (h)')
+% ylim([0, 4000])
 
 
 
 %% MPC-based RL
 % create a symbolic casadi function for the dynamics
-F = metanet.get_dynamics(T, L, lanes, C2, rho_max, tau, delta, eta, kappa);
+n_dist = size(D, 1);                % number of disturbances
+eps = 1e-6;                         % nonnegative constraint precision
+F = metanet.get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
+    T, L, lanes, C2, rho_max, tau, delta, eta, kappa, eps);
 
 % parameters (constant)
 Np = 7;                             % prediction horizon
@@ -69,13 +76,12 @@ solver_opts = struct('print_level', 0, 'max_iter', 1.5e3, 'tol', 1e-7);
 perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
 discount = 1;                       % rl discount factor
-lr = 1e-6;                          % rl learning rate
+lr = 1e-5;                          % rl learning rate
 con_violation_penalty = 30;         % rl penalty for constraint violations
 rl_update_freq = round(K / 5);      % when rl should update
-rl_mem_cap = 100;                   % RL experience replay capacity
-rl_mem_sample = 30;                 % RL experience replay sampling size
-save_freq = 5;                      % checkpoint saving
-
+rl_mem_cap = 150;                   % RL experience replay capacity
+rl_mem_sample = 40;                 % RL experience replay sampling size
+save_freq = 2;                      % checkpoint saving
 
 % cost terms (learnable MPC, metanet and RL)
 [Vcost, Lcost, Tcost] = rlmpc.get_mpc_learnable_costs(...
@@ -84,15 +90,15 @@ save_freq = 5;                      % checkpoint saving
     'constant', 'posdef', 'posdef');
 TTS = metanet.TTS(n_origins, n_links, T, L, lanes);
 rate_var = metanet.rate_variability(n_ramps, Nc);
-Lrl = rlmpc.get_rl_cost(n_origins, n_links, TTS, ...
-    max_queue, con_violation_penalty);
+Lrl = rlmpc.get_rl_cost(n_origins, n_links, TTS, max_queue, ...
+    con_violation_penalty);
 
 % build mpc-based value function approximators
 mpc = struct;
 for name = ["Q", "V"]
     % instantiate an MPC
     ctrl = rlmpc.NMPC(Np, Nc, M);
-    ctrl.init_opti(F); 
+    ctrl.init_opti(F, eps); 
 
     % set solver
     ctrl.set_ipopt_opts(plugin_opts, solver_opts);
@@ -172,13 +178,13 @@ exec_times = nan(1, episodes);
 origins.queue = cell(1, episodes);
 origins.flow = cell(1, episodes);
 origins.rate = cell(1, episodes);
-origins.demand = mat2cell(D(:, 1:K * episodes), 2, repmat(K, 1, episodes));
+origins.demand = mat2cell(D(:, 1:K * episodes), n_dist, repmat(K, 1, episodes));
 links.flow = cell(1, episodes);
 links.density = cell(1, episodes);
 links.speed = cell(1, episodes);
 
 % precompute Q lagrangian and its derivative w.r.t. learnable params
-Qlagr = mpc.Q.opti.f + mpc.Q.opti.lam_g' * mpc.Q.opti.g;
+Qlagr = simplify(mpc.Q.opti.f + mpc.Q.opti.lam_g' * mpc.Q.opti.g);
 for name = fieldnames(rl_pars)'
     dQlagr.(name{1}) = simplify(jacobian(Qlagr, mpc.Q.pars.(name{1}))');
 end
@@ -254,6 +260,7 @@ for ep = 1:episodes
                         discount * info_V.f  - info_Q.f;
     
                     % compute gradient of Q w.r.t. params
+                    dQ = struct;
                     for name = fieldnames(rl_pars)'
                         dQ.(name{1}) = info_Q.sol_obj.value(dQlagr.(name{1}));
                     end
@@ -323,9 +330,10 @@ for ep = 1:episodes
 
             % log update result
             util.logging(toc(start_tot_time), ep, toc(start_ep_time), ...
-                t(k), k, K, sprintf('RL update %i with %i samples (v_free=%.3f, rho_crit=%.3f)', ...
+                t(k), k, K, ...
+                sprintf('RL update %i with %i samples (v_free=%.3f, rho_crit=%.3f, v_free_track=%.3f)', ...
                 length(rl_pars.v_free) - 1, size(exp, 2), ...
-                rl_pars.v_free{end}, rl_pars.rho_crit{end}));
+                rl_pars.v_free{end}, rl_pars.rho_crit{end}, rl_pars.v_free_tracking{end}));
         end
     end
     exec_times(ep) = toc(start_ep_time);
