@@ -1,0 +1,37 @@
+# Fields: [Realtime_tot|Episode_n|Realtime_episode] - [Sim_time|Sim_iter|Sim_perc] - Message
+[00:01:19|1|00:01:19] - [00:30:00|181|25.1%] - V: Maximum_Iterations_Exceeded. 
+[00:02:59|1|00:02:59] - [00:31:00|187|26.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:05:40|1|00:05:40] - [00:36:00|217|30.1%] - V: Maximum_Iterations_Exceeded. 
+[00:06:28|1|00:06:28] - [00:37:00|223|31.0%] - Q: Maximum_Iterations_Exceeded.
+[00:06:42|1|00:06:42] - [00:59:50|360|50.0%] - RL update with 55 samples
+[00:07:14|1|00:07:14] - [01:59:50|720|100.0%] - RL update with 115 samples
+[00:07:14|1|00:07:14] - [01:59:50|720|100.0%] - episode 1 terminated: TTS=232.2614
+[00:08:47|2|00:01:32] - [00:37:00|223|31.0%] - V: Maximum_Iterations_Exceeded. 
+[00:09:46|2|00:02:32] - [00:38:00|229|31.8%] - V: Maximum_Iterations_Exceeded. 
+[00:10:01|2|00:02:46] - [00:59:50|360|50.0%] - RL update with 172 samples
+[00:10:34|2|00:03:19] - [01:59:50|720|100.0%] - RL update with 232 samples
+[00:10:34|2|00:03:19] - [01:59:50|720|100.0%] - episode 2 terminated: TTS=198.3187
+[00:12:19|3|00:01:44] - [00:59:50|360|50.0%] - RL update with 291 samples
+[00:12:56|3|00:02:21] - [01:59:50|720|100.0%] - RL update with 300 samples
+[00:12:56|3|00:02:21] - [01:59:50|720|100.0%] - episode 3 terminated: TTS=198.2578
+[00:13:35|4|00:00:39] - [00:59:50|360|50.0%] - RL update with 300 samples
+[00:14:02|4|00:01:05] - [01:59:50|720|100.0%] - RL update with 300 samples
+[00:14:02|4|00:01:05] - [01:59:50|720|100.0%] - episode 4 terminated: TTS=198.2715
+[00:14:37|5|00:00:35] - [00:59:50|360|50.0%] - RL update with 300 samples
+[00:15:01|5|00:00:59] - [01:59:50|720|100.0%] - RL update with 300 samples
+[00:15:01|5|00:00:59] - [01:59:50|720|100.0%] - episode 5 terminated: TTS=198.2734
+[00:15:33|6|00:00:31] - [00:59:50|360|50.0%] - RL update with 300 samples
+[00:15:56|6|00:00:54] - [01:59:50|720|100.0%] - RL update with 300 samples
+[00:15:56|6|00:00:54] - [01:59:50|720|100.0%] - episode 6 terminated: TTS=198.3076
+[00:16:29|7|00:00:32] - [00:59:50|360|50.0%] - RL update with 300 samples
+[00:16:52|7|00:00:56] - [01:59:50|720|100.0%] - RL update with 300 samples
+[00:16:52|7|00:00:56] - [01:59:50|720|100.0%] - episode 7 terminated: TTS=198.2516
+[00:17:25|8|00:00:33] - [00:59:50|360|50.0%] - RL update with 300 samples
+[00:17:48|8|00:00:55] - [01:59:50|720|100.0%] - RL update with 300 samples
+[00:17:48|8|00:00:55] - [01:59:50|720|100.0%] - episode 8 terminated: TTS=198.2448
+[00:18:20|9|00:00:31] - [00:59:50|360|50.0%] - RL update with 300 samples
+[00:18:42|9|00:00:53] - [01:59:50|720|100.0%] - RL update with 300 samples
+[00:18:42|9|00:00:53] - [01:59:50|720|100.0%] - episode 9 terminated: TTS=198.2757
+[00:19:12|10|00:00:30] - [00:59:50|360|50.0%] - RL update with 300 samples
+[00:19:34|10|00:00:52] - [01:59:50|720|100.0%] - RL update with 300 samples
+[00:19:34|10|00:00:52] - [01:59:50|720|100.0%] - episode 10 terminated: TTS=198.2557
