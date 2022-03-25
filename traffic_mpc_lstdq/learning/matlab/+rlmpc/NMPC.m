@@ -21,20 +21,26 @@ classdef NMPC < handle
             obj.opti = casadi.Opti();
         end
 
-        function init_opti(obj, Fdynamics)
+        function init_opti(obj, Fdyn)
+            % F:(w[2],rho[3],v[3],r,d[2],a,v_free,rho_crit)->(q_o[2],w_o_next[2],q[3],rho_next[3],v_next[3])
+            n_links = size(Fdyn.mx_in(1), 1);   % number of links
+            n_orig = size(Fdyn.mx_in(0), 1);    % number of origins
+            n_ramps = size(Fdyn.mx_in(3), 1);   % number of onramps
+            n_d = size(Fdyn.mx_in(4), 1);       % number of disturbances
+            
             % create vars
             obj.vars = struct;
-            obj.vars.w = obj.opti.variable(2, obj.M * obj.Np + 1);      % origin queue lengths  
-            obj.vars.r = obj.opti.variable(1, obj.Nc);                  % ramp metering rates
-            obj.vars.rho = obj.opti.variable(3, obj.M * obj.Np + 1);    % link densities
-            obj.vars.v = obj.opti.variable(3, obj.M * obj.Np + 1);      % link speeds
+            obj.vars.w = obj.opti.variable(n_orig, obj.M * obj.Np + 1);     % origin queue lengths  
+            obj.vars.r = obj.opti.variable(n_ramps, obj.Nc);                % ramp metering rates
+            obj.vars.rho = obj.opti.variable(n_links, obj.M * obj.Np + 1);  % link densities
+            obj.vars.v = obj.opti.variable(n_links, obj.M * obj.Np + 1);    % link speeds
 
             % create pars
             obj.pars = struct;
-            obj.pars.d = obj.opti.parameter(2, obj.M * obj.Np);         % origin demands    
-            obj.pars.w0 = obj.opti.parameter(2, 1);                     % initial values
-            obj.pars.rho0 = obj.opti.parameter(3, 1);                   
-            obj.pars.v0 = obj.opti.parameter(3, 1);
+            obj.pars.d = obj.opti.parameter(n_d, obj.M * obj.Np);   % origin demands    
+            obj.pars.w0 = obj.opti.parameter(n_orig, 1);            % initial values
+            obj.pars.rho0 = obj.opti.parameter(n_links, 1);                   
+            obj.pars.v0 = obj.opti.parameter(n_links, 1);
 
             % params for the system dynamics
             obj.pars.a = obj.opti.parameter(1, 1);
@@ -58,7 +64,7 @@ classdef NMPC < handle
 
             % constraints on state evolution
             for k = 1:obj.M * obj.Np
-                [~, w_next, ~, rho_next, v_next] = Fdynamics(...
+                [~, w_next, ~, rho_next, v_next] = Fdyn(...
                     obj.vars.w(:, k), ...
                     obj.vars.rho(:, k), ...
                     obj.vars.v(:, k), ...
