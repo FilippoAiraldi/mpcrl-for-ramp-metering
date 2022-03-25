@@ -6,7 +6,7 @@ clc
 % if no variables, load from file
 if isempty(who())
     warning('off');
-    load 20220320_155247_data.mat
+    load data\20220321_172841_data.mat
     warning('on');
 end
 
@@ -158,11 +158,19 @@ ax = matlab.graphics.axis.Axes.empty;
 
 ax(1) = nexttile(3, [1, 2]);
 performance = arrayfun(@(ep) full(sum(Lrl(origins.queue{ep}, links.density{ep}))), 1:episodes);
-% plot(linspace(0, episodes, length(performance)), performance, 'o')
-% bar(performance)
-stairs(linspace(0, episodes, length(performance) + 1), [performance, performance(end)])
-ax(1).YLim(1) = 0;
+performance_only_tts = arrayfun(@(ep) full(sum(TTS(origins.queue{ep}, links.density{ep}))), 1:episodes);
+yyaxis left
+plot(linspace(0, episodes, length(performance)), performance)
+% stairs(linspace(0, episodes, length(performance) + 1), [performance, performance(end)])
+% ax(1).YLim(1) = 0;
 ylabel('J(\pi)')
+yyaxis right
+plot(linspace(0, episodes, length(performance_only_tts)), performance_only_tts)
+% stairs(linspace(0, episodes, length(performance_only_tts) + 1), [performance_only_tts, performance_only_tts(end)])
+ylabel('TTS(\pi)')
+% bar(0.5:1:(episodes-0.5), [performance_only_tts', (performance - performance_only_tts)'], 'stacked')
+% ylabel('J(\pi)')
+
 
 ax(2) = nexttile(7, [1, 2]);
 td_error_tot = cell2mat(td_error);
