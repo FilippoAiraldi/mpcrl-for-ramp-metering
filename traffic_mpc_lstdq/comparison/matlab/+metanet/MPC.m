@@ -89,7 +89,7 @@ classdef MPC < handle
             obj.vars.r = obj.opti.variable(1, obj.Nc);
             obj.vars.slack = obj.opti.variable(1, obj.M * obj.Np + 1);
             obj.pars = struct;
-            obj.pars.d = obj.opti.parameter(2, obj.M * obj.Np);       
+            obj.pars.d = obj.opti.parameter(3, obj.M * obj.Np);       
             obj.pars.w0 = obj.opti.parameter(2, 1);
             obj.pars.rho0 = obj.opti.parameter(3, 1);
             obj.pars.v0 = obj.opti.parameter(3, 1);

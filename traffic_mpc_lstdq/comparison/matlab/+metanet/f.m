@@ -19,7 +19,7 @@ function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r2, d, ...
 
     % step queue at origins O1 and O2
     q_o = [q_O1; q_O2];
-    w_o_next = w + T * (d - q_o);
+    w_o_next = w + T * (d(1:2) - q_o);
 
 
     %% BOUNDARIES
@@ -33,7 +33,7 @@ function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r2, d, ...
     v_up = [v(1); v(1); v(2)];
 
     % compute downstream density
-    rho_down = [rho(2); rho(3); min(rho(3), rho_crit)];
+    rho_down = [rho(2); rho(3); max(d(3), min(rho(3), rho_crit))];
     
 
     %% LINKS

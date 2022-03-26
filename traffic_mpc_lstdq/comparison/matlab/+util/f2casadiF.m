@@ -6,7 +6,7 @@ function F = f2casadiF(T, L, lanes, C2, rho_max, tau, delta, eta, kappa)
     rho = casadi.SX.sym('rho', 3, 1);
     v = casadi.SX.sym('v', 3, 1);
     r2 = casadi.SX.sym('r', 1, 1);
-    d = casadi.SX.sym('d', 2, 1);
+    d = casadi.SX.sym('d', 3, 1);
 
     % parameters
     a = casadi.SX.sym('a', 1, 1);

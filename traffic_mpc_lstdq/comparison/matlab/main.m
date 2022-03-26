@@ -10,7 +10,7 @@ diary(log_filename)
 
 %% Model
 % simulation
-Tstage = 1.5;                   % simulation time per stage (h)
+Tstage = 2;                     % simulation time per stage (h)
 stages = 1;                     % number of repetitions basically
 Tfin = Tstage * stages;         % final simulation time (h)
 T = 10 / 3600;                  % simulation step size (h)
@@ -49,17 +49,22 @@ rho_crit = [33.5, 27];          % critical capacity (veh/km/lane)
 % d2 = util.create_profile(t, [.15, .32, .57, .75], [500, 1800, 1800, 500]);
 
 % result 2 disturbance - more difference in cost, some slack
-d1 = util.create_profile(t, [0, .3, .95, 1.25], [1000, 3150, 3150, 1000]);
-d2 = util.create_profile(t, [.15, .32, .57, .75], [500, 1800, 1800, 500]);
+% d1 = util.create_profile(t, [0, .3, .95, 1.25], [1000, 3150, 3150, 1000]);
+% d2 = util.create_profile(t, [.15, .32, .57, .75], [500, 1800, 1800, 500]);
 
 % non-piecewise disturbances
 % d1 = 2500 * (math.sigmoid(20 * (t - 0.15)) - math.sigmoid(20 * (t - 1.1))) + 1000;
 % d2 = 1250 * (math.sigmoid(40 * (t - 0.225)) - math.sigmoid(40 * (t - 0.66))) + 500;
 
+% new disturbance
+d1 = util.create_profile(t, [0, .35, 1, 1.35], [1000, 3000, 3000, 1000]);
+d2 = util.create_profile(t, [.15, .35, .6, .8], [500, 1500, 1500, 500]);
+d_cong = util.create_profile(t, [0.5, .7, 1, 1.2], [20, 60, 60, 20]);
+
 % assemble and plot disturbances
-D = [d1; d2];
-% plot(t, d1, t, d2),
-% legend('O1', 'O2'), xlabel('time (h)'), ylabel('demand (h)')
+D = [d1; d2; d_cong];
+% plot(t, d1, t, d2, t, d_cong * 50),
+% legend('O1', 'O2', 'Congestion x 50'), xlabel('time (h)'), ylabel('demand (h)')
 % ylim([0, 4000])
 
 
@@ -215,8 +220,8 @@ ax(4) = nexttile;
 ax(4).Visible = 'off';
 
 ax(5) = nexttile; 
-plot(t, D)
-legend('d_{O1}', 'd_{O2}')
+plot(t, D(1, :), t, D(2, :), t, D(3, :) * 50)
+legend('d_{O1}', 'd_{O2}', 'd_{cong} \times 50')
 ylabel('origin demand (veh/h)')
 ax(5).YLim(2) = 3500;
 

@@ -1,8 +1,8 @@
 % clc, close all 
 clearvars
 
-% filename = 'data/result_20220315_113719.mat';
-filename = 'data/20220315_114938_data.mat';
+% filename = 'data/20220315_114938_data.mat';
+filename = '20220325_101250_data.mat';
 step = 1;
 
 
@@ -55,8 +55,8 @@ ax(4) = nexttile;
 ax(4).Visible = 'off';
 
 ax(5) = nexttile; 
-plot(time(1:step:end), origin_demand(:, 1:step:end)')
-legend('d_{O1}', 'd_{O2}')
+plot(time(1:step:end), (origin_demand(:, 1:step:end) .* [1; 1; 50])')
+legend('d_{O1}', 'd_{O2}', 'd_{cong} \times 50')
 ylabel('origin demand (veh/h)')
 ax(5).YLim(2) = 3500;
 
