@@ -1,21 +1,23 @@
-function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r2, d, ...
-    T, L, lanes, C2, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa)
+function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, ...
+    T, L, lanes, C, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa, eps)
     % F Metanet model dyanmics. Compute the next states and other current
     %   quantities for the given 3-link metanet model.
 
 
     %% ORIGIN 
     % compute flow at mainstream origin O1
-    V_rho_crit = metanet.Veq(rho_crit, v_free, a, rho_crit);
-    v_lim1 = v(1);
-    q_cap1 = lanes * V_rho_crit * rho_crit;
-    q_speed1 = lanes * v_lim1 * rho_crit * (-a * log(v_lim1 / v_free))^(1 / a);
-    q_lim1 = cs.if_else(v_lim1 < V_rho_crit, q_speed1, q_cap1);
-    q_O1 = min(d(1) + w(1) / T, q_lim1);
+%     V_rho_crit = metanet.Veq(rho_crit, v_free, a, rho_crit);
+%     v_lim1 = v(1);
+%     q_cap1 = lanes * V_rho_crit * rho_crit;
+%     q_speed1 = lanes * v_lim1 * rho_crit * (-a * log(v_lim1 / v_free))^(1 / a);
+%     q_lim1 = cs.if_else(v_lim1 < V_rho_crit, q_speed1, q_cap1);
+%     q_O1 = min(d(1) + w(1) / T, q_lim1);
+    q_O1 = min(d(1) + w(1) / T, C(1) * ...
+               min(r(1), (rho_max - rho(1)) / (rho_max - rho_crit)));
 
     % compute flow at onramp origin O2
-    q_O2 = min(d(2) + w(2) / T, C2 * ...
-                   min(r2, (rho_max - rho(3)) / (rho_max - rho_crit)));
+    q_O2 = min(d(2) + w(2) / T, C(2) * ...
+                   min(r(2), (rho_max - rho(3)) / (rho_max - rho_crit)));
 
     % step queue at origins O1 and O2
     q_o = [q_O1; q_O2];
@@ -52,9 +54,9 @@ function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r2, d, ...
     
 
     %% OUTPUTS
-    q_o = max(0, q_o);
-    w_o_next = max(0, w_o_next);
-    q = max(0, q);
-    rho_next = max(0, rho_next);
-    v_next = max(0, v_next);
+    q_o = max(eps, q_o);
+    w_o_next = max(eps, w_o_next);
+    q = max(eps, q);
+    rho_next = max(eps, rho_next);
+    v_next = max(eps, v_next);
 end

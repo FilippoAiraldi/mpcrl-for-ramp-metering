@@ -20,7 +20,7 @@ classdef MPC < handle
     %% PUBLIC METHODS
     methods (Access = public) 
         % constructor
-        function obj = MPC(Np, Nc, M, Fdyn, a, v_free, rho_crit, T, L, lanes)
+        function obj = MPC(Np, Nc, M, Fdyn, a, v_free, rho_crit, T, L, lanes, eps)
             % save variables
             obj.Np = Np;
             obj.Nc = Nc;
@@ -30,7 +30,7 @@ classdef MPC < handle
             obj.rho_crit = rho_crit;
 
             % create opti
-            obj = obj.create_opti(Fdyn, T, L, lanes);
+            obj = obj.create_opti(Fdyn, T, L, lanes, eps);
         end
 
         function [w_opt, rho_opt, v_opt, r_opt, info] = solve(obj,...
@@ -77,7 +77,7 @@ classdef MPC < handle
 
     %% PRIVATE METHODS
     methods (Access = private)  
-        function obj = create_opti(obj, F, T, L, lanes)
+        function obj = create_opti(obj, F, T, L, lanes, eps)
             % create opti stack
             obj.opti = casadi.Opti();
 
@@ -103,9 +103,9 @@ classdef MPC < handle
 
             % constraints on domains
             obj.opti.subject_to(0.2 <= obj.vars.r <= 1) %#ok<CHAIN> 
-            obj.opti.subject_to(obj.vars.w(:) >= 0)
-            obj.opti.subject_to(obj.vars.rho(:) >= 0)
-            obj.opti.subject_to(obj.vars.v(:) >= 0)
+            obj.opti.subject_to(obj.vars.w(:) >= eps)
+            obj.opti.subject_to(obj.vars.rho(:) >= eps)
+            obj.opti.subject_to(obj.vars.v(:) >= eps)
             
             % constraints on initial conditions
             obj.opti.subject_to(obj.vars.w(:, 1) == obj.pars.w0)
@@ -131,8 +131,8 @@ classdef MPC < handle
             obj.opti.subject_to(obj.vars.w(2, :) - obj.vars.slack <= 100);
 
             % set solver for opti
-            plugin_opts = struct('expand', false, 'print_time', false);
-            solver_opts = struct('print_level', 0, 'max_iter', 3e3);
+            plugin_opts = struct('expand', true, 'print_time', false);
+            solver_opts = struct('print_level', 0, 'max_iter', 1.5e3, 'tol', 1e-7);
             obj.opti.solver('ipopt', plugin_opts, solver_opts);
             % plugin_opts = struct('qpsol', 'osqp', 'expand', true, 'print_time', false);
             % obj.opti.solver('sqpmethod', plugin_opts);

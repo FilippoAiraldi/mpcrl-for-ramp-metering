@@ -10,7 +10,7 @@ diary(log_filename)
 
 %% Model
 % simulation
-Tstage = 2;                     % simulation time per stage (h)
+Tstage = 2.5;                   % simulation time per stage (h)
 stages = 1;                     % number of repetitions basically
 Tfin = Tstage * stages;         % final simulation time (h)
 T = 10 / 3600;                  % simulation step size (h)
@@ -21,6 +21,9 @@ Kstage = K / stages;            % simulation steps per stage
 % segments
 L = 1;                          % length of links (km)
 lanes = 2;                      % lanes per link (adim)
+
+% on-ramp O1
+C1 = 3500;
 
 % on-ramp O2
 C2 = 2000;                      % on-ramp capacity (veh/h/lane)
@@ -70,14 +73,15 @@ D = [d1; d2; d_cong];
 
 %% MPC
 % create casadi function to run dynamics with any parameter
-F = util.f2casadiF(T, L, lanes, C2, rho_max, tau, delta, eta, kappa);
+eps = 0e-4;
+F = util.f2casadiF(T, L, lanes, [C1; C2], rho_max, tau, delta, eta, kappa, eps);
 
 % build the two mpcs
 Np = 7;
 Nc = 3;
 M = 6;
-MPCs(1) = metanet.MPC(Np, Nc, M, F, a(1), v_free(1), rho_crit(1), T, L, lanes);
-MPCs(2) = metanet.MPC(Np, Nc, M, F, a(2), v_free(2), rho_crit(2), T, L, lanes);
+MPCs(1) = metanet.MPC(Np, Nc, M, F, a(1), v_free(1), rho_crit(1), T, L, lanes, eps);
+MPCs(2) = metanet.MPC(Np, Nc, M, F, a(2), v_free(2), rho_crit(2), T, L, lanes, eps);
 
 
 %% Simulation
@@ -93,7 +97,7 @@ slack = {nan(size(MPCs(1).vars.slack, 2), K), nan(size(MPCs(1).vars.slack, 2), K
 objectives = {nan(1, K), nan(1, K)}; 
 
 % initial conditions
-w{1}(:, 1) = zeros(2, 1);
+w{1}(:, 1) = ones(2, 1);
 rho{1}(:, 1) = [4.98586, 5.10082, 7.63387]';
 v{1}(:, 1) = [100.297, 98.0923, 98.4106]';
 r{1}(:, 1) = 1;

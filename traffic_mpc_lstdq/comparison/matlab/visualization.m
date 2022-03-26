@@ -2,7 +2,7 @@
 clearvars
 
 % filename = 'data/20220315_114938_data.mat';
-filename = '20220325_101250_data.mat';
+filename = 'data/20220326_154839_data.mat';
 step = 1;
 
 
