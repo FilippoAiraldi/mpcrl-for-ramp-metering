@@ -5,7 +5,7 @@ function F = f2casadiF(T, L, lanes, C2, rho_max, tau, delta, eta, kappa, eps)
     w = casadi.SX.sym('w', 2, 1);
     rho = casadi.SX.sym('rho', 3, 1);
     v = casadi.SX.sym('v', 3, 1);
-    r = casadi.SX.sym('r', 1, 1);
+    r = casadi.SX.sym('r', 2, 1);
     d = casadi.SX.sym('d', 3, 1);
 
     % parameters
@@ -14,7 +14,7 @@ function F = f2casadiF(T, L, lanes, C2, rho_max, tau, delta, eta, kappa, eps)
     rho_crit = casadi.SX.sym('rho_crit', 1, 1);
 
     % run function
-    [q_o, w_o_next, q, rho_next, v_next] = metanet.f(w, rho, v, [1; r], d, ...
+    [q_o, w_o_next, q, rho_next, v_next] = metanet.f(w, rho, v, r, d, ...
         T, L, lanes, C2, rho_crit, rho_max, a, v_free, tau, delta, eta, ...
         kappa, eps);
 

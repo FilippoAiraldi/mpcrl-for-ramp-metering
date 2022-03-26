@@ -5,7 +5,6 @@ clc, clearvars, close all
 runname = datestr(datetime,'yyyymmdd_HHMMSS');
 log_filename = strcat(runname, '_log.txt');
 result_filename = strcat(runname, '_data.mat');
-diary(log_filename)   
 
 
 %% Model
@@ -62,7 +61,7 @@ rho_crit = [33.5, 27];          % critical capacity (veh/km/lane)
 % new disturbance
 d1 = util.create_profile(t, [0, .35, 1, 1.35], [1000, 3000, 3000, 1000]);
 d2 = util.create_profile(t, [.15, .35, .6, .8], [500, 1500, 1500, 500]);
-d_cong = util.create_profile(t, [0.5, .7, 1, 1.2], [20, 60, 60, 20]);
+d_cong = util.create_profile(t, [0.5, .7, 1, 1.2], [20, 65, 65, 10]);
 
 % assemble and plot disturbances
 D = [d1; d2; d_cong];
@@ -92,7 +91,7 @@ r = {nan(size(MPCs(1).vars.r, 1), K), nan(size(MPCs(2).vars.r, 1), K)};
 q = {nan(size(MPCs(1).vars.v, 1), K), nan(size(MPCs(2).vars.v, 1), K)};
 rho = {nan(size(MPCs(1).vars.rho, 1), K + 1), nan(size(MPCs(2).vars.rho, 1), K + 1)};
 v = {nan(size(MPCs(1).vars.v, 1), K + 1), nan(size(MPCs(2).vars.v, 1), K + 1)};
-slack = {nan(size(MPCs(1).vars.slack, 2), K), nan(size(MPCs(1).vars.slack, 2), K)};
+slack = {nan(size(MPCs(1).vars.slack, 1), K), nan(size(MPCs(1).vars.slack, 1), K)};
 % slack = {nan(1, K), nan(1, K)};
 objectives = {nan(1, K), nan(1, K)}; 
 
@@ -111,6 +110,7 @@ v_last = {repmat(v{1}(:, 1), 1, M * Np + 1),     repmat(v{2}(:, 1), 1, M * Np + 
 r_last = {repmat(r{1}(:, 1), 1, Nc),             repmat(r{2}(:, 1), 1, Nc)};
 
 %  loop
+diary(log_filename)
 start_time = tic;
 for k = 1:K
     any_error = false;
@@ -124,22 +124,22 @@ for k = 1:K
 
         % run MPCs
         for i = 1:2
+%             [w_last{i}, rho_last{i}, v_last{i}, r_last{i}, info] = MPCs(i).solve(...
+%                 d, w{i}(:, k), rho{i}(:, k), v{i}(:, k), r_last{i}(:, 1), ...
+%                 util.build_input(w{i}(:, k), w_last{i}, M), ...
+%                 util.build_input(rho{i}(:, k), rho_last{i}, M), ...
+%                 util.build_input(v{i}(:, k), v_last{i}, M), ...
+%                 [r_last{i}(:, 2:end), r_last{i}(:, end)]);
             [w_last{i}, rho_last{i}, v_last{i}, r_last{i}, info] = MPCs(i).solve(...
                 d, w{i}(:, k), rho{i}(:, k), v{i}(:, k), r_last{i}(1), ...
-                util.build_input(w{i}(:, k), w_last{i}, M), ...
-                util.build_input(rho{i}(:, k), rho_last{i}, M), ...
-                util.build_input(v{i}(:, k), v_last{i}, M), ...
-                [r_last{i}(2:end), r_last{i}(end)]);
-%             [w_last{i}, rho_last{i}, v_last{i}, r_last{i}, info] = MPCs(i).solve(...
-%                 d, w{i}(:, k), rho{i}(:, k), v{i}(:, k), r_last{i}(1), ...
-%                 w_last{i}, rho_last{i}, v_last{i}, r_last{i});
+                w_last{i}, rho_last{i}, v_last{i}, r_last{i});
             if isfield(info, 'error')
                 any_error = true; 
                 util.logging(k, K, t(k), toc(start_time), sprintf('(%i) %s', i, info.error));
             end
 
             % save infos
-            slack{i}(:, k:k + M - 1) = repmat(info.slack', 1, M);
+            slack{i}(:, k:k + M - 1) = repmat(mean(info.slack, 2), 1, M);
             objectives{i}(:, k:k + M - 1) = info.f;
         end
     end
@@ -233,7 +233,7 @@ ax(6) = nexttile; hold on,
 plot(t, w{1}(:, 1:end-1), '-')
 ax(6).ColorOrderIndex = 1;
 plot(t, w{2}(:, 1:end-1), '--')
-plot([t(1), t(end)], [100, 100], '-.k')
+% plot([t(1), t(end)], [100, 100], '-.k')
 legend('\omega_{O1}', '\omega_{O2}', '', '', '\omega_{O2} constr.')
 ylabel('queue length (veh)')
 
@@ -245,11 +245,11 @@ legend('q_{O1}', 'q_{O2}')
 ylabel('origin flow (veh/h)')
 
 ax(8) = nexttile; hold on,
-ax(8).ColorOrderIndex = 2;
-stairs(t, r{1}, '-')
-ax(8).ColorOrderIndex = 2;
-stairs(t, r{2}, '--')
-legend('r_{O2}')
+% ax(8).ColorOrderIndex = 2;
+stairs(t, r{1}', '-')
+ax(8).ColorOrderIndex = 1;
+stairs(t, r{2}', '--')
+legend('r_{O1}', 'r_{O2}')
 ylabel('metering rate')
 
 ax(9) =  nexttile; hold on,

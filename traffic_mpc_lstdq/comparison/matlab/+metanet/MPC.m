@@ -86,23 +86,23 @@ classdef MPC < handle
             obj.vars.w = obj.opti.variable(2, obj.M * obj.Np + 1);     
             obj.vars.rho = obj.opti.variable(3, obj.M * obj.Np + 1);   
             obj.vars.v = obj.opti.variable(3, obj.M * obj.Np + 1);      
-            obj.vars.r = obj.opti.variable(1, obj.Nc);
-            obj.vars.slack = obj.opti.variable(1, obj.M * obj.Np + 1);
+            obj.vars.r = obj.opti.variable(2, obj.Nc);
+            obj.vars.slack = obj.opti.variable(2, obj.M * obj.Np + 1);
             obj.pars = struct;
             obj.pars.d = obj.opti.parameter(3, obj.M * obj.Np);       
             obj.pars.w0 = obj.opti.parameter(2, 1);
             obj.pars.rho0 = obj.opti.parameter(3, 1);
             obj.pars.v0 = obj.opti.parameter(3, 1);
-            obj.pars.r_last = obj.opti.parameter(1, 1);
+            obj.pars.r_last = obj.opti.parameter(2, 1);
 
             % cost to minimize
             cost = metanet.TTS(obj.vars.w, obj.vars.rho, T, L, lanes) + ...
-                0.4 * metanet.input_variability_penalty(obj.pars.r_last, obj.vars.r) + ...
-                1e1 * sum(obj.vars.slack, 2);
+                0.4 * sum(metanet.input_variability_penalty(obj.pars.r_last, obj.vars.r)) + ...
+                1e1 * sum(sum(obj.vars.slack, 2));
             obj.opti.minimize(cost);
 
             % constraints on domains
-            obj.opti.subject_to(0.2 <= obj.vars.r <= 1) %#ok<CHAIN> 
+            obj.opti.subject_to(0.2 <= obj.vars.r(:) <= 1) %#ok<CHAIN> 
             obj.opti.subject_to(obj.vars.w(:) >= eps)
             obj.opti.subject_to(obj.vars.rho(:) >= eps)
             obj.opti.subject_to(obj.vars.v(:) >= eps)
@@ -113,8 +113,8 @@ classdef MPC < handle
             obj.opti.subject_to(obj.vars.rho(:, 1) == obj.pars.rho0)
 
             % expand control sequence
-            r_exp = [repelem(obj.vars.r, obj.M), ...
-                repelem(obj.vars.r(end), obj.M * (obj.Np - obj.Nc))'];
+            r_exp = [repelem(obj.vars.r, 1, obj.M), ...
+                repelem(obj.vars.r(:, end), 1, obj.M * (obj.Np - obj.Nc))];
 
             % constraints on state evolution
             for k = 1:obj.M * obj.Np
@@ -128,7 +128,8 @@ classdef MPC < handle
 
             % custom constraints
             obj.opti.subject_to(obj.vars.slack(:) >= 0);
-            obj.opti.subject_to(obj.vars.w(2, :) - obj.vars.slack <= 100);
+            obj.opti.subject_to(obj.vars.w(1, :) - obj.vars.slack(1, :) <= 150);
+            obj.opti.subject_to(obj.vars.w(2, :) - obj.vars.slack(2, :) <= 50);
 
             % set solver for opti
             plugin_opts = struct('expand', true, 'print_time', false);

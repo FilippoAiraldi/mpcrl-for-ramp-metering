@@ -2,7 +2,7 @@
 clearvars
 
 % filename = 'data/20220315_114938_data.mat';
-filename = 'data/20220326_154839_data.mat';
+filename = '20220326_162036_data.mat';
 step = 1;
 
 
@@ -76,11 +76,11 @@ legend('q_{O1}', 'q_{O2}')
 ylabel('origin flow (veh/h)')
 
 ax(8) = nexttile; hold on,
-ax(8).ColorOrderIndex = 2;
+% ax(8).ColorOrderIndex = 2;
 stairs(time(1:step:end), origin_rate{1}(:, 1:step:end)', '-')
-ax(8).ColorOrderIndex = 2;
+ax(8).ColorOrderIndex = 1;
 stairs(time(1:step:end), origin_rate{2}(:, 1:step:end)', '--')
-legend('r_{O2}')
+legend('r_{O1}', 'r_{O2}')
 ylabel('metering rate')
 
 ax(9) =  nexttile; hold on,
@@ -93,7 +93,7 @@ ax(10) =  nexttile; hold on,
 stairs(time(1:step:end), slack{1}(:, 1:step:end)', '-')
 ax(10).ColorOrderIndex = 1;
 stairs(time(1:step:end), slack{2}(:, 1:step:end)', '--')
-ylabel({'slack variable', '(\omega_{Ow} constraint)'})
+ylabel({'slack variable', '(\omega_{O1} constraint)'})
 
 linkaxes(ax, 'x')
 for i = 1:length(ax)
