@@ -22,7 +22,7 @@ function F = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
 
     % run system dynamics function
     [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, T, L, ...
-        lanes, C2, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa);
+        lanes, C2, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa, eps);
 
     % ensure nonnegativity
     q_o = max(eps, q_o);
@@ -41,13 +41,14 @@ end
 
 %% local functions
 function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r2, d, ...
-    T, L, lanes, C2, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa)
+    T, L, lanes, C2, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa, ...
+    eps)
     %%% ORIGIN
     % compute flow at mainstream origin O1
     V_rho_crit = Veq(rho_crit, v_free, a, rho_crit);
     v_lim1 = v(1);
     q_cap1 = lanes * V_rho_crit * rho_crit;
-    q_speed1 = lanes * v_lim1 * rho_crit * (-a * log(v_lim1 / v_free))^(1 / a);
+    q_speed1 = lanes * v_lim1 * rho_crit * (-a * log(v_lim1 / v_free + eps))^(1 / a);
     q_lim1 = if_else(v_lim1 < V_rho_crit, q_speed1, q_cap1);
     q_O1 = min(d(1) + w(1) / T, q_lim1);
 

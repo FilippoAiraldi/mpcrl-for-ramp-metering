@@ -6,8 +6,15 @@ clc
 % if no variables, load from file
 if isempty(who())
     warning('off');
-    load 20220325_111649_data.mat
+%     load 20220325_111649_data.mat
+    load checkpoint.mat
     warning('on');
+
+    % if loading a checkpoint, fill missing variables
+    if ~exist('exec_time_tot','var')
+        exec_time_tot = nan;
+        rl_pars = structfun(@(x) cell2mat(x), rl_pars, 'UniformOutput', false);
+    end
 end
 
 % plotting step (to reduce number of datapoints to be plot)
@@ -18,11 +25,10 @@ step = 2;
 %% Details
 delimiter = ''; %'------------------------';
 Table = {... % all entries must be strings
-
     % run details
     'RUN', delimiter; ...
     'name', runname;...
-    'episodes', episodes; ...
+    'episodes', sprintf('%i (executed %i)', episodes, ep); ...
     'tot exec time', duration(0, 0, exec_time_tot, 'Format', 'hh:mm:ss');...
     'mean ep exec time', ...
         duration(0, 0, mean(exec_times), 'Format', 'hh:mm:ss');
@@ -64,6 +70,7 @@ for name = weights(3:end)' % first 2 are v_free and rho_crit
 end
  
 Table = string(Table);
+Table(ismissing(Table)) = 'NaN';
 width = max(arrayfun(@(x) strlength(x), Table(:, 1))) + 4;
 s = '';
 for i = 1:size(Table, 1)
@@ -84,6 +91,12 @@ fprintf(s)
 
 %% plotting
 step = min(step, M);
+ep_tot = min(ep, episodes); % minimum of episode index and total episodes
+
+% convert episode cells to one big array
+t_tot = (0:(ep_tot * K - 1)) * T;
+origins_tot = structfun(@(x) cell2mat(x), origins, 'UniformOutput', false);
+links_tot = structfun(@(x) cell2mat(x), links, 'UniformOutput', false);
 
 % traffic quantities figure
 if true
@@ -91,11 +104,6 @@ if true
     tiledlayout(4, 2, 'Padding', 'none', 'TileSpacing', 'compact')
     sgtitle(runname, 'Interpreter', 'none')
     ax = matlab.graphics.axis.Axes.empty;
-    
-    % convert episode cells to one big array
-    t_tot = (0:(episodes * K - 1)) * T;
-    origins_tot = structfun(@(x) cell2mat(x), origins, 'UniformOutput', false);
-    links_tot = structfun(@(x) cell2mat(x), links, 'UniformOutput', false);
     
     ax(1) = nexttile(1);
     plot(t_tot(1:step:end), links_tot.speed(:, 1:step:end)');
@@ -118,11 +126,11 @@ if true
     ylabel('slack \sigma')
     
     ax(5) = nexttile(5); 
-    if size(origins_tot, 1) > 2
-        plot(t_tot(1:step:end), (origins_tot.demand(:, 1:step:end) .* [1; 1; 50])')
+    if size(origins_tot.demand, 1) > 2
+        plot(t_tot(1:step:end), (origins_tot.demand(:, 1:step:length(t_tot)) .* [1; 1; 50])')
         hlegend(5) = legend('d_{O1}', 'd_{O2}', 'd_{cong}\times50');
     else
-        plot(t_tot(1:step:end), origins_tot.demand(:, 1:step:end)')
+        plot(t_tot(1:step:end), origins_tot.demand(:, 1:step:length(t_tot))')
         hlegend(5) = legend('d_{O1}', 'd_{O2}');
     end
     ylabel('origin demand (veh/h)')
@@ -149,10 +157,7 @@ if true
     linkaxes(ax, 'x')
     for i = 1:length(ax)
         xlabel(ax(i), 'time (h)')
-        plot_episodes_separators(ax(i), episodes, Tfin)
-        if i <= length(hlegend) && isa(hlegend(i), 'matlab.graphics.illustration.Legend')
-            hlegend(i).String = hlegend(i).String(1:end-episodes+1);
-        end
+        plot_episodes_separators(ax(i), hlegend(i), ep_tot, Tfin)
         ax(i).YLim(1) = 0;
     end
 end
@@ -165,37 +170,37 @@ if true
     ax = matlab.graphics.axis.Axes.empty;
     
     ax(1) = nexttile(1, [1, 2]);
-    performance = arrayfun(@(ep) full(sum(Lrl(origins.queue{ep}, links.density{ep}))), 1:episodes);
-    performance_only_tts = arrayfun(@(ep) full(sum(TTS(origins.queue{ep}, links.density{ep}))), 1:episodes);
+    performance = arrayfun(@(ep) full(sum(Lrl(origins.queue{ep}, links.density{ep}))), 1:ep_tot);
+    performance_only_tts = arrayfun(@(ep) full(sum(TTS(origins.queue{ep}, links.density{ep}))), 1:ep_tot);
     yyaxis left
-    plot(linspace(0, episodes, length(performance)), performance)
-    % stairs(linspace(0, episodes, length(performance) + 1), [performance, performance(end)])
+    plot(linspace(0, ep_tot, length(performance)), performance)
+    % stairs(linspace(0, ep_tot, length(performance) + 1), [performance, performance(end)])
     % ax(1).YLim(1) = 0;
     ylabel('J(\pi)')
     yyaxis right
-    plot(linspace(0, episodes, length(performance_only_tts)), performance_only_tts)
-    % stairs(linspace(0, episodes, length(performance_only_tts) + 1), [performance_only_tts, performance_only_tts(end)])
+    plot(linspace(0, ep_tot, length(performance_only_tts)), performance_only_tts)
+    % stairs(linspace(0, ep_tot, length(performance_only_tts) + 1), [performance_only_tts, performance_only_tts(end)])
     ylabel('TTS(\pi)')
-    % bar(0.5:1:(episodes-0.5), [performance_only_tts', (performance - performance_only_tts)'], 'stacked')
+    % bar(0.5:1:(ep_tot-0.5), [performance_only_tts', (performance - performance_only_tts)'], 'stacked')
     % ylabel('J(\pi)')
     
     ax(2) = nexttile(3, [1, 2]);
     td_error_tot = cell2mat(td_error);
-    plot(linspace(0, episodes, length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
+    plot(linspace(0, ep_tot, length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
     ylabel('TD error \tau')
     
     ax_ = nexttile(5);
     L_tot = full(Lrl(origins_tot.queue, links_tot.density));
     plot(t_tot(1:step:end), L_tot(:, 1:step:end))
-    plot_episodes_separators(ax_, episodes, Tfin)
+    plot_episodes_separators(ax_, ep_tot, Tfin)
     xlabel('time (h)'), ylabel('L')
     
     ax(3) = nexttile(7); hold on
-    stairs(linspace(0, episodes, length(rl_pars.v_free)), rl_pars.v_free)
-    stairs(linspace(0, episodes, length(rl_pars.rho_crit)), rl_pars.rho_crit)
+    stairs(linspace(0, ep_tot, length(rl_pars.v_free)), rl_pars.v_free)
+    stairs(linspace(0, ep_tot, length(rl_pars.rho_crit)), rl_pars.rho_crit)
     ax(3).ColorOrderIndex = 1;
-    plot([0, episodes], [true_pars.v_free, true_pars.v_free], '--')
-    plot([0, episodes], [true_pars.rho_crit, true_pars.rho_crit], '--')
+    plot([0, ep_tot], [true_pars.v_free, true_pars.v_free], '--')
+    plot([0, ep_tot], [true_pars.rho_crit, true_pars.rho_crit], '--')
     legend('v_{free}', '\rho_{crit}')
     hold off
     ylabel('v_{free}, \rho_{crit}')
@@ -213,13 +218,13 @@ if true
             if scaled
                 w = rescale(w);
             end
-            stairs(linspace(0, episodes, length(w)), w, ...
-                'Marker', Markers{i}, 'MarkerSize', 4)
+            plot(linspace(0, ep_tot, length(w)), w, 'Marker', Markers{i}, 'MarkerSize', 4)
+%             stairs(linspace(0, ep_tot, length(w)), w, 'Marker', Markers{i}, 'MarkerSize', 4)
             legendStrings{end + 1} = append(name, '_', string(j));
         end
     end
     hold off
-    legend(legendStrings{:}, 'interpreter', 'none')
+    legend(legendStrings{:}, 'interpreter', 'none', 'FontSize', 6)
     if scaled
         ylabel('weights (scaled)')
     else
@@ -233,11 +238,25 @@ if true
 end
 
 
+
 %% local functions
-function plot_episodes_separators(ax, episodes, Tfin)
+function plot_episodes_separators(ax, hlegend, episodes, Tfin)
+    if episodes <= 1
+        return
+    end
+
+    isa_legend = isa(hlegend, 'matlab.graphics.illustration.Legend');
+    if isa_legend
+        n_data = length(hlegend.String);
+    end
+
     line(ax, repmat((1:episodes - 1) * Tfin, 2, 1), [0, ax.YLim(2)], ...
     'Color', '#686a70', 'LineStyle', ':', 'LineWidth', 0.75)
 %     hold(ax(i), 'on')
 %     plot(ax(i), (1:episodes) * Tfin, [0, ax(i).YLim(2)], ':k', 'LineWidth', 0.25)
 %     hold(ax(i), 'off')
+
+    if isa_legend
+        hlegend.String = hlegend.String(1:n_data);
+    end
 end

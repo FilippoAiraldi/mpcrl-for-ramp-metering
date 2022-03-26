@@ -1,14 +1,16 @@
-% run with MATLAB 2021b
+% made with MATLAB 2021b
 clc, clearvars, close all
 rng(42)
 runname = datestr(datetime, 'yyyymmdd_HHMMSS');
+load_checkpoint = false;
+% profile on -history
 
 
 
 %% Model
 % simulation
 episodes = 30;                  % number of episodes to repeat
-Tfin = 2;                       % simulation time per episode (h)
+Tfin = 2.5;                     % simulation time per episode (h)
 T = 10 / 3600;                  % simulation step size (h)
 K = Tfin / T;                   % simulation steps per episode (integer)
 t = (0:(K - 1)) * T;            % time vector (h) (only first episode)
@@ -63,7 +65,7 @@ D = filtfilt(filter_num, filter_den, (D + randn(size(D)) .* [75; 75; 1.5])')';
 %% MPC-based RL
 % create a symbolic casadi function for the dynamics
 n_dist = size(D, 1);                % number of disturbances
-eps = 1e-6;                         % nonnegative constraint precision
+eps = 1e-4;                         % nonnegative constraint precision
 F = metanet.get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
     T, L, lanes, C2, rho_max, tau, delta, eta, kappa, eps);
 
@@ -76,7 +78,7 @@ solver_opts = struct('print_level', 0, 'max_iter', 1.5e3, 'tol', 1e-7);
 perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
 discount = 1;                       % rl discount factor
-lr = 1e-5;                          % rl learning rate
+lr = 1e-4;                          % rl learning rate
 con_violation_penalty = 30;         % rl penalty for constraint violations
 rl_update_freq = round(K / 5);      % when rl should update
 rl_mem_cap = 150;                   % RL experience replay capacity
@@ -142,12 +144,12 @@ for name = ["Q", "V"]
 end
 
 % Q approximator has additional constraint on first action
-r_first = mpc.Q.add_par('r_first', 1, 1);
-mpc.Q.opti.subject_to(mpc.Q.vars.r(:, 1) == r_first);
+mpc.Q.add_par('r_first', 1, 1);
+mpc.Q.opti.subject_to(mpc.Q.vars.r(:, 1) == mpc.Q.pars.r_first);
 
 % V approximator has perturbation to enhance exploration
-pert = mpc.V.add_par('perturbation', size(mpc.V.vars.r(:, 1)));
-mpc.V.set_cost(mpc.V.opti.f + pert' * mpc.V.vars.r(:, 1));
+mpc.V.add_par('perturbation', size(mpc.V.vars.r(:, 1)));
+mpc.V.set_cost(mpc.V.opti.f + mpc.V.pars.perturbation' * mpc.V.vars.r(:, 1));
 
 
 
@@ -184,9 +186,9 @@ links.density = cell(1, episodes);
 links.speed = cell(1, episodes);
 
 % precompute Q lagrangian and its derivative w.r.t. learnable params
-Qlagr = simplify(mpc.Q.opti.f + mpc.Q.opti.lam_g' * mpc.Q.opti.g);
 for name = fieldnames(rl_pars)'
-    dQlagr.(name{1}) = simplify(jacobian(Qlagr, mpc.Q.pars.(name{1}))');
+    dQlagr.(name{1}) = simplify(jacobian(...
+        mpc.Q.opti.f + mpc.Q.opti.lam_g' * mpc.Q.opti.g, mpc.Q.pars.(name{1}))');
 end
 
 % initialize mpc last solutions
@@ -194,13 +196,29 @@ last_sol = struct('w', repmat(w, 1, M * Np + 1), ...
     'r', ones(size(mpc.V.vars.r)), 'rho', repmat(rho, 1, M * Np + 1), ...
     'v', repmat(v, 1, M * Np + 1), 'slack', zeros(size(mpc.V.vars.slack)));
 
-% simulate episodes
+% create replay memory
 replaymem = rlmpc.ReplayMem(rl_mem_cap);
+
+% load checkpoint
+if load_checkpoint
+    load checkpoint.mat
+    start_ep = ep + 1;
+else
+    start_ep = 1;
+end
+
+% start logging
 diary(strcat(runname, '_log.txt'))
 fprintf(['# Fields: [Realtime_tot|Episode_n|Realtime_episode] ', ...
     '- [Sim_time|Sim_iter|Sim_perc] - Message\n'])
-start_tot_time = tic;
-for ep = 1:episodes
+
+% simulate episodes
+if load_checkpoint
+    fprintf('Loaded checkpoint\n')
+else
+    start_tot_time = tic;
+end
+for ep = start_ep:episodes
     % preallocate episode result containers
     origins.queue{ep} = nan(size(mpc.V.vars.w, 1), K);        
     origins.flow{ep} = nan(size(mpc.V.vars.w, 1), K);          
@@ -324,7 +342,7 @@ for ep = 1:episodes
             for name = fieldnames(rl_pars)'
                 sz = length(rl_pars.(name{1}){end});
                 rl_pars.(name{1}){end + 1} = rl_pars.(name{1}){end} + ...
-                    lr * (exp(i:i+sz-1, :) * td_err'); % / length(td_err);
+                    lr * (exp(i:i+sz-1, :) * td_err') / length(td_err);
                 i = i + sz;
             end
 
@@ -338,10 +356,10 @@ for ep = 1:episodes
     end
     exec_times(ep) = toc(start_ep_time);
 
-    % save every episode in a while
+    % save every episode in a while (exclude some variables)
     if mod(ep - 1, save_freq) == 0
         warning('off');
-        save('checkpoint.mat')
+        save('checkpoint', '-regexp', '^(?!(mpc|cost|ctrl|dQlagr|r_last|v_free_tr|weight_)).*')
         warning('on');
     end
 
@@ -363,7 +381,7 @@ rl_pars = structfun(@(x) cell2mat(x), rl_pars, 'UniformOutput', false);
 clear cost ctrl d D d1 d2 ep exp F filter_num filter_den i info k ...
     last_sol log_filename msg name pars q q_o r r_first r_last r_prev ...
     replaymem rho rho_next rho_prev save_freq start_ep_time ... 
-    start_tot_time td_err sz v v_next v_prev w w_next w_prev
+    start_ep start_tot_time td_err sz v v_next v_prev w w_next w_prev
 
 % save
 delete checkpoint.mat
