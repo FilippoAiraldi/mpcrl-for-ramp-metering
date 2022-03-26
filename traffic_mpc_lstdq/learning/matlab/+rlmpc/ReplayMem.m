@@ -21,12 +21,12 @@ classdef ReplayMem < handle
         end
 
         function add(obj, experience)
-            assert(nargin == 2)
+            % assert(nargin == 2)
             if obj.length < obj.maxcapacity
                 obj.length = obj.length + 1;
                 obj.data{obj.length} = experience;
             else
-                obj.data = obj.data(2:end);
+                obj.data(1:end-1) = obj.data(2:end);
                 obj.data{obj.maxcapacity} = experience;
             end
         end
