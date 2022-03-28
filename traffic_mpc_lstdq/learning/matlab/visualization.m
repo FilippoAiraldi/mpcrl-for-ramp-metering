@@ -1,13 +1,12 @@
-clc
-
+% clc
+% clear all
 
 
 %% plotting variables
 % if no variables, load from file
 if isempty(who())
     warning('off');
-%     load 20220325_111649_data.mat
-    load checkpoint.mat
+    load data\20220326_211358_data.mat
     warning('on');
 
     % if loading a checkpoint, fill missing variables
@@ -18,7 +17,10 @@ if isempty(who())
 end
 
 % plotting step (to reduce number of datapoints to be plot)
-step = 2;
+step = 3;
+plot_traffic = false;
+plot_learning = true;
+scaled_learned = true;
 
 
 
@@ -42,7 +44,8 @@ Table = {... % all entries must be strings
     'max iter', solver_opts.max_iter; ... 
     'rate var penalty weight', rate_var_penalty; ...
     'explor. perturbation mag.', perturb_mag; ...
-    'max queue', max_queue; ...
+    'max queues', sprintf('%i, %i', max_queue1, max_queue2); ...
+    'epsilon', eps; ...
 
     % RL details
     'RL', delimiter; ...
@@ -99,7 +102,7 @@ origins_tot = structfun(@(x) cell2mat(x), origins, 'UniformOutput', false);
 links_tot = structfun(@(x) cell2mat(x), links, 'UniformOutput', false);
 
 % traffic quantities figure
-if true
+if plot_traffic
     figure;
     tiledlayout(4, 2, 'Padding', 'none', 'TileSpacing', 'compact')
     sgtitle(runname, 'Interpreter', 'none')
@@ -138,7 +141,8 @@ if true
     
     ax(6) = nexttile(6); hold on
     plot(t_tot(1:step:end), origins_tot.queue(:, 1:step:end)')
-    plot([t_tot(1), t_tot(end)], [max_queue, max_queue], '-.k')
+    plot([t_tot(1), t_tot(end)], [max_queue1, max_queue1], '-.k')
+    plot([t_tot(1), t_tot(end)], [max_queue2, max_queue2], '-.k')
     hold off
     hlegend(6) = legend('\omega_{O1}', '\omega_{O2}', 'max \omega_{O2}');
     ylabel('queue length (veh)')
@@ -159,10 +163,11 @@ if true
         xlabel(ax(i), 'time (h)')
         plot_episodes_separators(ax(i), hlegend(i), ep_tot, Tfin)
         ax(i).YLim(1) = 0;
+        ax(i).XLim(2) = t_tot(end);
     end
 end
 
-if true
+if plot_learning
     % learning quantities figure
     figure;
     tiledlayout(4, 2, 'Padding', 'none', 'TileSpacing', 'compact')
@@ -192,8 +197,9 @@ if true
     ax_ = nexttile(5);
     L_tot = full(Lrl(origins_tot.queue, links_tot.density));
     plot(t_tot(1:step:end), L_tot(:, 1:step:end))
-    plot_episodes_separators(ax_, ep_tot, Tfin)
+    plot_episodes_separators(ax_, [], ep_tot, Tfin)
     xlabel('time (h)'), ylabel('L')
+    ax_.XLim(2) = t_tot(end);
     
     ax(3) = nexttile(7); hold on
     stairs(linspace(0, ep_tot, length(rl_pars.v_free)), rl_pars.v_free)
@@ -206,7 +212,6 @@ if true
     ylabel('v_{free}, \rho_{crit}')
     
     ax(4) = nexttile(6, [2, 1]); hold on
-    scaled = true;
     Markers = {'+','o','*','x','v','d','^','s','>','<'};
     weights = fieldnames(rl_pars);
     legendStrings = {};
@@ -215,7 +220,7 @@ if true
         weight = rl_pars.(name);
         for j = 1:size(weight, 1)
             w = (weight(j, :));
-            if scaled
+            if scaled_learned
                 w = rescale(w);
             end
             plot(linspace(0, ep_tot, length(w)), w, 'Marker', Markers{i}, 'MarkerSize', 4)
@@ -225,7 +230,7 @@ if true
     end
     hold off
     legend(legendStrings{:}, 'interpreter', 'none', 'FontSize', 6)
-    if scaled
+    if scaled_learned
         ylabel('weights (scaled)')
     else
         ylabel('weights')
@@ -234,6 +239,7 @@ if true
     linkaxes(ax, 'x')
     for i = 1:length(ax)
         xlabel(ax(i), 'episode')
+        ax(i).XLim(2) = ep_tot;
     end
 end
 
@@ -245,8 +251,7 @@ function plot_episodes_separators(ax, hlegend, episodes, Tfin)
         return
     end
 
-    isa_legend = isa(hlegend, 'matlab.graphics.illustration.Legend');
-    if isa_legend
+    if ~isempty(hlegend) && isa(hlegend, 'matlab.graphics.illustration.Legend')
         n_data = length(hlegend.String);
     end
 
@@ -256,7 +261,7 @@ function plot_episodes_separators(ax, hlegend, episodes, Tfin)
 %     plot(ax(i), (1:episodes) * Tfin, [0, ax(i).YLim(2)], ':k', 'LineWidth', 0.25)
 %     hold(ax(i), 'off')
 
-    if isa_legend
+    if ~isempty(hlegend) && isa(hlegend, 'matlab.graphics.illustration.Legend')
         hlegend.String = hlegend.String(1:n_data);
     end
 end
