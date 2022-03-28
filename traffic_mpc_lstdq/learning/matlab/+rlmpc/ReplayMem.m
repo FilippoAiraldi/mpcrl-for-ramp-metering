@@ -36,13 +36,13 @@ classdef ReplayMem < handle
             if floor(n) ~= n
                 n = round(n * obj.maxcapacity);
             end
+            n = max(0, min(n, obj.length));
             if nargin < 3
                 include_last_n = 0;
             elseif floor(include_last_n) ~= include_last_n
-                    include_last_n = round(include_last_n * obj.maxcapacity);
+                    include_last_n = round(include_last_n * n);
+                    include_last_n = max(0, min(include_last_n, n));
             end
-            n = min(n, obj.length);
-            include_last_n = min(include_last_n, n);
 
             % get last n
             if include_last_n > 0
