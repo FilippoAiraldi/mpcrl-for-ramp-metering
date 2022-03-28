@@ -63,8 +63,8 @@ classdef NMPC < handle
             obj.opti.subject_to(obj.vars.rho(:, 1) == obj.pars.rho0)
 
             % expand control sequence
-            r_exp = [repelem(obj.vars.r, obj.M), ...
-                repelem(obj.vars.r(end), obj.M * (obj.Np - obj.Nc))'];
+            r_exp = [repelem(obj.vars.r, 1, obj.M), ...
+                repelem(obj.vars.r(:, end), 1, obj.M * (obj.Np - obj.Nc))];
 
             % constraints on state evolution
             for k = 1:obj.M * obj.Np

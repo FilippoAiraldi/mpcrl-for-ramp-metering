@@ -1,6 +1,6 @@
 function F = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
-        T, L, lanes, C2, rho_max, tau, delta, eta, kappa, eps)
-    % F = GET_DYNAMICS(T, L, lanes, C2, rho_max, tau, delta, eta, kappa, eps) 
+        T, L, lanes, C, rho_max, tau, delta, eta, kappa, eps)
+    % F = GET_DYNAMICS(T, L, lanes, C, rho_max, tau, delta, eta, kappa, eps) 
     %   Creates a casadi.Function object represeting the dynamics equation 
     %   of the 3-link traffic network
 
@@ -22,7 +22,7 @@ function F = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
 
     % run system dynamics function
     [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, T, L, ...
-        lanes, C2, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa, eps);
+        lanes, C, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa, eps);
 
     % ensure nonnegativity
     q_o = max(eps, q_o);
@@ -40,21 +40,16 @@ end
 
 
 %% local functions
-function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r2, d, ...
-    T, L, lanes, C2, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa, ...
-    eps)
+function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, ...
+    T, L, lanes, C, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa, eps)
     %%% ORIGIN
     % compute flow at mainstream origin O1
-    V_rho_crit = Veq(rho_crit, v_free, a, rho_crit);
-    v_lim1 = v(1);
-    q_cap1 = lanes * V_rho_crit * rho_crit;
-    q_speed1 = lanes * v_lim1 * rho_crit * (-a * log(v_lim1 / v_free + eps))^(1 / a);
-    q_lim1 = if_else(v_lim1 < V_rho_crit, q_speed1, q_cap1);
-    q_O1 = min(d(1) + w(1) / T, q_lim1);
+    q_O1 = min(d(1) + w(1) / T, C(1) * ...
+           min(r(1), (rho_max - rho(1)) / (rho_max - rho_crit)));
 
     % compute flow at onramp origin O2
-    q_O2 = min(d(2) + w(2) / T, C2 * ...
-                   min(r2, (rho_max - rho(3)) / (rho_max - rho_crit)));
+    q_O2 = min(d(2) + w(2) / T, C(2) * ...
+                   min(r(2), (rho_max - rho(3)) / (rho_max - rho_crit)));
 
     % step queue at origins O1 and O2
     q_o = [q_O1; q_O2];
@@ -84,7 +79,7 @@ function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r2, d, ...
     rho_next = rho + (T / (L * lanes)) * (q_up - q);
 
     % compute V
-    V = Veq(rho, v_free, a, rho_crit);
+    V = Veq(rho, v_free, a, rho_crit, eps);
 
     % step the speeds of the links
     v_next = (v ...
@@ -94,22 +89,8 @@ function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r2, d, ...
     v_next(3) = v_next(3) - delta * T / L / lanes * q_O2 * v(3) / (rho(3) + kappa);    
 end
 
-function V = Veq(rho, v_free, a, rho_crit)
+function V = Veq(rho, v_free, a, rho_crit, eps)
     % VEQ Evaluates the METANET speed equation at the given density rho.
     
-    V = v_free * exp((-1 / a) * (rho / rho_crit).^a);
+    V = v_free * exp((-1 / a) * (rho / rho_crit + eps).^a);
 end
-
-function varargout = if_else(varargin)
-    %IF_ELSE Branching on MX nodes Ternary operator, "cond ? if_true : if_false".
-    %
-    %  DM = IF_ELSE(DM cond, DM if_true, DM if_false, bool short_circuit)
-    %  SX = IF_ELSE(SX cond, SX if_true, SX if_false, bool short_circuit)
-    %  MX = IF_ELSE(MX cond, MX if_true, MX if_false, bool short_circuit)
-    %
-    %  Had to manually pick this function from the original CasADi Matlab 
-    % installation folder since it is missing from its namespace.
-    
-    [varargout{1:nargout}] = casadiMEX(235, varargin{:});
-end
-

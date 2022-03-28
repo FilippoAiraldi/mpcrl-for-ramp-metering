@@ -7,9 +7,14 @@ load_checkpoint = false;
 
 
 
+% exploration perturbation
+% making 'a' learnable?
+
+
+
 %% Model
 % simulation
-episodes = 30;                  % number of episodes to repeat
+episodes = 10;                  % number of episodes to repeat
 Tfin = 2.5;                     % simulation time per episode (h)
 T = 10 / 3600;                  % simulation step size (h)
 K = Tfin / T;                   % simulation steps per episode (integer)
@@ -17,16 +22,20 @@ t = (0:(K - 1)) * T;            % time vector (h) (only first episode)
 
 % network size
 n_origins = 2;
-n_ramps = 1;
+n_ramps = 2;
 n_links = 3;
 
 % segments
 L = 1;                          % length of links (km)
 lanes = 2;                      % lanes per link (adim)
 
+% origin O1
+C1 = 3500;
+max_queue1 = 150;
+
 % on-ramp O2
 C2 = 2000;                      % on-ramp capacity (veh/h/lane)
-max_queue = 100;
+max_queue2 = 50;
 
 % model parameters
 tau = 18 / 3600;                % model parameter (s)
@@ -44,9 +53,6 @@ true_pars = struct('a', 1.867, 'v_free', 102, 'rho_crit', 33.5);
 
 
 %% Disturbances
-% d1 = util.create_profile(t, [0, .35, 1, 1.35], [1000, 3500, 3500, 1000]);
-% d2 = util.create_profile(t, [.15, .35, .6, .8], [500, 1800, 1800, 500]);
-
 d1 = util.create_profile(t, [0, .35, 1, 1.35], [1000, 3000, 3000, 1000]);
 d2 = util.create_profile(t, [.15, .35, .6, .8], [500, 1500, 1500, 500]);
 d_cong = util.create_profile(t, [0.5, .7, 1, 1.2], [20, 60, 60, 20]);
@@ -67,32 +73,32 @@ D = filtfilt(filter_num, filter_den, (D + randn(size(D)) .* [75; 75; 1.5])')';
 n_dist = size(D, 1);                % number of disturbances
 eps = 1e-4;                         % nonnegative constraint precision
 F = metanet.get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
-    T, L, lanes, C2, rho_max, tau, delta, eta, kappa, eps);
+    T, L, lanes, [C1; C2], rho_max, tau, delta, eta, kappa, eps);
 
 % parameters (constant)
 Np = 7;                             % prediction horizon
 Nc = 3;                             % control horizon
 M = 6;                              % horizon spacing factor
-plugin_opts = struct('expand', false, 'print_time', false);
+plugin_opts = struct('expand', true, 'print_time', false);
 solver_opts = struct('print_level', 0, 'max_iter', 1.5e3, 'tol', 1e-7);
 perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
 discount = 1;                       % rl discount factor
-lr = 1e-4;                          % rl learning rate
-con_violation_penalty = 30;         % rl penalty for constraint violations
+lr = 5e-4;                          % rl learning rate
+con_violation_penalty = 10;         % rl penalty for constraint violations
 rl_update_freq = round(K / 5);      % when rl should update
-rl_mem_cap = 150;                   % RL experience replay capacity
-rl_mem_sample = 40;                 % RL experience replay sampling size
+rl_mem_cap = rl_update_freq * 5;    % RL experience replay capacity
+rl_mem_sample = rl_update_freq * 2; % RL experience replay sampling size
 save_freq = 2;                      % checkpoint saving
 
 % cost terms (learnable MPC, metanet and RL)
 [Vcost, Lcost, Tcost] = rlmpc.get_mpc_learnable_costs(...
     n_origins, n_links, ...
-    2 * max_queue, rho_max, 1.2 * v_free, ... % normalization are constant
-    'constant', 'posdef', 'posdef');
+    max_queue1, rho_max, v_free, ... % normalization constants
+    'constant', 'diag', 'diag');
 TTS = metanet.TTS(n_origins, n_links, T, L, lanes);
 rate_var = metanet.rate_variability(n_ramps, Nc);
-Lrl = rlmpc.get_rl_cost(n_origins, n_links, TTS, max_queue, ...
+Lrl = rlmpc.get_rl_cost(n_origins, n_links, TTS, [max_queue1, max_queue2], ...
     con_violation_penalty);
 
 % build mpc-based value function approximators
@@ -106,9 +112,10 @@ for name = ["Q", "V"]
     ctrl.set_ipopt_opts(plugin_opts, solver_opts);
 
     % set soft constraint on ramp queue
-    slack = ctrl.add_var('slack', 1, M * Np + 1);
-    ctrl.opti.subject_to(slack >= 0);
-    ctrl.opti.subject_to(ctrl.vars.w(2, :) - slack <= max_queue)
+    slack = ctrl.add_var('slack', 2, M * Np + 1);
+    ctrl.opti.subject_to(slack(:) >= 0);
+    ctrl.opti.subject_to(ctrl.vars.w(1, :) - slack(1, :) <= max_queue1)
+    ctrl.opti.subject_to(ctrl.vars.w(2, :) - slack(2, :) <= max_queue2)
 
     % create required parameters
     v_free_tracking = ctrl.add_par('v_free_tracking', 1, 1); % = ctrl.pars.v_free
@@ -124,12 +131,12 @@ for name = ["Q", "V"]
     cost = Vcost(ctrl.vars.w(:, 1), ctrl.vars.rho(:, 1), ...            % affine/constant initial cost
             ctrl.vars.v(:, 1), weight_V) + ...                              
         Tcost(ctrl.vars.rho(:, end), ctrl.pars.rho_crit, weight_T) + ...% quadratic terminal cost
-        weight_slack * slack(end) + ...                                 % terminal slack penalty
+        weight_slack * sum(slack(:, end)) + ...                         % terminal slack penalty
         rate_var_penalty * rate_var(r_last, ctrl.vars.r);               % terminal rate variability
     % stage terms
     for k = 1:M * Np
         cost = cost + ...
-            weight_slack * slack(k) + ...                               % slack penalty
+            weight_slack^2 * sum(slack(:, k)) + ...                     % slack penalty
             Lcost(ctrl.vars.rho(:, k), ctrl.vars.v(:, k), ...           % quadratic stage cost
                 ctrl.pars.rho_crit, v_free_tracking, ...
                 weight_L_rho, weight_L_v) + ...                         
@@ -144,7 +151,7 @@ for name = ["Q", "V"]
 end
 
 % Q approximator has additional constraint on first action
-mpc.Q.add_par('r_first', 1, 1);
+mpc.Q.add_par('r_first', size(mpc.Q.vars.r, 1), 1);
 mpc.Q.opti.subject_to(mpc.Q.vars.r(:, 1) == mpc.Q.pars.r_first);
 
 % V approximator has perturbation to enhance exploration
@@ -155,8 +162,8 @@ mpc.V.set_cost(mpc.V.opti.f + mpc.V.pars.perturbation' * mpc.V.vars.r(:, 1));
 
 %% Simulation
 % initial conditions
-r = 1;                                  % ramp metering rate
-r_prev = 1;                             % previous rate
+r = ones(n_ramps, 1);                   % ramp metering rate
+r_prev = ones(n_ramps, 1);              % previous rate
 [w, rho, v] = util.steady_state(F, ...  % queue, density, speed
     [0; 0], [5; 5; 18], [100; 198; 90], r, D(:, 1), ...
     true_pars.a, true_pars.v_free, true_pars.rho_crit);
@@ -171,8 +178,18 @@ rl_pars.weight_L_v = {ones(size(weight_L_v))};
 rl_pars.weight_T = {ones(size(weight_T))};
 rl_pars.weight_slack = {ones(size(weight_slack)) * 10};
 
+% rl parameters bounds
+rl_pars_bounds.v_free = [60, 170];
+rl_pars_bounds.rho_crit = [15, 50];
+rl_pars_bounds.v_free_tracking = [60, 170];
+rl_pars_bounds.weight_V = [-inf, inf];
+rl_pars_bounds.weight_L_rho = [0, inf];
+rl_pars_bounds.weight_L_v = [0, inf];
+rl_pars_bounds.weight_T = [0, inf];
+rl_pars_bounds.weight_slack = [0, inf];
+
 % preallocate containers for miscellaneous quantities
-slack = cell(1, episodes);          % of which mpc? V probably
+slack = cell(1, episodes);
 td_error = cell(1, episodes);
 exec_times = nan(1, episodes);
 
@@ -188,7 +205,8 @@ links.speed = cell(1, episodes);
 % precompute Q lagrangian and its derivative w.r.t. learnable params
 for name = fieldnames(rl_pars)'
     dQlagr.(name{1}) = simplify(jacobian(...
-        mpc.Q.opti.f + mpc.Q.opti.lam_g' * mpc.Q.opti.g, mpc.Q.pars.(name{1}))');
+        mpc.Q.opti.f + mpc.Q.opti.lam_g' * mpc.Q.opti.g, ...
+        mpc.Q.pars.(name{1}))');
 end
 
 % initialize mpc last solutions
@@ -226,7 +244,7 @@ for ep = start_ep:episodes
     links.flow{ep} = nan(size(mpc.V.vars.v, 1), K);
     links.density{ep} = nan(size(mpc.V.vars.rho, 1), K);
     links.speed{ep} = nan(size(mpc.V.vars.v, 1), K);
-    slack{ep} = nan(size(mpc.V.vars.slack, 2), ceil(K / M));
+    slack{ep} = nan(size(mpc.V.vars.slack, 1), ceil(K / M));
     td_error{ep} = nan(1, ceil(K / M));
 
     % simulate episode (do RL update at specific iterations)
@@ -236,9 +254,10 @@ for ep = start_ep:episodes
         if mod(k, M) == 1
             k_mpc = ceil(k / M); % mpc iteration
 
-            % run Q(s_k, a_k) - excluding very first iteration
+            % run Q(s(k-1), a(k-1)) excluding very first iteration
             if ep > 1 || k_mpc > 1
-                pars = struct('d', util.get_future_demand(D, ep, k - M, K, M, Np), ...
+                pars = struct(...
+                    'd', util.get_future_demand(D, ep, k - M, K, M, Np), ...
                     'w0', w_prev, 'rho0', rho_prev, 'v0', v_prev, 'a', a, ...
                     'v_free', rl_pars.v_free{end}, ...
                     'rho_crit', rl_pars.rho_crit{end}, ...
@@ -248,14 +267,15 @@ for ep = start_ep:episodes
                     'weight_L_v', rl_pars.weight_L_v{end}, ....
                     'weight_T', rl_pars.weight_T{end}, ...
                     'weight_slack', rl_pars.weight_slack{end}, ...
-                    'r_last', r_prev_prev, ... % because any MPC needs prev action to the step it is solving
-                    'r_first', r_prev); % because Q is solved at the previous step
+                    'r_last', r_prev_prev, ...  % a(k-2)
+                    'r_first', r_prev);         % Q fixes first action a(k-1)
                 last_sol.slack = zeros(size(mpc.V.vars.slack));
                 [last_sol, info_Q] = mpc.Q.solve(pars, last_sol);
             end
 
-            % run V(s_k)
-            pars = struct('d', util.get_future_demand(D, ep, k, K, M, Np), ...
+            % run V(s(k))
+            pars = struct(...
+                'd', util.get_future_demand(D, ep, k, K, M, Np), ...
                 'w0', w, 'rho0', rho, 'v0', v, 'a', a, ...
                 'v_free', rl_pars.v_free{end}, ...
                 'rho_crit', rl_pars.rho_crit{end}, ...
@@ -283,7 +303,7 @@ for ep = start_ep:episodes
                         dQ.(name{1}) = info_Q.sol_obj.value(dQlagr.(name{1}));
                     end
     
-                    % store everything in memory (array takes much less space)
+                    % store everything in memory
                     replaymem.add([td_error{ep}(k_mpc); ...
                         cell2mat(struct2cell(dQ))]);
 
@@ -304,7 +324,7 @@ for ep = start_ep:episodes
 
             % get optimal a_k from V(s_k)
             r = last_sol.r(:, 1);
-            slack{ep}(:, k_mpc) = last_sol.slack';
+            slack{ep}(:, k_mpc) = mean(last_sol.slack, 2);
 
             % save for next transition
             r_prev_prev = r_prev;
@@ -315,7 +335,8 @@ for ep = start_ep:episodes
         end
 
         % step state (according to the true dynamics)
-        [q_o, w_next, q, rho_next, v_next] = F(w, rho, v, r, D(:, k), ...
+        [q_o, w_next, q, rho_next, v_next] = F(...
+            w, rho, v, r, D(:, k), ...
             true_pars.a, true_pars.v_free, true_pars.rho_crit);
 
         % save current state
@@ -334,15 +355,35 @@ for ep = start_ep:episodes
         % perform RL updates
         if mod(k, rl_update_freq) == 0
             % first row is td error, then derivatives of Q w.r.t. weigths
-            exp = cell2mat(replaymem.sample(rl_mem_sample));
+            exp = cell2mat(replaymem.sample(rl_mem_sample / 2, 0.5));
             td_err = exp(1, :);
-
-            % compute next parameters: w = w - lr * mean(td * dQ.theta) 
-            i = 2;
+            n = length(td_err);
+            
+%             % compute next parameters: w = w + lr * expval(td * dQ.theta) 
+%             i = 2;
+%             for name = fieldnames(rl_pars)'
+%                 sz = length(rl_pars.(name{1}){end});
+%                 rl_pars.(name{1}){end + 1} = rl_pars.(name{1}){end} + ...
+%                     lr * (exp(i:i+sz-1, :) * td_err') / n;
+%                 i = i + sz;
+%             end
+            lb = struct; ub = struct;
+            for name = fieldnames(rl_pars)'
+                lb.(name{1}) = rl_pars_bounds.(name{1})(1) - rl_pars.(name{1}){end};
+                ub.(name{1}) = rl_pars_bounds.(name{1})(2) - rl_pars.(name{1}){end};
+            end
+            [deltas, ~, exitflag] = quadprog(...
+                eye(size(exp, 1) - 1), ...
+                -(lr * (exp(2:end, :) * td_err') / n), ...
+                [], [], [], [], ...
+                cell2mat(struct2cell(lb)), cell2mat(struct2cell(ub)), ...
+                lr * (exp(2:end, :) * td_err') / n, ... 
+                optimoptions('quadprog', 'Display', 'off'));
+            assert(exitflag == 1)
+            i = 1;
             for name = fieldnames(rl_pars)'
                 sz = length(rl_pars.(name{1}){end});
-                rl_pars.(name{1}){end + 1} = rl_pars.(name{1}){end} + ...
-                    lr * (exp(i:i+sz-1, :) * td_err') / length(td_err);
+                rl_pars.(name{1}){end + 1} = rl_pars.(name{1}){end} + deltas(i:i+sz-1);
                 i = i + sz;
             end
 
@@ -378,8 +419,8 @@ diary off
 rl_pars = structfun(@(x) cell2mat(x), rl_pars, 'UniformOutput', false);
 
 % clear useless variables
-clear cost ctrl d D d1 d2 ep exp F filter_num filter_den i info k ...
-    last_sol log_filename msg name pars q q_o r r_first r_last r_prev ...
+clear cost ctrl d D d1 d2 exp F filter_num filter_den i info k ...
+    last_sol log_filename msg n name pars q q_o r r_first r_last r_prev ...
     replaymem rho rho_next rho_prev save_freq start_ep_time ... 
     start_ep start_tot_time td_err sz v v_next v_prev w w_next w_prev
 
