@@ -1,0 +1,4 @@
+20220326_201928_data: example of diverging
+20220326_211358_data: example of converging, but too short. If episodes are increased, it diverges
+20220327_125930_data: one of the first two complete trainings, this diverges
+20220327_164541_data: one of the first two complete trainings, this does not seem to learn much
