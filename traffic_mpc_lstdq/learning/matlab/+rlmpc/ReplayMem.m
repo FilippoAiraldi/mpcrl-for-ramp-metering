@@ -31,15 +31,36 @@ classdef ReplayMem < handle
             end
         end
         
-        function [samples, idx_samples] = sample(obj, n)
+        function [samples, idx_samples] = sample(obj, n, include_last_n)
             % check if percentage
             if floor(n) ~= n
                 n = round(n * obj.maxcapacity);
             end
+            if nargin < 3
+                include_last_n = 0;
+            elseif floor(include_last_n) ~= include_last_n
+                    include_last_n = round(include_last_n * obj.maxcapacity);
+            end
             n = min(n, obj.length);
+            include_last_n = min(include_last_n, n);
 
-            % sample at random
-            idx_samples = randperm(obj.length, n);
+            % get last n
+            if include_last_n > 0
+                last_n = obj.length-include_last_n+1:obj.length;
+            else
+                last_n = [];
+            end
+
+            % sample at random the remaining
+            to_sample = n - include_last_n;
+            if to_sample > 0
+                rand_n = randperm(obj.length - include_last_n, to_sample);
+            else
+                rand_n = [];
+            end
+            
+            % combine into output samples
+            idx_samples = [last_n, rand_n];
             samples = obj.data(idx_samples);
         end
     end
