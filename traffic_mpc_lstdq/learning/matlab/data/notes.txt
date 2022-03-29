@@ -4,3 +4,5 @@
 20220327_164541_data: one of the first two complete trainings, this does not seem to learn much.
 20220328_141136_data: shorter, complete training. First example of TTS plateau, i.e., stops learning.
 20220328_162625_data: similar to previous, just with larger bounds. Plateaus the same.
+20220329_122635_data: nice result, but what if it is improving just because of noise?
+20220329_154411_data: longest results, but plateaus...
