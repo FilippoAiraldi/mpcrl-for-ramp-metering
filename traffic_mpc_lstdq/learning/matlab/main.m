@@ -6,7 +6,7 @@ load_checkpoint = false;
 % profile on -history
 
 
-
+% increase bounds of rl params
 % exploration perturbation
 % making 'a' learnable?
 
@@ -14,7 +14,7 @@ load_checkpoint = false;
 
 %% Model
 % simulation
-episodes = 10;                  % number of episodes to repeat
+episodes = 20;                  % number of episodes to repeat
 Tfin = 2.5;                     % simulation time per episode (h)
 T = 10 / 3600;                  % simulation step size (h)
 K = Tfin / T;                   % simulation steps per episode (integer)
@@ -81,14 +81,15 @@ Nc = 3;                             % control horizon
 M = 6;                              % horizon spacing factor
 plugin_opts = struct('expand', true, 'print_time', false);
 solver_opts = struct('print_level', 0, 'max_iter', 1.5e3, 'tol', 1e-7);
-perturb_mag = 0;                    % magnitude of exploratory perturbation
+perturb_mag = 1;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
 discount = 1;                       % rl discount factor
-lr = 5e-4;                          % rl learning rate
+lr = 1e-5;                          % rl learning rate
 con_violation_penalty = 10;         % rl penalty for constraint violations
 rl_update_freq = round(K / 5);      % when rl should update
 rl_mem_cap = rl_update_freq * 5;    % RL experience replay capacity
 rl_mem_sample = rl_update_freq * 2; % RL experience replay sampling size
+qp_rl_update = true;                % decide whether to use QP to compute updates
 save_freq = 2;                      % checkpoint saving
 
 % cost terms (learnable MPC, metanet and RL)
@@ -112,7 +113,7 @@ for name = ["Q", "V"]
     ctrl.set_ipopt_opts(plugin_opts, solver_opts);
 
     % set soft constraint on ramp queue
-    slack = ctrl.add_var('slack', 2, M * Np + 1);
+    slack = ctrl.add_var('slack', n_ramps, M * Np + 1);
     ctrl.opti.subject_to(slack(:) >= 0);
     ctrl.opti.subject_to(ctrl.vars.w(1, :) - slack(1, :) <= max_queue1)
     ctrl.opti.subject_to(ctrl.vars.w(2, :) - slack(2, :) <= max_queue2)
@@ -177,16 +178,17 @@ rl_pars.weight_L_rho = {ones(size(weight_L_rho))};
 rl_pars.weight_L_v = {ones(size(weight_L_v))};
 rl_pars.weight_T = {ones(size(weight_T))};
 rl_pars.weight_slack = {ones(size(weight_slack)) * 10};
-
-% rl parameters bounds
-rl_pars_bounds.v_free = [60, 170];
-rl_pars_bounds.rho_crit = [15, 50];
-rl_pars_bounds.v_free_tracking = [60, 170];
-rl_pars_bounds.weight_V = [-inf, inf];
-rl_pars_bounds.weight_L_rho = [0, inf];
-rl_pars_bounds.weight_L_v = [0, inf];
-rl_pars_bounds.weight_T = [0, inf];
-rl_pars_bounds.weight_slack = [0, inf];
+if qp_rl_update
+    % rl parameters bounds
+    rl_pars_bounds.v_free = [50, 200];
+    rl_pars_bounds.rho_crit = [10, 100];
+    rl_pars_bounds.v_free_tracking = [50, 200];
+    rl_pars_bounds.weight_V = [-inf, inf];
+    rl_pars_bounds.weight_L_rho = [0, inf];
+    rl_pars_bounds.weight_L_v = [0, inf];
+    rl_pars_bounds.weight_T = [0, inf];
+    rl_pars_bounds.weight_slack = [0, inf];
+end
 
 % preallocate containers for miscellaneous quantities
 slack = cell(1, episodes);
@@ -254,7 +256,7 @@ for ep = start_ep:episodes
         if mod(k, M) == 1
             k_mpc = ceil(k / M); % mpc iteration
 
-            % run Q(s(k-1), a(k-1)) excluding very first iteration
+            % run Q(s(k-1), a(k-1)) (condition excludes very first iteration)
             if ep > 1 || k_mpc > 1
                 pars = struct(...
                     'd', util.get_future_demand(D, ep, k - M, K, M, Np), ...
@@ -267,10 +269,16 @@ for ep = start_ep:episodes
                     'weight_L_v', rl_pars.weight_L_v{end}, ....
                     'weight_T', rl_pars.weight_T{end}, ...
                     'weight_slack', rl_pars.weight_slack{end}, ...
-                    'r_last', r_prev_prev, ...  % a(k-2)
-                    'r_first', r_prev);         % Q fixes first action a(k-1)
+                    'r_last', r_prev_prev, 'r_first', r_prev); % a(k-2) and a(k-1)
                 last_sol.slack = zeros(size(mpc.V.vars.slack));
                 [last_sol, info_Q] = mpc.Q.solve(pars, last_sol);
+            end
+
+            % choose if to apply perturbation
+            if rand < 0.5 * exp(-(ep - 1) / 5)
+                pert = perturb_mag * exp(-(ep - 1) / 5) * randn;
+            else
+                pert = 0;
             end
 
             % run V(s(k))
@@ -285,12 +293,11 @@ for ep = start_ep:episodes
                 'weight_L_v', rl_pars.weight_L_v{end}, ...
                 'weight_T', rl_pars.weight_T{end}, ...
                 'weight_slack', rl_pars.weight_slack{end}, ...
-                'r_last', r, ...
-                'perturbation', (perturb_mag * 0.8^(ep - 1)) * randn);
+                'r_last', r, 'perturbation', pert);
             last_sol.slack = zeros(size(mpc.V.vars.slack));
             [last_sol, info_V] = mpc.V.solve(pars, last_sol);
 
-            % save to memory if no error; or log error 
+            % save to memory if successful, or log error 
             if ep > 1 || k_mpc > 1
                 if info_V.success && info_Q.success
                     % compute td error
@@ -353,45 +360,50 @@ for ep = start_ep:episodes
         v = full(v_next);
         
         % perform RL updates
-        if mod(k, rl_update_freq) == 0
+        if ep > 1 && mod(k, rl_update_freq) == 0 % does it make sense not to update in the first ep?
             % first row is td error, then derivatives of Q w.r.t. weigths
-            exp = cell2mat(replaymem.sample(rl_mem_sample / 2, 0.5));
-            td_err = exp(1, :);
+            sample = cell2mat(replaymem.sample(rl_mem_sample / 2, 0.5));
+            td_err = sample(1, :);
             n = length(td_err);
             
-%             % compute next parameters: w = w + lr * expval(td * dQ.theta) 
-%             i = 2;
-%             for name = fieldnames(rl_pars)'
-%                 sz = length(rl_pars.(name{1}){end});
-%                 rl_pars.(name{1}){end + 1} = rl_pars.(name{1}){end} + ...
-%                     lr * (exp(i:i+sz-1, :) * td_err') / n;
-%                 i = i + sz;
-%             end
-            lb = struct; ub = struct;
-            for name = fieldnames(rl_pars)'
-                lb.(name{1}) = rl_pars_bounds.(name{1})(1) - rl_pars.(name{1}){end};
-                ub.(name{1}) = rl_pars_bounds.(name{1})(2) - rl_pars.(name{1}){end};
-            end
-            [deltas, ~, exitflag] = quadprog(...
-                eye(size(exp, 1) - 1), ...
-                -(lr * (exp(2:end, :) * td_err') / n), ...
-                [], [], [], [], ...
-                cell2mat(struct2cell(lb)), cell2mat(struct2cell(ub)), ...
-                lr * (exp(2:end, :) * td_err') / n, ... 
-                optimoptions('quadprog', 'Display', 'off'));
-            assert(exitflag == 1)
-            i = 1;
-            for name = fieldnames(rl_pars)'
-                sz = length(rl_pars.(name{1}){end});
-                rl_pars.(name{1}){end + 1} = rl_pars.(name{1}){end} + deltas(i:i+sz-1);
-                i = i + sz;
+            % perform rl update
+            if ~qp_rl_update
+                % compute next parameters: w = w + lr * expval(td * dQ.theta) 
+                i = 2;
+                for name = fieldnames(rl_pars)'
+                    sz = length(rl_pars.(name{1}){end});
+                    rl_pars.(name{1}){end + 1} = rl_pars.(name{1}){end} + ...
+                        lr * (exp(i:i+sz-1, :) * td_err') / n;
+                    i = i + sz;
+                end
+            else
+                % compute bounds
+                lb = struct; ub = struct;
+                for name = fieldnames(rl_pars)'
+                    lb.(name{1}) = rl_pars_bounds.(name{1})(1) - rl_pars.(name{1}){end};
+                    ub.(name{1}) = rl_pars_bounds.(name{1})(2) - rl_pars.(name{1}){end};
+                end
+                % solve constrained lcqp
+                f = lr * (sample(2:end, :) * td_err') / n;
+                [deltas, ~, exitflag] = quadprog(eye(length(f)), -f, ...
+                    [], [], [], [], ...
+                    cell2mat(struct2cell(lb)), cell2mat(struct2cell(ub)), f, ... 
+                    optimoptions('quadprog', 'Display', 'off'));
+                assert(exitflag == 1)
+                % compute next paramters
+                i = 1;
+                for name = fieldnames(rl_pars)'
+                    sz = length(rl_pars.(name{1}){end});
+                    rl_pars.(name{1}){end + 1} = rl_pars.(name{1}){end} + deltas(i:i+sz-1);
+                    i = i + sz;
+                end
             end
 
             % log update result
             util.logging(toc(start_tot_time), ep, toc(start_ep_time), ...
                 t(k), k, K, ...
                 sprintf('RL update %i with %i samples (v_free=%.3f, rho_crit=%.3f, v_free_track=%.3f)', ...
-                length(rl_pars.v_free) - 1, size(exp, 2), ...
+                length(rl_pars.v_free) - 1, n, ...
                 rl_pars.v_free{end}, rl_pars.rho_crit{end}, rl_pars.v_free_tracking{end}));
         end
     end
