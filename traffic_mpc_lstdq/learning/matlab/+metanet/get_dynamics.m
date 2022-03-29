@@ -20,11 +20,20 @@ function F = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
     v_free = casadi.SX.sym('v_free', 1, 1);
     rho_crit = casadi.SX.sym('rho_crit', 1, 1);
 
+    % ensure nonnegativity - of the input
+    w_ = max(eps, w);
+    rho_ = max(eps, rho);
+    v_ = max(eps, v);
+    
     % run system dynamics function
-    [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, T, L, ...
+    [q_o, w_o_next, q, rho_next, v_next] = f(w_, rho_, v_, r, d, T, L, ...
         lanes, C, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa, eps);
 
-    % ensure nonnegativity
+%     % run system dynamics function
+%     [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, T, L, ...
+%         lanes, C, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa, eps);
+
+    % ensure nonnegativity - of the output
     q_o = max(eps, q_o);
     w_o_next = max(eps, w_o_next);
     q = max(eps, q);
@@ -91,9 +100,7 @@ end
 
 
 function V = Veq(rho, v_free, a, rho_crit, eps)
-    % VEQ Evaluates the METANET speed equation at the given density rho.
-    
-    V = v_free * exp((-1 / a) * (rho / rho_crit + eps).^a);
+    V = v_free * exp((-1 / a) * ((rho / rho_crit) + eps).^a);
 end
 
 
