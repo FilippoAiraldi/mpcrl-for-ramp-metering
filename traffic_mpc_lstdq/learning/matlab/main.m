@@ -5,11 +5,9 @@ runname = datestr(datetime, 'yyyymmdd_HHMMSS');
 load_checkpoint = false;
 % profile on -history
 
-
-% increase bounds of rl params
-% exploration perturbation
-% making 'a' learnable?
-
+% TO TRY
+% remove normalization?
+% start in a worse condition? It plateaus because it quickly learns it cannot do better
 
 
 %% Model
@@ -81,10 +79,10 @@ Nc = 3;                             % control horizon
 M = 6;                              % horizon spacing factor
 plugin_opts = struct('expand', true, 'print_time', false);
 solver_opts = struct('print_level', 0, 'max_iter', 1.5e3, 'tol', 1e-7);
-perturb_mag = 1;                    % magnitude of exploratory perturbation
+perturb_mag = 5;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
 discount = 1;                       % rl discount factor
-lr = 1e-5;                          % rl learning rate
+lr = 5e-6;                          % rl learning rate
 con_violation_penalty = 10;         % rl penalty for constraint violations
 rl_update_freq = round(K / 5);      % when rl should update
 rl_mem_cap = rl_update_freq * 5;    % RL experience replay capacity
@@ -93,14 +91,15 @@ qp_rl_update = true;                % decide whether to use QP to compute update
 save_freq = 2;                      % checkpoint saving
 
 % cost terms (learnable MPC, metanet and RL)
-[Vcost, Lcost, Tcost] = rlmpc.get_mpc_learnable_costs(...
-    n_origins, n_links, ...
-    max_queue1, rho_max, v_free, ... % normalization constants
-    'constant', 'diag', 'diag');
+[Vcost, Lcost, Tcost] = rlmpc.get_learnable_costs(n_origins, n_links, ...
+                                                'constant', 'diag', 'diag');    
 TTS = metanet.TTS(n_origins, n_links, T, L, lanes);
-rate_var = metanet.rate_variability(n_ramps, Nc);
+Rate_var = metanet.rate_variability(n_ramps, Nc);
 Lrl = rlmpc.get_rl_cost(n_origins, n_links, TTS, [max_queue1, max_queue2], ...
-    con_violation_penalty);
+                        con_violation_penalty);
+normalization.w = max(max_queue1, max_queue2);      % normalization constants
+normalization.rho = rho_max;
+normalization.v = v_free; 
 
 % build mpc-based value function approximators
 mpc = struct;
@@ -119,28 +118,41 @@ for name = ["Q", "V"]
     ctrl.opti.subject_to(ctrl.vars.w(2, :) - slack(2, :) <= max_queue2)
 
     % create required parameters
-    v_free_tracking = ctrl.add_par('v_free_tracking', 1, 1); % = ctrl.pars.v_free
+    v_free_tracking = ctrl.add_par('v_free_tracking', 1, 1); 
     weight_V = ctrl.add_par('weight_V', size(Vcost.mx_in(3)));
-    weight_L_rho = ctrl.add_par('weight_L_rho', size(Lcost.mx_in(4)));
-    weight_L_v = ctrl.add_par('weight_L_v', size(Lcost.mx_in(5)));
+    weight_L = ctrl.add_par('weight_L', size(Lcost.mx_in(4)));
     weight_T = ctrl.add_par('weight_T', size(Tcost.mx_in(2)));
     weight_slack = ctrl.add_par('weight_slack', 1, 1);
     r_last = ctrl.add_par('r_last', size(ctrl.vars.r, 1), 1);
 
     % compute the actual symbolic cost expression with opti vars and pars
-    % initial + terminal + penalties term
-    cost = Vcost(ctrl.vars.w(:, 1), ctrl.vars.rho(:, 1), ...            % affine/constant initial cost
-            ctrl.vars.v(:, 1), weight_V) + ...                              
-        Tcost(ctrl.vars.rho(:, end), ctrl.pars.rho_crit, weight_T) + ...% quadratic terminal cost
-        weight_slack * sum(slack(:, end)) + ...                         % terminal slack penalty
-        rate_var_penalty * rate_var(r_last, ctrl.vars.r);               % terminal rate variability
+    cost = Vcost(...                                        % affine/constant initial cost
+            ctrl.vars.w(:, 1), ...     
+            ctrl.vars.rho(:, 1), ...            
+            ctrl.vars.v(:, 1), ...
+            weight_V, ...
+            normalization.w,...
+            normalization.rho,...
+            normalization.v) + ...                              
+        Tcost(...                                           % quadratic terminal cost
+            ctrl.vars.rho(:, end), ...    
+            ctrl.pars.rho_crit, ...
+            weight_T, ...
+            normalization.rho) + ...
+        sum(slack(:, end)) * weight_slack + ...             % terminal slack penalty
+        Rate_var(r_last, ctrl.vars.r) * rate_var_penalty;   % terminal rate variability
     % stage terms
     for k = 1:M * Np
         cost = cost + ...
-            weight_slack^2 * sum(slack(:, k)) + ...                     % slack penalty
-            Lcost(ctrl.vars.rho(:, k), ctrl.vars.v(:, k), ...           % quadratic stage cost
-                ctrl.pars.rho_crit, v_free_tracking, ...
-                weight_L_rho, weight_L_v) + ...                         
+            sum(slack(:, k)) * weight_slack + ...           % slack penalty
+            Lcost(...                                       % quadratic stage cost
+                ctrl.vars.rho(:, k), ...         
+                ctrl.vars.v(:, k), ...           
+                ctrl.pars.rho_crit, ...
+                v_free_tracking, ... % ctrl.pars.v_free, ...
+                weight_L, ...
+                normalization.rho, ...
+                normalization.v) + ...                         
             TTS(ctrl.vars.w(:, k), ctrl.vars.rho(:, k));                % TTS 
     end
 
@@ -174,18 +186,16 @@ rl_pars.v_free = {v_free};
 rl_pars.rho_crit = {rho_crit};
 rl_pars.v_free_tracking = {v_free};
 rl_pars.weight_V = {ones(size(weight_V))};
-rl_pars.weight_L_rho = {ones(size(weight_L_rho))};
-rl_pars.weight_L_v = {ones(size(weight_L_v))};
+rl_pars.weight_L = {ones(size(weight_L))};
 rl_pars.weight_T = {ones(size(weight_T))};
 rl_pars.weight_slack = {ones(size(weight_slack)) * 10};
 if qp_rl_update
     % rl parameters bounds
-    rl_pars_bounds.v_free = [50, 200];
+    rl_pars_bounds.v_free = [50, 200]; 
     rl_pars_bounds.rho_crit = [10, 100];
     rl_pars_bounds.v_free_tracking = [50, 200];
     rl_pars_bounds.weight_V = [-inf, inf];
-    rl_pars_bounds.weight_L_rho = [0, inf];
-    rl_pars_bounds.weight_L_v = [0, inf];
+    rl_pars_bounds.weight_L = [0, inf];
     rl_pars_bounds.weight_T = [0, inf];
     rl_pars_bounds.weight_slack = [0, inf];
 end
@@ -265,8 +275,7 @@ for ep = start_ep:episodes
                     'rho_crit', rl_pars.rho_crit{end}, ...
                     'v_free_tracking', rl_pars.v_free_tracking{end}, ...
                     'weight_V', rl_pars.weight_V{end}, ...
-                    'weight_L_rho', rl_pars.weight_L_rho{end}, ...
-                    'weight_L_v', rl_pars.weight_L_v{end}, ....
+                    'weight_L', rl_pars.weight_L{end}, ...
                     'weight_T', rl_pars.weight_T{end}, ...
                     'weight_slack', rl_pars.weight_slack{end}, ...
                     'r_last', r_prev_prev, 'r_first', r_prev); % a(k-2) and a(k-1)
@@ -275,8 +284,8 @@ for ep = start_ep:episodes
             end
 
             % choose if to apply perturbation
-            if rand < 0.5 * exp(-(ep - 1) / 5)
-                pert = perturb_mag * exp(-(ep - 1) / 5) * randn;
+            if rand < 0.5 * exp(-(ep - 1) / 10)
+                pert = perturb_mag * exp(-(ep - 1) / 10) * randn;
             else
                 pert = 0;
             end
@@ -289,8 +298,7 @@ for ep = start_ep:episodes
                 'rho_crit', rl_pars.rho_crit{end}, ...
                 'v_free_tracking', rl_pars.v_free_tracking{end}, ...
                 'weight_V', rl_pars.weight_V{end}, ...
-                'weight_L_rho', rl_pars.weight_L_rho{end}, ...
-                'weight_L_v', rl_pars.weight_L_v{end}, ...
+                'weight_L', rl_pars.weight_L{end}, ...
                 'weight_T', rl_pars.weight_T{end}, ...
                 'weight_slack', rl_pars.weight_slack{end}, ...
                 'r_last', r, 'perturbation', pert);
@@ -377,7 +385,7 @@ for ep = start_ep:episodes
                     i = i + sz;
                 end
             else
-                % compute bounds
+                % compute bounds - must have same dimension as 
                 lb = struct; ub = struct;
                 for name = fieldnames(rl_pars)'
                     lb.(name{1}) = rl_pars_bounds.(name{1})(1) - rl_pars.(name{1}){end};

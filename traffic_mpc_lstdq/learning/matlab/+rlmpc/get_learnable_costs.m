@@ -1,20 +1,22 @@
-function [init_cost, stage_cost, terminal_cost] = get_mpc_learnable_costs(...
-        n_origins, n_links, ...
-        w_max, rho_max, v_max, ...
-        init_type, stage_type, final_type)
+function [init_cost, stage_cost, terminal_cost] = get_learnable_costs(...
+        n_origins, n_links, init_type, stage_type, final_type)
 
+    % create symbolic arguments
     w = casadi.SX.sym('w', n_origins, 1);
     rho = casadi.SX.sym('rho', n_links, 1);
     v = casadi.SX.sym('v', n_links, 1);
     rho_crit = casadi.SX.sym('rho_crit', 1, 1);
     v_free = casadi.SX.sym('v_free', 1, 1);
+    w_norm = casadi.SX.sym('w_norm', 1, 1);
+    rho_norm = casadi.SX.sym('rho_norm', 1, 1);
+    v_norm = casadi.SX.sym('v_norm', 1, 1);
 
 
     %% initial cost
     switch init_type
         case 'affine' 
             weight = casadi.SX.sym('weight', n_origins + 2 * n_links, 1);
-            J0 = weight' * [w / w_max; rho / rho_max; v / v_max];
+            J0 = weight' * [w / w_norm; rho / rho_norm; v / v_norm];
         case 'constant'
             weight = casadi.SX.sym('weight', 1, 1);
             J0 = weight;
@@ -23,8 +25,8 @@ function [init_cost, stage_cost, terminal_cost] = get_mpc_learnable_costs(...
     end
 
     init_cost = casadi.Function('init_cost', ...
-        {w, rho, v, weight}, {J0}, ...
-        {'w', 'rho', 'v', 'weight'}, {init_type});
+        {w, rho, v, weight, w_norm, rho_norm, v_norm}, {J0}, ...
+        {'w', 'rho', 'v', 'weight', 'w_norm', 'rho_norm', 'v_norm'}, {init_type});
     assert(isequal(size(J0), [1, 1]))
 
 
@@ -48,13 +50,13 @@ function [init_cost, stage_cost, terminal_cost] = get_mpc_learnable_costs(...
         otherwise
             error('Invalid stage type (''full'', ''diag'', ''posdef'')')
     end
-    yr = (rho - rho_crit) / rho_max;
-    yv = (v - v_free) / v_max;
+    yr = (rho - rho_crit) / rho_norm;
+    yv = (v - v_free) / v_norm;
     Jk = yr' * Q_rho * yr + yv' * Q_v * yv;
 
     stage_cost = casadi.Function('stage_cost', ...
-        {rho, v, rho_crit, v_free, weight_rho, weight_v}, {Jk}, ...
-        {'rho', 'v', 'rho_crit', 'v_free', 'weight_rho', 'weight_v'}, ... 
+        {rho, v, rho_crit, v_free, [weight_rho; weight_v], rho_norm, v_norm}, {Jk}, ...
+        {'rho', 'v', 'rho_crit', 'v_free', 'weight', 'rho_norm', 'v_norm'}, ... 
         {stage_type});
     assert(isequal(size(Jk), [1, 1]))
 
@@ -74,11 +76,11 @@ function [init_cost, stage_cost, terminal_cost] = get_mpc_learnable_costs(...
             error('Invalid final type (''full'', ''diag'', ''posdef'')')
     end
 
-    yr = (rho - rho_crit) / rho_max;
+    yr = (rho - rho_crit) / rho_norm;
     JN = yr' * Q * yr;
 
     terminal_cost = casadi.Function('terminal_cost', ...
-        {rho, rho_crit, weight}, {JN}, ...
-        {'rho', 'rho_crit', 'weight'}, {final_type});
+        {rho, rho_crit, weight, rho_norm}, {JN}, ...
+        {'rho', 'rho_crit', 'weight', 'rho_norm'}, {final_type});
     assert(isequal(size(JN), [1, 1]))
 end
