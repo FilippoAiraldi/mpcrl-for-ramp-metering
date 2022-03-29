@@ -6,7 +6,7 @@
 % if no variables, load from file
 if isempty(who())
     warning('off');
-    load data\20220326_211358_data.mat
+    load data\20220326_201928_data.mat
     warning('on');
 
     % if loading a checkpoint, fill missing variables
@@ -16,79 +16,84 @@ if isempty(who())
     end
 end
 
-% plotting step (to reduce number of datapoints to be plot)
-step = 3;
+% plotting options
+step = 3; % reduce number of datapoints to be plot
+plot_summary = true;
 plot_traffic = false;
 plot_learning = true;
-scaled_learned = true;
+scaled_learned = false;
 
 
 
 %% Details
-delimiter = ''; %'------------------------';
-Table = {... % all entries must be strings
-    % run details
-    'RUN', delimiter; ...
-    'name', runname;...
-    'episodes', sprintf('%i (executed %i)', episodes, ep); ...
-    'tot exec time', duration(0, 0, exec_time_tot, 'Format', 'hh:mm:ss');...
-    'mean ep exec time', ...
-        duration(0, 0, mean(exec_times), 'Format', 'hh:mm:ss');
-
-    % MPC details
-    'MPC', delimiter; ...
-    'Np/Nc/M', sprintf('%i/%i/%i', Np, Nc, M); ...
-    'type cost initial', Vcost.name_out(); ...
-    'type cost stage', Lcost.name_out(); ...
-    'type cost terminal', Tcost.name_out(); ...
-    'max iter', solver_opts.max_iter; ... 
-    'rate var penalty weight', rate_var_penalty; ...
-    'explor. perturbation mag.', perturb_mag; ...
-    'max queues', sprintf('%i, %i', max_queue1, max_queue2); ...
-    'epsilon', eps; ...
-
-    % RL details
-    'RL', delimiter; ...
-    'discount', discount; ...
-    'learning rate', lr; ...
-    'constraint violation penalty', con_violation_penalty; ...
-
-    % learning outcomes
-    'LEARNING', delimiter; ...
-    'update frequency (iter)', rl_update_freq; ...
-    'a (true)', sprintf('%7.3f', true_pars.a);...
-    'v_free (true/init/fin)', sprintf('%7.3f / %7.3f / %7.3f', ...
-        true_pars.v_free, rl_pars.v_free(1), rl_pars.v_free(end));...
-    'rho_crit (true/init/fin)', sprintf('%7.3f / %7.3f / %7.3f', ...
-        true_pars.rho_crit, rl_pars.rho_crit(1), rl_pars.rho_crit(end));...
-    };
-weights = fieldnames(rl_pars);
-for name = weights(3:end)' % first 2 are v_free and rho_crit
-    weight = rl_pars.(name{1});
-    for i = 1:size(weight, 1)
-        w = weight(i, 1);
-        Table = [Table; { sprintf('%s_%i (init/fin)', name{1}, i), ...
-            sprintf('%7.3f / %7.3f', weight(i, 1), weight(i, end))}];
-    end
-end
- 
-Table = string(Table);
-Table(ismissing(Table)) = 'NaN';
-width = max(arrayfun(@(x) strlength(x), Table(:, 1))) + 4;
-s = '';
-for i = 1:size(Table, 1)
-    if all(isstrprop(Table(i, 1),'upper'))
-        if i > 1
-            s = append(s, '\n');
+if plot_summary
+    delimiter = ''; %'------------------------';
+    Table = {... % all entries must be strings
+        % run details
+        'RUN', delimiter; ...
+        'name', runname;...
+        'episodes', sprintf('%i (executed %i)', episodes, ep); ...
+        'tot exec time', duration(0, 0, exec_time_tot, 'Format', 'hh:mm:ss');...
+        'mean ep exec time', ...
+            duration(0, 0, mean(exec_times), 'Format', 'hh:mm:ss');
+    
+        % MPC details
+        'MPC', delimiter; ...
+        'Np/Nc/M', sprintf('%i/%i/%i', Np, Nc, M); ...
+        'type cost initial', Vcost.name_out(); ...
+        'type cost stage', Lcost.name_out(); ...
+        'type cost terminal', Tcost.name_out(); ...
+        'max iter', solver_opts.max_iter; ... 
+        'rate var penalty weight', rate_var_penalty; ...
+        'explor. perturbation mag.', perturb_mag; ...
+        'max queues', sprintf('%i, %i', max_queue1, max_queue2); ...
+        'epsilon', eps; ...
+    
+        % RL details
+        'RL', delimiter; ...
+        'discount', discount; ...
+        'learning rate', lr; ...
+        'constraint violation penalty', con_violation_penalty; ...
+    
+        % learning outcomes
+        'LEARNING', delimiter; ...
+        'update frequency (iter)', rl_update_freq; ...
+        'a (true)', sprintf('%7.3f', true_pars.a);...
+        'v_free (true)', sprintf('%7.3f', true_pars.v_free);...
+        'rho_crit (true)', sprintf('%7.3f', true_pars.rho_crit);...
+        };
+    for name = fieldnames(rl_pars)' 
+        weight = rl_pars.(name{1});
+        if size(weight, 1) > 1
+            for i = 1:size(weight, 1)
+                w = weight(i, 1);
+                Table = [Table; { sprintf('%s_%i (init/fin)', name{1}, i), ...
+                    sprintf('%7.3f / %7.3f', weight(i, 1), weight(i, end))}];
+            end
+        else
+            Table = [Table; { sprintf('%s (init/fin)', name{1}), ...
+                        sprintf('%7.3f / %7.3f', weight(1), weight(end))}];
         end
-        delimiter = ' ';
-    else
-        delimiter = '-';
     end
-    spaces = repmat(delimiter, 1, width - 2 - strlength(Table(i, 1)));
-    s = append(s, Table(i, 1), ' ', spaces, ' ', Table(i, 2), '\n');
+     
+    Table = string(Table);
+    Table(ismissing(Table)) = 'NaN';
+    width = max(arrayfun(@(x) strlength(x), Table(:, 1))) + 4;
+    s = '';
+    for i = 1:size(Table, 1)
+        if all(isstrprop(Table(i, 1),'upper'))
+            if i > 1
+                s = append(s, '\n');
+            end
+            delimiter = ' ';
+        else
+            delimiter = '-';
+        end
+        spaces = repmat(delimiter, 1, width - 2 - strlength(Table(i, 1)));
+        s = append(s, Table(i, 1), ' ', spaces, ' ', Table(i, 2), '\n');
+    end
+    fprintf(s)
 end
-fprintf(s)
 
 
 
@@ -201,31 +206,38 @@ if plot_learning
     xlabel('time (h)'), ylabel('L')
     ax_.XLim(2) = t_tot(end);
     
+    traffic_pars = {'a'; 'v_free'; 'v_free_tracking'; 'rho_crit'};
+
     ax(3) = nexttile(7); hold on
-    stairs(linspace(0, ep_tot, length(rl_pars.v_free)), rl_pars.v_free)
-    stairs(linspace(0, ep_tot, length(rl_pars.rho_crit)), rl_pars.rho_crit)
-    ax(3).ColorOrderIndex = 1;
-    plot([0, ep_tot], [true_pars.v_free, true_pars.v_free], '--')
-    plot([0, ep_tot], [true_pars.rho_crit, true_pars.rho_crit], '--')
-    legend('v_{free}', '\rho_{crit}')
+    true_pars.v_free_tracking = true_pars.v_free;
+    legendStrings = {};
+    pars = intersect(fieldnames(rl_pars), traffic_pars);
+    for i = 1:length(pars)
+        par = pars{i};
+        stairs(linspace(0, ep_tot, length(rl_pars.(par))), rl_pars.(par))
+        ax(3).ColorOrderIndex = i;
+        plot([0, ep_tot], [true_pars.(par), true_pars.(par)], '--')
+        legendStrings = [legendStrings, {par, ''}];
+    end
+    legend(legendStrings{:}, 'interpreter', 'none', 'FontSize', 6)
     hold off
-    ylabel('v_{free}, \rho_{crit}')
+    ylabel('learned parameters')
     
     ax(4) = nexttile(6, [2, 1]); hold on
-    Markers = {'+','o','*','x','v','d','^','s','>','<'};
-    weights = fieldnames(rl_pars);
+    markers = {'o', '*', 'x', 'v', 'd', '^', 's', '>', '<', '+'};
+    weights = setdiff(fieldnames(rl_pars), traffic_pars);
     legendStrings = {};
-    for i = 1:(length(weights) - 2) % first 2 are v_free and rho_crit
-        name = weights{i + 2};
-        weight = rl_pars.(name);
-        for j = 1:size(weight, 1)
-            w = (weight(j, :));
+    for i = 1:length(weights)
+        weight = weights{i};
+        for j = 1:size(rl_pars.(weight), 1)
+            w = rl_pars.(weight)(j, :);
             if scaled_learned
                 w = rescale(w);
             end
-            plot(linspace(0, ep_tot, length(w)), w, 'Marker', Markers{i}, 'MarkerSize', 4)
-%             stairs(linspace(0, ep_tot, length(w)), w, 'Marker', Markers{i}, 'MarkerSize', 4)
-            legendStrings{end + 1} = append(name, '_', string(j));
+            plot(linspace(0, ep_tot, length(w)), w, ...
+                'Marker', markers{mod(i - 1, length(markers)) + 1}, 'MarkerSize', 4)
+            % stairs(linspace(0, ep_tot, length(w)), w, 'Marker', Markers{i}, 'MarkerSize', 4)
+            legendStrings{end + 1} = append(weight, '_', string(j));
         end
     end
     hold off
@@ -257,11 +269,20 @@ function plot_episodes_separators(ax, hlegend, episodes, Tfin)
 
     line(ax, repmat((1:episodes - 1) * Tfin, 2, 1), [0, ax.YLim(2)], ...
     'Color', '#686a70', 'LineStyle', ':', 'LineWidth', 0.75)
-%     hold(ax(i), 'on')
-%     plot(ax(i), (1:episodes) * Tfin, [0, ax(i).YLim(2)], ':k', 'LineWidth', 0.25)
-%     hold(ax(i), 'off')
+    % hold(ax(i), 'on')
+    % plot(ax(i), (1:episodes) * Tfin, [0, ax(i).YLim(2)], ':k', 'LineWidth', 0.25)
+    % hold(ax(i), 'off')
 
     if ~isempty(hlegend) && isa(hlegend, 'matlab.graphics.illustration.Legend')
         hlegend.String = hlegend.String(1:n_data);
     end
 end
+
+
+% function val = try_get(var)
+%     try
+%         val = evalin('caller', var);
+%     catch
+%         val = 'unavailable';
+%     end
+% end
