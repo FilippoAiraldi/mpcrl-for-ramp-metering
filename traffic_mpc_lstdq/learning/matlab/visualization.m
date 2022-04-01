@@ -6,7 +6,7 @@
 % if no variables, load from file
 if isempty(who())
     warning('off');
-    load data\20220326_201928_data.mat
+    load 20220331_154744_data.mat
     warning('on');
 
     % if loading a checkpoint, fill missing variables
@@ -22,6 +22,7 @@ plot_summary = true;
 plot_traffic = false;
 plot_learning = true;
 scaled_learned = false;
+log_plots = true;
 
 
 
@@ -149,7 +150,7 @@ if plot_traffic
     plot([t_tot(1), t_tot(end)], [max_queue1, max_queue1], '-.k')
     plot([t_tot(1), t_tot(end)], [max_queue2, max_queue2], '-.k')
     hold off
-    hlegend(6) = legend('\omega_{O1}', '\omega_{O2}', 'max \omega_{O2}');
+    hlegend(6) = legend('\omega_{O1}', '\omega_{O2}', 'max \omega');
     ylabel('queue length (veh)')
     
     ax(7) = nexttile(7); 
@@ -158,9 +159,14 @@ if plot_traffic
     ylabel('origin flow (veh/h)')
     
     ax(8) = nexttile(8); hold on,
-    ax(8).ColorOrderIndex = 2;
-    stairs(t_tot(1:step:end), origins_tot.rate(:, 1:step:end)')
-    hlegend(8) = legend('r_{O2}');
+    if size(origins_tot.rate, 1) == 1
+        ax(8).ColorOrderIndex = 2;
+        stairs(t_tot(1:step:end), origins_tot.rate(:, 1:step:end)')
+        hlegend(8) = legend('r_{O2}');
+    else
+        stairs(t_tot(1:step:end), origins_tot.rate(:, 1:step:end)')
+        hlegend(8) = legend('r_{O1}', 'r_{O2}');
+    end
     ylabel('metering rate')
     
     linkaxes(ax, 'x')
@@ -173,6 +179,12 @@ if plot_traffic
 end
 
 if plot_learning
+    if log_plots
+        do_plot = @(x, y, varargin) semilogy(x, abs(y), varargin{:});
+    else
+        do_plot = @(x, y, varargin) plot(x, y, varargin{:});
+    end
+
     % learning quantities figure
     figure;
     tiledlayout(4, 2, 'Padding', 'none', 'TileSpacing', 'compact')
@@ -183,12 +195,12 @@ if plot_learning
     performance = arrayfun(@(ep) full(sum(Lrl(origins.queue{ep}, links.density{ep}))), 1:ep_tot);
     performance_only_tts = arrayfun(@(ep) full(sum(TTS(origins.queue{ep}, links.density{ep}))), 1:ep_tot);
     yyaxis left
-    plot(linspace(0, ep_tot, length(performance)), performance)
+    do_plot(linspace(0, ep_tot, length(performance)), performance)
     % stairs(linspace(0, ep_tot, length(performance) + 1), [performance, performance(end)])
     % ax(1).YLim(1) = 0;
     ylabel('J(\pi)')
     yyaxis right
-    plot(linspace(0, ep_tot, length(performance_only_tts)), performance_only_tts)
+    do_plot(linspace(0, ep_tot, length(performance_only_tts)), performance_only_tts)
     % stairs(linspace(0, ep_tot, length(performance_only_tts) + 1), [performance_only_tts, performance_only_tts(end)])
     ylabel('TTS(\pi)')
     % bar(0.5:1:(ep_tot-0.5), [performance_only_tts', (performance - performance_only_tts)'], 'stacked')
@@ -196,12 +208,12 @@ if plot_learning
     
     ax(2) = nexttile(3, [1, 2]);
     td_error_tot = cell2mat(td_error);
-    plot(linspace(0, ep_tot, length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
+    do_plot(linspace(0, ep_tot, length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
     ylabel('TD error \tau')
     
     ax_ = nexttile(5);
     L_tot = full(Lrl(origins_tot.queue, links_tot.density));
-    plot(t_tot(1:step:end), L_tot(:, 1:step:end))
+    do_plot(t_tot(1:step:end), L_tot(:, 1:step:end))
     plot_episodes_separators(ax_, [], ep_tot, Tfin)
     xlabel('time (h)'), ylabel('L')
     ax_.XLim(2) = t_tot(end);
@@ -218,6 +230,9 @@ if plot_learning
         ax(3).ColorOrderIndex = i;
         plot([0, ep_tot], [true_pars.(par), true_pars.(par)], '--')
         legendStrings = [legendStrings, {par, ''}];
+    end
+    if log_plots
+        set(ax(3), 'YScale', 'log');
     end
     legend(legendStrings{:}, 'interpreter', 'none', 'FontSize', 6)
     hold off
@@ -237,8 +252,15 @@ if plot_learning
             plot(linspace(0, ep_tot, length(w)), w, ...
                 'Marker', markers{mod(i - 1, length(markers)) + 1}, 'MarkerSize', 4)
             % stairs(linspace(0, ep_tot, length(w)), w, 'Marker', Markers{i}, 'MarkerSize', 4)
-            legendStrings{end + 1} = append(weight, '_', string(j));
+            if size(rl_pars.(weight), 1) > 1
+                legendStrings{end + 1} = append(weight, '_', string(j));
+            else
+                legendStrings{end + 1} = weight;
+            end
         end
+    end
+    if log_plots
+        set(ax(4), 'YScale', 'log');
     end
     hold off
     legend(legendStrings{:}, 'interpreter', 'none', 'FontSize', 6)
@@ -267,8 +289,8 @@ function plot_episodes_separators(ax, hlegend, episodes, Tfin)
         n_data = length(hlegend.String);
     end
 
-    line(ax, repmat((1:episodes - 1) * Tfin, 2, 1), [0, ax.YLim(2)], ...
-    'Color', '#686a70', 'LineStyle', ':', 'LineWidth', 0.75)
+    line(ax, repmat((1:episodes - 1) * Tfin, 2, 1), ax.YLim, ...
+        'Color', '#686a70', 'LineStyle', ':', 'LineWidth', 0.75)
     % hold(ax(i), 'on')
     % plot(ax(i), (1:episodes) * Tfin, [0, ax(i).YLim(2)], ':k', 'LineWidth', 0.25)
     % hold(ax(i), 'off')
