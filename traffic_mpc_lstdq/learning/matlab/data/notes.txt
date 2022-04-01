@@ -6,3 +6,9 @@
 20220328_162625_data: similar to previous, just with larger bounds. Plateaus the same.
 20220329_122635_data: nice result, but what if it is improving just because of noise?
 20220329_154411_data: longest results, but plateaus...
+
+20220331_114340_data: exploring new scenarios (40% mismatch)
+20220331_130431_data: lr is large (0.1), it breaks
+20220331_141346_data: decreased lr
+20220331_154744_data: comparing to previous but without noise. Seems noise is only making it look like it is learning
+20220331_201637_data: using one cycle lr does not seem to have improved things
