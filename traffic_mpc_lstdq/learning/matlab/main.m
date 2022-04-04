@@ -5,9 +5,20 @@ runname = datestr(datetime, 'yyyymmdd_HHMMSS');
 load_checkpoint = false;
 % profile on -history
 
+
+
 % TO TRY
-% remove normalization?
-% start in a worse condition? It plateaus because it quickly learns it cannot do better
+% start in a worse condition? It plateaus because it quickly learns it cannot do better -> diverges
+% only one ramp controllable
+% learning a
+% q learning update every iteration
+% deterministic policy gradient
+
+% THINGS TO TRY AFTER SUCCESS
+% remove max(0, x) on inputs
+% remove eps -> 0
+
+
 
 
 %% Model
@@ -20,20 +31,19 @@ t = (0:(K - 1)) * T;            % time vector (h) (only first episode)
 
 % network size
 n_origins = 2;
-n_ramps = 2;
+n_ramps = 1;                    % toggle this number not to control origin ramp
 n_links = 3;
 
 % segments
 L = 1;                          % length of links (km)
 lanes = 2;                      % lanes per link (adim)
 
-% origin O1
-C1 = 3500;
-max_queue1 = 150;
-
-% on-ramp O2
-C2 = 2000;                      % on-ramp capacity (veh/h/lane)
-max_queue2 = 50;
+% origins O1 and O2 
+C = [3500, 2000];               % on-ramp capacity (veh/h/lane)
+max_queue = [150, 50];
+if n_ramps == 1
+    max_queue(1) = inf;
+end
 
 % model parameters
 tau = 18 / 3600;                % model parameter (s)
@@ -43,10 +53,13 @@ rho_max = 180;                  % maximum capacity (veh/km/lane)
 delta = 0.0122;                 % merging phenomenum parameter
 
 % known (wrong) and true (unknown) model parameters
-a = 2.111;                      % model parameter (adim)
-v_free = 130;                   % free flow speed (km/h)
-rho_crit = 27;                  % critical capacity (veh/km/lane)
+% a = 2.111;                      % model parameter (adim)
+% v_free = 130;                   % free flow speed (km/h)
+% rho_crit = 27;                  % critical capacity (veh/km/lane)
 true_pars = struct('a', 1.867, 'v_free', 102, 'rho_crit', 33.5);
+a = true_pars.a * 1.4;
+v_free = true_pars.v_free * 1.4;
+rho_crit = true_pars.rho_crit * 1.4;
 
 
 
@@ -71,22 +84,23 @@ D = filtfilt(filter_num, filter_den, (D + randn(size(D)) .* [75; 75; 1.5])')';
 n_dist = size(D, 1);                % number of disturbances
 eps = 1e-4;                         % nonnegative constraint precision
 F = metanet.get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
-    T, L, lanes, [C1; C2], rho_max, tau, delta, eta, kappa, eps);
+    T, L, lanes, C, rho_max, tau, delta, eta, kappa, eps);
 
 % parameters (constant)
 Np = 7;                             % prediction horizon
 Nc = 3;                             % control horizon
 M = 6;                              % horizon spacing factor
 plugin_opts = struct('expand', true, 'print_time', false);
-solver_opts = struct('print_level', 0, 'max_iter', 1.5e3, 'tol', 1e-7);
-perturb_mag = 5;                    % magnitude of exploratory perturbation
+solver_opts = struct('print_level', 0, 'max_iter', 1e3, 'tol', 1e-7);
+perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
 discount = 1;                       % rl discount factor
-lr = 5e-6;                          % rl learning rate
+lr = 1e-5;                          % rl learning rate
 con_violation_penalty = 10;         % rl penalty for constraint violations
 rl_update_freq = round(K / 5);      % when rl should update
 rl_mem_cap = rl_update_freq * 5;    % RL experience replay capacity
 rl_mem_sample = rl_update_freq * 2; % RL experience replay sampling size
+rl_mem_last_perc = 0.5;             % percentage of last experiences to include in sample
 qp_rl_update = true;                % decide whether to use QP to compute updates
 save_freq = 2;                      % checkpoint saving
 
@@ -95,9 +109,9 @@ save_freq = 2;                      % checkpoint saving
                                                 'constant', 'diag', 'diag');    
 TTS = metanet.TTS(n_origins, n_links, T, L, lanes);
 Rate_var = metanet.rate_variability(n_ramps, Nc);
-Lrl = rlmpc.get_rl_cost(n_origins, n_links, TTS, [max_queue1, max_queue2], ...
-                        con_violation_penalty);
-normalization.w = max(max_queue1, max_queue2);      % normalization constants
+Lrl = rlmpc.get_rl_cost(n_origins, n_ramps, n_links, TTS, max_queue, ...
+    con_violation_penalty);
+normalization.w = max(max_queue(~isinf(max_queue)));   % normalization constants
 normalization.rho = rho_max;
 normalization.v = v_free; 
 
@@ -114,8 +128,12 @@ for name = ["Q", "V"]
     % set soft constraint on ramp queue
     slack = ctrl.add_var('slack', n_ramps, M * Np + 1);
     ctrl.opti.subject_to(slack(:) >= 0);
-    ctrl.opti.subject_to(ctrl.vars.w(1, :) - slack(1, :) <= max_queue1)
-    ctrl.opti.subject_to(ctrl.vars.w(2, :) - slack(2, :) <= max_queue2)
+    if n_ramps == 1
+        ctrl.opti.subject_to(ctrl.vars.w(2, :) - slack(1, :) <= max_queue(2))
+    else
+        ctrl.opti.subject_to(ctrl.vars.w(1, :) - slack(1, :) <= max_queue(1))
+        ctrl.opti.subject_to(ctrl.vars.w(2, :) - slack(2, :) <= max_queue(2))
+    end
 
     % create required parameters
     v_free_tracking = ctrl.add_par('v_free_tracking', 1, 1); 
@@ -191,9 +209,9 @@ rl_pars.weight_T = {ones(size(weight_T))};
 rl_pars.weight_slack = {ones(size(weight_slack)) * 10};
 if qp_rl_update
     % rl parameters bounds
-    rl_pars_bounds.v_free = [50, 200]; 
-    rl_pars_bounds.rho_crit = [10, 100];
-    rl_pars_bounds.v_free_tracking = [50, 200];
+    rl_pars_bounds.v_free = [30, 300]; 
+    rl_pars_bounds.rho_crit = [10, 200];
+    rl_pars_bounds.v_free_tracking = [30, 300];
     rl_pars_bounds.weight_V = [-inf, inf];
     rl_pars_bounds.weight_L = [0, inf];
     rl_pars_bounds.weight_T = [0, inf];
@@ -284,8 +302,8 @@ for ep = start_ep:episodes
             end
 
             % choose if to apply perturbation
-            if rand < 0.5 * exp(-(ep - 1) / 10)
-                pert = perturb_mag * exp(-(ep - 1) / 10) * randn;
+            if rand < 0.5 * exp(-(ep - 1) / 5)
+                pert = perturb_mag * exp(-(ep - 1) / 5) * randn;
             else
                 pert = 0;
             end
@@ -368,11 +386,11 @@ for ep = start_ep:episodes
         v = full(v_next);
         
         % perform RL updates
-        if ep > 1 && mod(k, rl_update_freq) == 0 % does it make sense not to update in the first ep?
+        if mod(k, rl_update_freq) == 0 % && replaymem.length >= rl_mem_sample
             % first row is td error, then derivatives of Q w.r.t. weigths
-            sample = cell2mat(replaymem.sample(rl_mem_sample / 2, 0.5));
+            sample = cell2mat(replaymem.sample(rl_mem_sample / 2, rl_mem_last_perc));
             td_err = sample(1, :);
-            n = length(td_err);
+            n = size(sample, 2);
             
             % perform rl update
             if ~qp_rl_update
@@ -381,11 +399,11 @@ for ep = start_ep:episodes
                 for name = fieldnames(rl_pars)'
                     sz = length(rl_pars.(name{1}){end});
                     rl_pars.(name{1}){end + 1} = rl_pars.(name{1}){end} + ...
-                        lr * (exp(i:i+sz-1, :) * td_err') / n;
+                        lr * (sample(i:i+sz-1, :) * td_err') / n;
                     i = i + sz;
                 end
             else
-                % compute bounds - must have same dimension as 
+                % compute bounds
                 lb = struct; ub = struct;
                 for name = fieldnames(rl_pars)'
                     lb.(name{1}) = rl_pars_bounds.(name{1})(1) - rl_pars.(name{1}){end};
@@ -397,7 +415,7 @@ for ep = start_ep:episodes
                     [], [], [], [], ...
                     cell2mat(struct2cell(lb)), cell2mat(struct2cell(ub)), f, ... 
                     optimoptions('quadprog', 'Display', 'off'));
-                assert(exitflag == 1)
+                assert(exitflag >= 1)
                 % compute next paramters
                 i = 1;
                 for name = fieldnames(rl_pars)'

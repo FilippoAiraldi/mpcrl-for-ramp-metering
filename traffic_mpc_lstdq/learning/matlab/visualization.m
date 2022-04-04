@@ -6,7 +6,8 @@
 % if no variables, load from file
 if isempty(who())
     warning('off');
-    load 20220331_154744_data.mat
+%     load data\20220331_154744_data.mat
+    load 20220404_172122_data.mat
     warning('on');
 
     % if loading a checkpoint, fill missing variables
@@ -19,7 +20,7 @@ end
 % plotting options
 step = 3; % reduce number of datapoints to be plot
 plot_summary = true;
-plot_traffic = false;
+plot_traffic = true;
 plot_learning = true;
 scaled_learned = false;
 log_plots = true;
@@ -47,7 +48,7 @@ if plot_summary
         'max iter', solver_opts.max_iter; ... 
         'rate var penalty weight', rate_var_penalty; ...
         'explor. perturbation mag.', perturb_mag; ...
-        'max queues', sprintf('%i, %i', max_queue1, max_queue2); ...
+        'max queues', sprintf('%i, %i', max_queue(1), max_queue(2)); ...
         'epsilon', eps; ...
     
         % RL details
@@ -147,8 +148,10 @@ if plot_traffic
     
     ax(6) = nexttile(6); hold on
     plot(t_tot(1:step:end), origins_tot.queue(:, 1:step:end)')
-    plot([t_tot(1), t_tot(end)], [max_queue1, max_queue1], '-.k')
-    plot([t_tot(1), t_tot(end)], [max_queue2, max_queue2], '-.k')
+    if n_ramps > 1
+        plot([t_tot(1), t_tot(end)], [max_queue(1), max_queue(1)], '-.k')
+    end
+    plot([t_tot(1), t_tot(end)], [max_queue(2), max_queue(2)], '-.k')
     hold off
     hlegend(6) = legend('\omega_{O1}', '\omega_{O2}', 'max \omega');
     ylabel('queue length (veh)')

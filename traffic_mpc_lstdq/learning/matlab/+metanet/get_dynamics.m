@@ -20,6 +20,11 @@ function F = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
     v_free = casadi.SX.sym('v_free', 1, 1);
     rho_crit = casadi.SX.sym('rho_crit', 1, 1);
 
+    % take care of non-controlled ramps
+    if n_ramps == 1
+        r = [1; r];
+    end
+
     % ensure nonnegativity - of the input
     w_ = max(eps, w);
     rho_ = max(eps, rho);
@@ -39,6 +44,11 @@ function F = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
     q = max(eps, q);
     rho_next = max(eps, rho_next);
     v_next = max(eps, v_next);
+
+    % take care of non-controlled ramps
+    if n_ramps == 1
+        r = r(2);
+    end
 
     % create casadi function
     F = casadi.Function('F', {w, rho, v, r, d, a, v_free, rho_crit}, ...
