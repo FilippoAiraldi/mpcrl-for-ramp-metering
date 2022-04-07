@@ -13,4 +13,7 @@
 20220331_154744_data: comparing to previous but without noise. Seems noise is only making it look like it is learning
 20220331_201637_data: using one cycle lr does not seem to have improved things
 
-20220404_172122_data: tried increasing demands, no qp update, iterates diverge at some point
+20220404_172122_data: tried increasing demands, no qp update, but iterates diverge at some point
+
+20220405_194203_data: back to 40% scenario, now with affine initial cost. Seems decent
+20220407_094808_data: 50 episodes version with small noise
