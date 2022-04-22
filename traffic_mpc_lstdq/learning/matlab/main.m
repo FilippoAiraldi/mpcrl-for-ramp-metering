@@ -8,11 +8,7 @@ load_checkpoint = false;
 
 
 % TO TRY
-% start in a worse condition? It plateaus because it quickly learns it cannot do better -> diverges
-% only one ramp controllable
-% learning a
-% q learning update every iteration
-% deterministic policy gradient
+% continue from 20220407_094808_data and apply changes discussed with Azita
 
 % THINGS TO TRY AFTER SUCCESS
 % remove max(0, x) on inputs
@@ -31,8 +27,9 @@ t = (0:(K - 1)) * T;            % time vector (h) (only first episode)
 
 % network size
 n_origins = 2;
-n_ramps = 1;                    % toggle this number not to control origin ramp
 n_links = 3;
+control_origin_ramp = false;    % toggle this to control origin ramp
+n_ramps = 1 + control_origin_ramp;                   
 
 % segments
 L = 1;                          % length of links (km)
@@ -41,7 +38,7 @@ lanes = 2;                      % lanes per link (adim)
 % origins O1 and O2 
 C = [3500, 2000];               % on-ramp capacity (veh/h/lane)
 max_queue = [150, 50];
-if n_ramps == 1
+if ~control_origin_ramp
     max_queue(1) = inf;
 end
 
@@ -80,33 +77,33 @@ D = filtfilt(filter_num, filter_den, (D + randn(size(D)) .* [75; 75; 1.5])')';
 
 
 %% MPC-based RL
-% create a symbolic casadi function for the dynamics
-n_dist = size(D, 1);                % number of disturbances
-eps = 1e-4;                         % nonnegative constraint precision
-F = metanet.get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
-    T, L, lanes, C, rho_max, tau, delta, eta, kappa, eps);
-
 % parameters (constant)
 Np = 7;                             % prediction horizon
 Nc = 3;                             % control horizon
 M = 6;                              % horizon spacing factor
+eps = 1e-4;                         % nonnegative constraint precision
 plugin_opts = struct('expand', true, 'print_time', false);
-solver_opts = struct('print_level', 0, 'max_iter', 1e3, 'tol', 1e-7);
+solver_opts = struct('print_level', 0, 'max_iter', 1e3, 'tol', 1e-9);
 perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
 discount = 1;                       % rl discount factor
-lr = 1e-5;                          % rl learning rate
+lr = 1e-3;                          % rl learning rate
 con_violation_penalty = 10;         % rl penalty for constraint violations
 rl_update_freq = round(K / 5);      % when rl should update
 rl_mem_cap = rl_update_freq * 5;    % RL experience replay capacity
 rl_mem_sample = rl_update_freq * 2; % RL experience replay sampling size
-rl_mem_last_perc = 0.5;             % percentage of last experiences to include in sample
+rl_mem_last_perc = 1/3;             % percentage of last experiences to include in sample
 qp_rl_update = true;                % decide whether to use QP to compute updates
-save_freq = 2;                      % checkpoint saving
+save_freq = 2;                      % checkpoint saving frequency
+
+% create a symbolic casadi function for the dynamics
+n_dist = size(D, 1);                
+F = metanet.get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
+    T, L, lanes, C, rho_max, tau, delta, eta, kappa, eps);
 
 % cost terms (learnable MPC, metanet and RL)
 [Vcost, Lcost, Tcost] = rlmpc.get_learnable_costs(n_origins, n_links, ...
-                                                'constant', 'diag', 'diag');    
+                                                'affine', 'diag', 'diag');    
 TTS = metanet.TTS(n_origins, n_links, T, L, lanes);
 Rate_var = metanet.rate_variability(n_ramps, Nc);
 Lrl = rlmpc.get_rl_cost(n_origins, n_ramps, n_links, TTS, max_queue, ...
@@ -121,18 +118,16 @@ for name = ["Q", "V"]
     % instantiate an MPC
     ctrl = rlmpc.NMPC(Np, Nc, M);
     ctrl.init_opti(F, eps); 
-
-    % set solver
     ctrl.set_ipopt_opts(plugin_opts, solver_opts);
 
     % set soft constraint on ramp queue
     slack = ctrl.add_var('slack', n_ramps, M * Np + 1);
-    ctrl.opti.subject_to(slack(:) >= 0);
-    if n_ramps == 1
-        ctrl.opti.subject_to(ctrl.vars.w(2, :) - slack(1, :) <= max_queue(2))
+    ctrl.opti.subject_to(-slack(:) + eps^2 <= 0);
+    if ~control_origin_ramp
+        ctrl.opti.subject_to(ctrl.vars.w(2, :) - slack(1, :) - max_queue(2) <= 0)
     else
-        ctrl.opti.subject_to(ctrl.vars.w(1, :) - slack(1, :) <= max_queue(1))
-        ctrl.opti.subject_to(ctrl.vars.w(2, :) - slack(2, :) <= max_queue(2))
+        ctrl.opti.subject_to(ctrl.vars.w(1, :) - slack(1, :) - max_queue(1) <= 0)
+        ctrl.opti.subject_to(ctrl.vars.w(2, :) - slack(2, :) - max_queue(2) <= 0)
     end
 
     % create required parameters
@@ -183,7 +178,7 @@ end
 
 % Q approximator has additional constraint on first action
 mpc.Q.add_par('r_first', size(mpc.Q.vars.r, 1), 1);
-mpc.Q.opti.subject_to(mpc.Q.vars.r(:, 1) == mpc.Q.pars.r_first);
+mpc.Q.opti.subject_to(mpc.Q.vars.r(:, 1) - mpc.Q.pars.r_first == 0);
 
 % V approximator has perturbation to enhance exploration
 mpc.V.add_par('perturbation', size(mpc.V.vars.r(:, 1)));
@@ -206,7 +201,7 @@ rl_pars.v_free_tracking = {v_free};
 rl_pars.weight_V = {ones(size(weight_V))};
 rl_pars.weight_L = {ones(size(weight_L))};
 rl_pars.weight_T = {ones(size(weight_T))};
-rl_pars.weight_slack = {ones(size(weight_slack)) * 10};
+rl_pars.weight_slack = {ones(size(weight_slack)) * con_violation_penalty};
 if qp_rl_update
     % rl parameters bounds
     rl_pars_bounds.v_free = [30, 300]; 
@@ -221,6 +216,7 @@ end
 % preallocate containers for miscellaneous quantities
 slack = cell(1, episodes);
 td_error = cell(1, episodes);
+td_error_perc = cell(1, episodes);  % td error as a percentage of the Q function
 exec_times = nan(1, episodes);
 
 % preallocate containers for traffic data (don't use struct(var, cells))
@@ -276,6 +272,7 @@ for ep = start_ep:episodes
     links.speed{ep} = nan(size(mpc.V.vars.v, 1), K);
     slack{ep} = nan(size(mpc.V.vars.slack, 1), ceil(K / M));
     td_error{ep} = nan(1, ceil(K / M));
+    td_error_perc{ep} = nan(1, ceil(K / M));
 
     % simulate episode (do RL update at specific iterations)
     start_ep_time = tic;
@@ -329,7 +326,10 @@ for ep = start_ep:episodes
                     % compute td error
                     td_error{ep}(k_mpc) = full(Lrl(w_prev, rho_prev)) + ...
                         discount * info_V.f  - info_Q.f;
-    
+                    
+                    % save its percentage value
+                    td_error_perc{ep}(k_mpc) = td_error{ep}(k_mpc) / info_Q.f;
+
                     % compute gradient of Q w.r.t. params
                     dQ = struct;
                     for name = fieldnames(rl_pars)'
@@ -340,8 +340,7 @@ for ep = start_ep:episodes
                     replaymem.add([td_error{ep}(k_mpc); ...
                         cell2mat(struct2cell(dQ))]);
 
-                    util.logging(toc(start_tot_time), ep, ...
-                        toc(start_ep_time), t(k), k, K);
+                    % util.logging(toc(start_tot_time), ep, toc(start_ep_time), t(k), k, K);
                 else
                     msg = '';
                     if ~info_V.success
@@ -386,13 +385,13 @@ for ep = start_ep:episodes
         v = full(v_next);
         
         % perform RL updates
-        if mod(k, rl_update_freq) == 0 % && replaymem.length >= rl_mem_sample
+        if mod(k, rl_update_freq) == 0 && ep > 2 % && replaymem.length >= rl_mem_sample
             % first row is td error, then derivatives of Q w.r.t. weigths
             sample = cell2mat(replaymem.sample(rl_mem_sample / 2, rl_mem_last_perc));
             td_err = sample(1, :);
             n = size(sample, 2);
             
-            % perform rl update
+            % perform rl update 
             if ~qp_rl_update
                 % compute next parameters: w = w + lr * expval(td * dQ.theta) 
                 i = 2;
@@ -410,10 +409,10 @@ for ep = start_ep:episodes
                     ub.(name{1}) = rl_pars_bounds.(name{1})(2) - rl_pars.(name{1}){end};
                 end
                 % solve constrained lcqp
-                f = lr * (sample(2:end, :) * td_err') / n;
-                [deltas, ~, exitflag] = quadprog(eye(length(f)), -f, ...
+                f = -lr * (sample(2:end, :) * td_err') / n;
+                [deltas, ~, exitflag] = quadprog(eye(length(f)), f, ...
                     [], [], [], [], ...
-                    cell2mat(struct2cell(lb)), cell2mat(struct2cell(ub)), f, ... 
+                    cell2mat(struct2cell(lb)), cell2mat(struct2cell(ub)), -f, ... 
                     optimoptions('quadprog', 'Display', 'off'));
                 assert(exitflag >= 1)
                 % compute next paramters
@@ -426,11 +425,15 @@ for ep = start_ep:episodes
             end
 
             % log update result
-            util.logging(toc(start_tot_time), ep, toc(start_ep_time), ...
-                t(k), k, K, ...
-                sprintf('RL update %i with %i samples (v_free=%.3f, rho_crit=%.3f, v_free_track=%.3f)', ...
-                length(rl_pars.v_free) - 1, n, ...
-                rl_pars.v_free{end}, rl_pars.rho_crit{end}, rl_pars.v_free_tracking{end}));
+            msg = sprintf('RL update %i with %i samples: ', length(rl_pars.v_free) - 1, n);
+            for name = fieldnames(rl_pars)'
+                if numel(rl_pars.(name{1}){end}) == 1
+                    msg = append(msg, name{1}, sprintf('=%.3f, ', rl_pars.(name{1}){end}));
+                else
+                    msg = append(msg, name{1}, '=[', num2str(rl_pars.(name{1}){end}(:)', '%.3f '), '], ');
+                end
+            end
+            util.logging(toc(start_tot_time), ep, toc(start_ep_time), t(k), k, K, msg);
         end
     end
     exec_times(ep) = toc(start_ep_time);
@@ -440,12 +443,14 @@ for ep = start_ep:episodes
         warning('off');
         save('checkpoint', '-regexp', '^(?!(mpc|cost|ctrl|dQlagr|r_last|v_free_tr|weight_)).*')
         warning('on');
+        util.logging(toc(start_tot_time), ep, exec_times(ep), t(end), K, K, 'checkpoint saved');
     end
 
     % log intermediate results
-    msg = sprintf('episode %i terminated: TTS=%.4f', ...
-        ep, full(sum(TTS(origins.queue{ep}, links.density{ep}))));
-    util.logging(toc(start_tot_time), ep, exec_times(ep), t(end), K, K, msg);
+    util.logging(toc(start_tot_time), ep, exec_times(ep), t(end), K, K, ...
+        sprintf('episode %i terminated: Jtot=%.3f, TTS=%.3f', ep, ...
+        full(sum(Lrl(origins.queue{ep}, links.density{ep}))), ...
+        full(sum(TTS(origins.queue{ep}, links.density{ep})))));
 end
 exec_time_tot = toc(start_tot_time);
 diary off
@@ -457,7 +462,7 @@ diary off
 rl_pars = structfun(@(x) cell2mat(x), rl_pars, 'UniformOutput', false);
 
 % clear useless variables
-clear cost ctrl d D d1 d2 exp F filter_num filter_den i info k ...
+clear cost ctrl d D d1 d2 exp f F filter_num filter_den i info k ...
     last_sol log_filename msg n name pars q q_o r r_first r_last r_prev ...
     replaymem rho rho_next rho_prev save_freq start_ep_time ... 
     start_ep start_tot_time td_err sz v v_next v_prev w w_next w_prev

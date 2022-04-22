@@ -52,15 +52,16 @@ classdef NMPC < handle
             obj.pars.rho_crit = obj.opti.parameter(1, 1);
 
             % constraints on domains
-            obj.opti.subject_to(0.2 <= obj.vars.r <= 1) %#ok<CHAIN> 
-            obj.opti.subject_to(obj.vars.w(:) >= eps)
-            obj.opti.subject_to(obj.vars.rho(:) >= eps)
-            obj.opti.subject_to(obj.vars.v(:) >= eps)
+            obj.opti.subject_to(-obj.vars.r + 0.2 <= 0)
+            obj.opti.subject_to(obj.vars.r - 1 <= 0)
+            obj.opti.subject_to(-obj.vars.w(:) + eps <= 0)
+            obj.opti.subject_to(-obj.vars.rho(:) + eps <= 0)
+            obj.opti.subject_to(-obj.vars.v(:) + eps <= 0)
             
             % constraints on initial conditions
-            obj.opti.subject_to(obj.vars.w(:, 1) == obj.pars.w0)
-            obj.opti.subject_to(obj.vars.v(:, 1) == obj.pars.v0)
-            obj.opti.subject_to(obj.vars.rho(:, 1) == obj.pars.rho0)
+            obj.opti.subject_to(obj.vars.w(:, 1) - obj.pars.w0 == 0)
+            obj.opti.subject_to(obj.vars.v(:, 1) - obj.pars.v0 == 0)
+            obj.opti.subject_to(obj.vars.rho(:, 1) - obj.pars.rho0 == 0)
 
             % expand control sequence
             r_exp = [repelem(obj.vars.r, 1, obj.M), ...
@@ -77,9 +78,9 @@ classdef NMPC < handle
                     obj.pars.a, ...
                     obj.pars.v_free, ...
                     obj.pars.rho_crit);
-                obj.opti.subject_to(obj.vars.w(:, k + 1) == w_next)
-                obj.opti.subject_to(obj.vars.rho(:, k + 1) == rho_next)
-                obj.opti.subject_to(obj.vars.v(:, k + 1) == v_next)
+                obj.opti.subject_to(obj.vars.w(:, k + 1) - w_next == 0)
+                obj.opti.subject_to(obj.vars.rho(:, k + 1) - rho_next == 0)
+                obj.opti.subject_to(obj.vars.v(:, k + 1) - v_next == 0)
             end
         end
 
