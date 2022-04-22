@@ -1,13 +1,13 @@
-% clc
-% clear all
+% clc, clear all, close all
 
 
 %% plotting variables
 % if no variables, load from file
 if isempty(who())
     warning('off');
-%     load data\20220331_154744_data.mat
-    load 20220404_172122_data.mat
+%     load data\20220407_094808_data.mat
+    load 20220413_220606_data.mat
+%     load checkpoint.mat
     warning('on');
 
     % if loading a checkpoint, fill missing variables
@@ -23,7 +23,7 @@ plot_summary = true;
 plot_traffic = true;
 plot_learning = true;
 scaled_learned = false;
-log_plots = true;
+log_plots = false;
 
 
 
@@ -46,7 +46,7 @@ if plot_summary
         'type cost stage', Lcost.name_out(); ...
         'type cost terminal', Tcost.name_out(); ...
         'max iter', solver_opts.max_iter; ... 
-        'rate var penalty weight', rate_var_penalty; ...
+        'rate var. penalty weight', rate_var_penalty; ...
         'explor. perturbation mag.', perturb_mag; ...
         'max queues', sprintf('%i, %i', max_queue(1), max_queue(2)); ...
         'epsilon', eps; ...
@@ -211,8 +211,18 @@ if plot_learning
     
     ax(2) = nexttile(3, [1, 2]);
     td_error_tot = cell2mat(td_error);
-    do_plot(linspace(0, ep_tot, length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
-    ylabel('TD error \tau')
+    if exist('td_error_perc', 'var')
+        td_error_perc_tot = abs(cell2mat(td_error_perc)) * 100;
+        yyaxis left
+        do_plot(linspace(0, ep_tot, length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
+        ylabel('TD error \tau')
+        yyaxis right
+        do_plot(linspace(0, ep_tot, length(td_error_perc_tot)), td_error_perc_tot, '*', 'MarkerSize', 2)
+        ylabel('%')
+    else
+        do_plot(linspace(0, ep_tot, length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
+        ylabel('TD error \tau')
+    end
     
     ax_ = nexttile(5);
     L_tot = full(Lrl(origins_tot.queue, links_tot.density));

@@ -19,7 +19,6 @@ function [w_ss, rho_ss, v_ss] = steady_state(F, w0, rho0, v0, r, d, a, v_free, r
         rho_ss = full(rho_ss);
         v_ss = full(v_ss);
 
-
         % compute convergence error
         err = sum(abs(w_ss - w0)) + ...
             sum(abs(rho_ss - rho0)) + sum(abs(v_ss - v0));
