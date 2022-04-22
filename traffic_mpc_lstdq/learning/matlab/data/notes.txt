@@ -15,5 +15,8 @@
 
 20220404_172122_data: tried increasing demands, no qp update, but iterates diverge at some point
 
-20220405_194203_data: back to 40% scenario, now with affine initial cost. Seems decent
-20220407_094808_data: 50 episodes version with small noise
+20220405_194203_data: back to 40% scenario, now with affine initial cost. Seems decent                                      <---
+20220407_094808_data: 50 episodes version with small noise                                                                  <---
+
+20220413_152733_data: just moved ramp from 3rd to 2nd link
+20220413_173020_data: changed seed from 42 to 69, behaviour is comparable luckly
