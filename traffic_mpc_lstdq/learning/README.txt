@@ -20,6 +20,7 @@ LEARNING
 	(might need to log intermediate results since simulations will be long)
     
 	
+	
 ################# 2nd meeting #################
 ## QUESTIONS 
 0. RL-MPC
@@ -42,6 +43,16 @@ LEARNING
 	
 	- first-order or second-order Q-learning? (error in equation 19b, Esfahani)
 	- differentiability of MPC holds only when the KKT conditions are met, i.e., solver reached optimality. What to do if the solver does not? Simply don't pay attention to it?
+
+
+
+################# 3rd meeting #################
+- Q-learning: + or -?
+- higher number of iterations
+- check 1st KKT condition is satisfied when computing the derivatives of Q: in this way, we know the lagrangian is ok (V)
+- start with lower parameters, not higher -> chance of constraint violation should increase
+- before running sim, just run the sim with true parameters so that we know how much the TTS is for perfect conditions
+
 
 
 ## NOTES
