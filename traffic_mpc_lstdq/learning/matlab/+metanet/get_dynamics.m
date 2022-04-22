@@ -61,6 +61,9 @@ end
 %% local functions
 function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, ...
     T, L, lanes, C, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa, eps)
+
+    link_with_ramp = 3;
+
     %%% ORIGIN
     % compute flow at mainstream origin O1
     q_O1 = min(d(1) + w(1) / T, C(1) * ...
@@ -68,7 +71,7 @@ function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, ...
 
     % compute flow at onramp origin O2
     q_O2 = min(d(2) + w(2) / T, C(2) * ...
-                   min(r(2), (rho_max - rho(3)) / (rho_max - rho_crit)));
+                   min(r(2), (rho_max - rho(link_with_ramp)) / (rho_max - rho_crit)));
 
     % step queue at origins O1 and O2
     q_o = [q_O1; q_O2];
@@ -80,7 +83,8 @@ function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, ...
     q = lanes * rho .* v;
 
     % compute upstream flow
-    q_up = [q_O1; q(1); q(2) + q_O2];
+    q_up = [q_O1; q(1); q(2)];
+    q_up(link_with_ramp) = q_up(link_with_ramp) + q_O2;
 
     % compute upstream speed
     v_up = [v(1); v(1); v(2)];
@@ -105,7 +109,8 @@ function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, ...
               + T / tau * (V - v) ...
               + T / L * v .* (v_up - v) ...
               - eta * T / tau / L * (rho_down - rho) ./ (rho + kappa));
-    v_next(3) = v_next(3) - delta * T / L / lanes * q_O2 * v(3) / (rho(3) + kappa);    
+    v_next(link_with_ramp) = v_next(link_with_ramp) ...
+        - delta * T / L / lanes * q_O2 * v(link_with_ramp) / (rho(link_with_ramp) + kappa);    
 end
 
 
