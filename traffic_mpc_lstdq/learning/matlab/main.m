@@ -8,19 +8,22 @@ load_checkpoint = false;
 
 
 % TO TRY
-% continue from 20220407_094808_data and apply changes discussed with Azita
+% bring modifications from 4th meeting
 
 % THINGS TO TRY AFTER SUCCESS
 % remove max(0, x) on inputs
 % remove eps -> 0
 
+% SCENARIOS
+% 20220427_210530 / params 1.3,1.3,0.7; opts 3e3,5e-7: not bad but in one iteration has 6e4 of costs 
+%                 / params 1.3,1.3,0.6; opts 3e3,1e-7:
 
 
 
 %% Model
 % simulation
-episodes = 20;                  % number of episodes to repeat
-Tfin = 2.5;                     % simulation time per episode (h)
+episodes = 50;                  % number of episodes to repeat
+Tfin = 2;                       % simulation time per episode (h)
 T = 10 / 3600;                  % simulation step size (h)
 K = Tfin / T;                   % simulation steps per episode (integer)
 t = (0:(K - 1)) * T;            % time vector (h) (only first episode)
@@ -54,9 +57,9 @@ delta = 0.0122;                 % merging phenomenum parameter
 % v_free = 130;                   % free flow speed (km/h)
 % rho_crit = 27;                  % critical capacity (veh/km/lane)
 true_pars = struct('a', 1.867, 'v_free', 102, 'rho_crit', 33.5);
-a = true_pars.a * 1.4;
-v_free = true_pars.v_free * 1.4;
-rho_crit = true_pars.rho_crit * 1.4;
+a = true_pars.a * 1.3;
+v_free = true_pars.v_free * 1.3;
+rho_crit = true_pars.rho_crit * 0.6;
 
 
 
@@ -83,16 +86,16 @@ Nc = 3;                             % control horizon
 M = 6;                              % horizon spacing factor
 eps = 1e-4;                         % nonnegative constraint precision
 plugin_opts = struct('expand', true, 'print_time', false);
-solver_opts = struct('print_level', 0, 'max_iter', 1e3, 'tol', 1e-9);
+solver_opts = struct('print_level', 0, 'max_iter', 3e3, 'tol', 1e-7);
 perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
 discount = 1;                       % rl discount factor
-lr = 1e-3;                          % rl learning rate
+lr = 1e-4;                          % rl learning rate
 con_violation_penalty = 10;         % rl penalty for constraint violations
 rl_update_freq = round(K / 5);      % when rl should update
 rl_mem_cap = rl_update_freq * 5;    % RL experience replay capacity
 rl_mem_sample = rl_update_freq * 2; % RL experience replay sampling size
-rl_mem_last_perc = 1/3;             % percentage of last experiences to include in sample
+rl_mem_last_perc = 0.5;             % percentage of last experiences to include in sample
 qp_rl_update = true;                % decide whether to use QP to compute updates
 save_freq = 2;                      % checkpoint saving frequency
 
