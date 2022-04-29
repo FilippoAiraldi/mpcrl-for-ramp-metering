@@ -138,7 +138,8 @@ for name = ["Q", "V"]
     weight_V = ctrl.add_par('weight_V', size(Vcost.mx_in(3)));
     weight_L = ctrl.add_par('weight_L', size(Lcost.mx_in(4)));
     weight_T = ctrl.add_par('weight_T', size(Tcost.mx_in(2)));
-    weight_slack = ctrl.add_par('weight_slack', 1, 1);
+    weight_slack = ctrl.add_par('weight_slack', size(slack));
+    weight_rate_var = ctrl.add_par('weight_rate_var', 1, 1);
     r_last = ctrl.add_par('r_last', size(ctrl.vars.r, 1), 1);
 
     % compute the actual symbolic cost expression with opti vars and pars
@@ -155,12 +156,12 @@ for name = ["Q", "V"]
             ctrl.pars.rho_crit, ...
             weight_T, ...
             normalization.rho) + ...
-        sum(slack(:, end)) * weight_slack + ...             % terminal slack penalty
-        Rate_var(r_last, ctrl.vars.r) * rate_var_penalty;   % terminal rate variability
+        slack(:, end)' * weight_slack(:, end) + ...         % terminal slack penalty
+        Rate_var(r_last, ctrl.vars.r) * weight_rate_var;    % terminal rate variability
     % stage terms
     for k = 1:M * Np
         cost = cost + ...
-            sum(slack(:, k)) * weight_slack + ...           % slack penalty
+            slack(:, k)' * weight_slack(:, k) + ...         % slack penalty
             Lcost(...                                       % quadratic stage cost
                 ctrl.vars.rho(:, k), ...         
                 ctrl.vars.v(:, k), ...           
@@ -205,6 +206,7 @@ rl_pars.weight_V = {ones(size(weight_V))};
 rl_pars.weight_L = {ones(size(weight_L))};
 rl_pars.weight_T = {ones(size(weight_T))};
 rl_pars.weight_slack = {ones(size(weight_slack)) * con_violation_penalty};
+rl_pars.weight_rate_var = {rate_var_penalty};
 if qp_rl_update
     % rl parameters bounds
     rl_pars_bounds.v_free = [30, 300]; 
@@ -214,6 +216,7 @@ if qp_rl_update
     rl_pars_bounds.weight_L = [0, inf];
     rl_pars_bounds.weight_T = [0, inf];
     rl_pars_bounds.weight_slack = [0, inf];
+    rl_pars_bounds.weight_rate_var = [1e-2, 1e2];
 end
 
 % preallocate containers for miscellaneous quantities
@@ -298,6 +301,7 @@ for ep = start_ep:episodes
                     'weight_L', rl_pars.weight_L{end}, ...
                     'weight_T', rl_pars.weight_T{end}, ...
                     'weight_slack', rl_pars.weight_slack{end}, ...
+                    'weight_rate_var', rl_pars.weight_rate_var{end}, ...
                     'r_last', r_prev_prev, 'r_first', r_prev); % a(k-2) and a(k-1)
                 last_sol.slack = ones(size(mpc.Q.vars.slack)) * eps^2;
                 [last_sol, info_Q] = mpc.Q.solve(pars, last_sol);
@@ -321,6 +325,7 @@ for ep = start_ep:episodes
                 'weight_L', rl_pars.weight_L{end}, ...
                 'weight_T', rl_pars.weight_T{end}, ...
                 'weight_slack', rl_pars.weight_slack{end}, ...
+                'weight_rate_var', rl_pars.weight_rate_var{end}, ...
                 'r_last', r, 'perturbation', pert);
             last_sol.slack = ones(size(mpc.V.vars.slack)) * eps^2;
             [last_sol, info_V] = mpc.V.solve(pars, last_sol);
