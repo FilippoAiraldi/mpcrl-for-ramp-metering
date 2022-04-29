@@ -238,7 +238,8 @@ end
 % initialize mpc last solutions
 last_sol = struct('w', repmat(w, 1, M * Np + 1), ...
     'r', ones(size(mpc.V.vars.r)), 'rho', repmat(rho, 1, M * Np + 1), ...
-    'v', repmat(v, 1, M * Np + 1), 'slack', zeros(size(mpc.V.vars.slack)));
+    'v', repmat(v, 1, M * Np + 1), ...
+    'slack', ones(size(mpc.V.vars.slack)) * eps^2);
 
 % create replay memory
 replaymem = rlmpc.ReplayMem(rl_mem_cap);
@@ -294,7 +295,7 @@ for ep = start_ep:episodes
                     'weight_T', rl_pars.weight_T{end}, ...
                     'weight_slack', rl_pars.weight_slack{end}, ...
                     'r_last', r_prev_prev, 'r_first', r_prev); % a(k-2) and a(k-1)
-                last_sol.slack = zeros(size(mpc.V.vars.slack));
+                last_sol.slack = ones(size(mpc.Q.vars.slack)) * eps^2;
                 [last_sol, info_Q] = mpc.Q.solve(pars, last_sol);
             end
 
@@ -317,7 +318,7 @@ for ep = start_ep:episodes
                 'weight_T', rl_pars.weight_T{end}, ...
                 'weight_slack', rl_pars.weight_slack{end}, ...
                 'r_last', r, 'perturbation', pert);
-            last_sol.slack = zeros(size(mpc.V.vars.slack));
+            last_sol.slack = ones(size(mpc.V.vars.slack)) * eps^2;
             [last_sol, info_V] = mpc.V.solve(pars, last_sol);
 
             % save to memory if successful, or log error 
