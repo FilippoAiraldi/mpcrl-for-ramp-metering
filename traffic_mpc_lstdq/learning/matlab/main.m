@@ -460,7 +460,7 @@ for ep = start_ep:episodes
         ep, ep_Jtot, ep_TTS, nb_fail, nb_fail / K * 100));
 
     % plot performance
-    if ep == 1
+    if ~exist('ph_J', 'var') || ~isvalid(ph_J)
         figure;
         yyaxis left, 
         ph_J = plot(ep, ep_Jtot, '-o');
@@ -469,13 +469,10 @@ for ep = start_ep:episodes
         ph_TTS = plot(ep, ep_TTS, '-o');
         ylabel('TTS')
     else
-        try
-            set(ph_J, 'XData', [ph_J.XData, ep]);
-            set(ph_J, 'YData', [ph_J.YData, ep_Jtot]);
-            set(ph_TTS, 'XData', [ph_TTS.XData, ep]);
-            set(ph_TTS, 'YData', [ph_TTS.YData, ep_TTS]);
-        catch
-        end
+        set(ph_J, 'XData', [ph_J.XData, ep]);
+        set(ph_J, 'YData', [ph_J.YData, ep_Jtot]);
+        set(ph_TTS, 'XData', [ph_TTS.XData, ep]);
+        set(ph_TTS, 'YData', [ph_TTS.YData, ep_TTS]);
     end
     drawnow;
 end
