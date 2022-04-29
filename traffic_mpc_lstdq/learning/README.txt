@@ -55,6 +55,20 @@ LEARNING
 
 
 
+################# 4th meeting #################
+- replace the equilibrium speed equation with a linear function, since it is quite nonlinear
+	- (Figure 3.7 of Hegyi thesis) replace the descending exp with a line. Put it in a max(0, .), because it must not become negative.
+	- add an offset c * rho to this equation, with c small and learnable, so that for big values of rho we still have some contribution to the speed.
+	- make this term takes effect only for high rhos.. how?
+	- TRY REMOVE SOME MAX ON INPUT AND OUTPUTS AND SET EPS=0 TO SEE IF REMOVING THE NONLINEARITY HELPED
+- make vector or weights for slacks, instead of a single shared learnable weight
+- make the weight of input rate variability cost (the one at 0.4) learnable
+- modify the update rule
+	- custom learning rate for each parameter
+	- use Hessian to avoid having to specify the lr (cannot use batch updates with an hessian, though [are you sure?]) (is the Hessian of the Q function the Hessian of the Lagrangian? yes)
+
+
+
 ## NOTES
 1. do not use solutions where casadi has not converged to optimal
 
@@ -63,13 +77,10 @@ LEARNING
 3. MPC
 	- initial
 		affine term (EMPC) in states (can be also a parameter to learn)
-
 	- stage
 		quadratic in density with tracking of rho_crit (may be fixed to the starting known wrong value)
-		quadratic in speed with tracking alpha (can it be v_free itself or is it too high?)
-		
+		quadratic in speed with tracking alpha (can it be v_free itself or is it too high?)	
 	- terminal
 		quadratic in density with tracking of rho_crit
-
    RL
 	same stage cost as MPC + constraint violation penalty (weights are fixed)
