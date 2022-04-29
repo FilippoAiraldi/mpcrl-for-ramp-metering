@@ -277,6 +277,7 @@ for ep = start_ep:episodes
 
     % simulate episode (do RL update at specific iterations)
     start_ep_time = tic;
+    nb_fail = 0;
     for k = 1:K
         % check if MPCs must be run
         if mod(k, M) == 1
@@ -343,6 +344,7 @@ for ep = start_ep:episodes
 
                     % util.logging(toc(start_tot_time), ep, toc(start_ep_time), t(k), k, K);
                 else
+                    nb_fail = nb_fail + 1;
                     msg = '';
                     if ~info_V.success
                         msg = sprintf('V: %s. ', info_V.error);
@@ -386,7 +388,7 @@ for ep = start_ep:episodes
         v = full(v_next);
         
         % perform RL updates
-        if mod(k, rl_update_freq) == 0 && ep > 2 % && replaymem.length >= rl_mem_sample
+        if mod(k, rl_update_freq) == 0 && ep > 1 % && replaymem.length >= rl_mem_sample
             % first row is td error, then derivatives of Q w.r.t. weigths
             sample = cell2mat(replaymem.sample(rl_mem_sample / 2, rl_mem_last_perc));
             td_err = sample(1, :);
@@ -448,10 +450,31 @@ for ep = start_ep:episodes
     end
 
     % log intermediate results
+    ep_Jtot = full(sum(Lrl(origins.queue{ep}, links.density{ep})));
+    ep_TTS = full(sum(TTS(origins.queue{ep}, links.density{ep})));
     util.logging(toc(start_tot_time), ep, exec_times(ep), t(end), K, K, ...
-        sprintf('episode %i terminated: Jtot=%.3f, TTS=%.3f', ep, ...
-        full(sum(Lrl(origins.queue{ep}, links.density{ep}))), ...
-        full(sum(TTS(origins.queue{ep}, links.density{ep})))));
+        sprintf('episode %i terminated: Jtot=%.3f, TTS=%.3f, fails=%i(%.1f%%)', ...
+        ep, ep_Jtot, ep_TTS, nb_fail, nb_fail / K * 100));
+
+    % plot performance
+    if ep == 1
+        figure;
+        yyaxis left, 
+        ph_J = plot(ep, ep_Jtot, '-o');
+        ylabel('J')
+        yyaxis right, 
+        ph_TTS = plot(ep, ep_TTS, '-o');
+        ylabel('TTS')
+    else
+        try
+            set(ph_J, 'XData', [ph_J.XData, ep]);
+            set(ph_J, 'YData', [ph_J.YData, ep_Jtot]);
+            set(ph_TTS, 'XData', [ph_TTS.XData, ep]);
+            set(ph_TTS, 'YData', [ph_TTS.YData, ep_TTS]);
+        catch
+        end
+    end
+    drawnow;
 end
 exec_time_tot = toc(start_tot_time);
 diary off
@@ -464,7 +487,7 @@ rl_pars = structfun(@(x) cell2mat(x), rl_pars, 'UniformOutput', false);
 
 % clear useless variables
 clear cost ctrl d D d1 d2 exp f F filter_num filter_den i info k ...
-    last_sol log_filename msg n name pars q q_o r r_first r_last r_prev ...
+    last_sol log_filename msg n nb_fail name pars q q_o r r_first r_last r_prev ...
     replaymem rho rho_next rho_prev save_freq start_ep_time ... 
     start_ep start_tot_time td_err sz v v_next v_prev w w_next w_prev
 
