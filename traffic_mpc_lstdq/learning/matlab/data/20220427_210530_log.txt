@@ -1,0 +1,287 @@
+# Fields: [Realtime_tot|Episode_n|Realtime_episode] - [Sim_time|Sim_iter|Sim_perc] - Message
+[00:00:42|1|00:00:42] - [00:19:00|115|16.0%] - V: Maximum_Iterations_Exceeded. 
+[00:01:22|1|00:01:22] - [00:20:00|121|16.8%] - Q: Maximum_Iterations_Exceeded.
+[00:02:02|1|00:02:02] - [00:30:00|181|25.1%] - V: Maximum_Iterations_Exceeded. 
+[00:03:21|1|00:03:21] - [00:31:00|187|26.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:03:48|1|00:03:48] - [00:32:00|193|26.8%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:04:06|1|00:04:06] - [00:33:00|199|27.6%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:04:25|1|00:04:25] - [00:34:00|205|28.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:04:45|1|00:04:45] - [00:35:00|211|29.3%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:05:07|1|00:05:07] - [00:36:00|217|30.1%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:05:28|1|00:05:28] - [00:37:00|223|31.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:05:36|1|00:05:36] - [00:38:00|229|31.8%] - V: Maximum_Iterations_Exceeded. 
+[00:05:55|1|00:05:55] - [00:39:00|235|32.6%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:06:12|1|00:06:12] - [00:40:00|241|33.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:06:23|1|00:06:23] - [00:44:00|265|36.8%] - V: Maximum_Iterations_Exceeded. 
+[00:06:39|1|00:06:39] - [00:45:00|271|37.6%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:06:58|1|00:06:58] - [01:17:00|463|64.3%] - V: Maximum_Iterations_Exceeded. 
+[00:07:10|1|00:07:10] - [01:59:50|720|100.0%] - checkpoint saved
+[00:07:10|1|00:07:10] - [01:59:50|720|100.0%] - episode 1 terminated: Jtot=1842.901, TTS=398.354, fails=16
+[00:07:22|2|00:00:11] - [00:19:00|115|16.0%] - V: Maximum_Iterations_Exceeded. 
+[00:07:37|2|00:00:26] - [00:20:00|121|16.8%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:07:44|2|00:00:33] - [00:21:00|127|17.6%] - Q: Maximum_Iterations_Exceeded.
+[00:07:45|2|00:00:34] - [00:23:50|144|20.0%] - RL update 1 with 124 samples: v_free=132.599, rho_crit=23.438, v_free_tracking=132.600, weight_V=[1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000], weight_L=[1.000 1.000 1.000 0.999 0.999 1.000], weight_T=[1.000 1.000 1.000], weight_slack=10.000, 
+[00:07:53|2|00:00:42] - [00:31:00|187|26.0%] - V: Maximum_Iterations_Exceeded. 
+[00:08:11|2|00:01:00] - [00:32:00|193|26.8%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:08:31|2|00:01:20] - [00:33:00|199|27.6%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:08:47|2|00:01:37] - [00:34:00|205|28.5%] - Q: Maximum_Iterations_Exceeded.
+[00:09:06|2|00:01:56] - [00:36:00|217|30.1%] - V: Maximum_Iterations_Exceeded. 
+[00:09:25|2|00:02:14] - [00:37:00|223|31.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:09:41|2|00:02:31] - [00:38:00|229|31.8%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:09:49|2|00:02:38] - [00:39:00|235|32.6%] - V: Maximum_Iterations_Exceeded. 
+[00:10:06|2|00:02:56] - [00:40:00|241|33.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:10:17|2|00:03:06] - [00:42:00|253|35.1%] - Q: Maximum_Iterations_Exceeded.
+[00:10:17|2|00:03:06] - [00:43:00|259|36.0%] - V: Infeasible_Problem_Detected. 
+[00:10:24|2|00:03:14] - [00:44:00|265|36.8%] - V: Maximum_Iterations_Exceeded. Q: Infeasible_Problem_Detected.
+[00:10:33|2|00:03:22] - [00:45:00|271|37.6%] - V: Maximum_Iterations_Exceeded. 
+[00:10:49|2|00:03:38] - [00:47:00|283|39.3%] - V: Maximum_Iterations_Exceeded. 
+[00:10:49|2|00:03:38] - [00:47:50|288|40.0%] - RL update 2 with 134 samples: v_free=132.597, rho_crit=23.428, v_free_tracking=132.600, weight_V=[1.000 1.000 1.000 1.000 1.000 1.000 1.000 1.000], weight_L=[1.000 1.000 1.000 0.996 0.996 0.998], weight_T=[1.000 1.000 1.000], weight_slack=9.999, 
+[00:11:25|2|00:04:14] - [00:50:00|301|41.8%] - Q: Maximum_Iterations_Exceeded.
+[00:11:27|2|00:04:17] - [00:56:00|337|46.8%] - V: Restoration_Failed. 
+[00:11:32|2|00:04:21] - [01:11:50|432|60.0%] - RL update 3 with 144 samples: v_free=132.562, rho_crit=22.886, v_free_tracking=132.600, weight_V=[0.999 1.000 1.000 1.000 1.000 1.000 1.000 1.000], weight_L=[0.999 1.000 1.000 0.993 0.993 0.996], weight_T=[1.000 1.000 1.000], weight_slack=9.997, 
+[00:11:45|2|00:04:35] - [01:35:50|576|80.0%] - RL update 4 with 144 samples: v_free=132.527, rho_crit=22.346, v_free_tracking=132.599, weight_V=[0.999 1.000 1.000 1.000 1.000 1.000 1.000 1.000], weight_L=[0.999 1.000 1.000 0.988 0.987 0.992], weight_T=[1.000 1.000 1.000], weight_slack=9.996, 
+[00:11:59|2|00:04:49] - [01:59:50|720|100.0%] - RL update 5 with 144 samples: v_free=132.493, rho_crit=21.816, v_free_tracking=132.599, weight_V=[0.999 1.000 1.000 1.000 1.000 1.000 1.000 1.000], weight_L=[0.999 0.999 1.000 0.984 0.983 0.989], weight_T=[1.000 1.000 1.000], weight_slack=9.995, 
+[00:11:59|2|00:04:49] - [01:59:50|720|100.0%] - episode 2 terminated: Jtot=2247.214, TTS=392.624, fails=19
+[00:12:28|3|00:00:28] - [00:16:00|97|13.5%] - V: Maximum_Iterations_Exceeded. 
+[00:13:05|3|00:01:05] - [00:17:00|103|14.3%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:13:25|3|00:01:25] - [00:18:00|109|15.1%] - Q: Maximum_Iterations_Exceeded.
+[00:13:26|3|00:01:26] - [00:23:50|144|20.0%] - RL update 6 with 144 samples: v_free=132.458, rho_crit=21.275, v_free_tracking=132.599, weight_V=[0.998 1.000 1.000 1.000 1.000 1.000 1.000 1.000], weight_L=[0.999 0.999 0.999 0.980 0.979 0.987], weight_T=[1.000 1.000 1.000], weight_slack=9.994, 
+[00:13:47|3|00:01:47] - [00:27:00|163|22.6%] - V: Maximum_Iterations_Exceeded. 
+[00:14:32|3|00:02:32] - [00:28:00|169|23.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:15:24|3|00:03:24] - [00:29:00|175|24.3%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:15:51|3|00:03:51] - [00:30:00|181|25.1%] - V: Maximum_Iterations_Exceeded. 
+[00:16:59|3|00:04:59] - [00:31:00|187|26.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:17:40|3|00:05:40] - [00:32:00|193|26.8%] - V: Maximum_Iterations_Exceeded. 
+[00:18:46|3|00:06:46] - [00:33:00|199|27.6%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:19:46|3|00:07:46] - [00:35:00|211|29.3%] - V: Maximum_Iterations_Exceeded. 
+[00:21:16|3|00:09:16] - [00:36:00|217|30.1%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:22:46|3|00:10:46] - [00:37:00|223|31.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:24:04|3|00:12:04] - [00:38:00|229|31.8%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:25:22|3|00:13:22] - [00:39:00|235|32.6%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:26:32|3|00:14:32] - [00:40:00|241|33.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:26:54|3|00:14:54] - [00:43:00|259|36.0%] - V: Infeasible_Problem_Detected. 
+[00:27:22|3|00:15:22] - [00:44:00|265|36.8%] - V: Maximum_Iterations_Exceeded. Q: Infeasible_Problem_Detected.
+[00:28:08|3|00:16:09] - [00:45:00|271|37.6%] - V: Maximum_Iterations_Exceeded. 
+[00:28:14|3|00:16:15] - [00:47:50|288|40.0%] - RL update 7 with 144 samples: v_free=132.377, rho_crit=21.237, v_free_tracking=132.594, weight_V=[0.998 0.995 0.999 0.999 0.999 0.998 0.998 0.999], weight_L=[0.997 0.992 0.986 0.918 0.865 0.866], weight_T=[1.000 1.000 1.000], weight_slack=8.975, 
+[00:28:46|3|00:16:47] - [00:49:00|295|41.0%] - V: Search_Direction_Becomes_Too_Small. 
+[00:29:09|3|00:17:10] - [01:11:50|432|60.0%] - RL update 8 with 144 samples: v_free=132.296, rho_crit=21.208, v_free_tracking=132.589, weight_V=[0.998 0.990 0.999 0.999 0.998 0.996 0.997 0.998], weight_L=[0.995 0.984 0.973 0.856 0.751 0.745], weight_T=[0.999 0.999 0.999], weight_slack=7.956, 
+[00:29:30|3|00:17:30] - [01:35:50|576|80.0%] - RL update 9 with 144 samples: v_free=132.181, rho_crit=20.637, v_free_tracking=132.584, weight_V=[0.998 0.985 0.999 0.998 0.997 0.994 0.995 0.996], weight_L=[0.992 0.976 0.960 0.793 0.637 0.625], weight_T=[0.999 0.999 0.999], weight_slack=6.938, 
+[00:30:08|3|00:18:09] - [01:59:00|715|99.3%] - V: Restoration_Failed. 
+[00:30:08|3|00:18:09] - [01:59:50|720|100.0%] - RL update 10 with 144 samples: v_free=132.111, rho_crit=20.065, v_free_tracking=132.582, weight_V=[0.998 0.984 0.998 0.998 0.997 0.993 0.994 0.996], weight_L=[0.992 0.975 0.958 0.778 0.608 0.595], weight_T=[0.999 0.999 0.999], weight_slack=6.872, 
+[00:30:09|3|00:18:09] - [01:59:50|720|100.0%] - checkpoint saved
+[00:30:09|3|00:18:09] - [01:59:50|720|100.0%] - episode 3 terminated: Jtot=8838.684, TTS=396.923, fails=21
+[00:30:59|4|00:00:50] - [00:16:00|97|13.5%] - V: Maximum_Iterations_Exceeded. 
+[00:31:29|4|00:01:20] - [00:17:00|103|14.3%] - Q: Maximum_Iterations_Exceeded.
+[00:31:31|4|00:01:22] - [00:23:50|144|20.0%] - RL update 11 with 144 samples: v_free=132.077, rho_crit=19.534, v_free_tracking=132.582, weight_V=[0.997 0.984 0.998 0.998 0.997 0.993 0.994 0.996], weight_L=[0.991 0.975 0.958 0.776 0.606 0.595], weight_T=[0.999 0.999 0.999], weight_slack=6.872, 
+[00:32:35|4|00:02:26] - [00:24:00|145|20.1%] - V: Maximum_Iterations_Exceeded. 
+[00:33:50|4|00:03:41] - [00:25:00|151|21.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:34:57|4|00:04:48] - [00:26:00|157|21.8%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:36:06|4|00:05:57] - [00:27:00|163|22.6%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:37:04|4|00:06:55] - [00:28:00|169|23.5%] - V: Maximum_Iterations_Exceeded. Q: Infeasible_Problem_Detected.
+[00:37:48|4|00:07:39] - [00:29:00|175|24.3%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:38:58|4|00:08:48] - [00:30:00|181|25.1%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:40:24|4|00:10:15] - [00:31:00|187|26.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:41:36|4|00:11:26] - [00:32:00|193|26.8%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:43:34|4|00:13:25] - [00:36:00|217|30.1%] - V: Maximum_Iterations_Exceeded. 
+[00:44:08|4|00:13:59] - [00:37:00|223|31.0%] - V: Maximum_Iterations_Exceeded. 
+[00:45:11|4|00:15:02] - [00:40:00|241|33.5%] - V: Maximum_Iterations_Exceeded. 
+[00:45:47|4|00:15:37] - [00:41:00|247|34.3%] - V: Maximum_Iterations_Exceeded. Q: Search_Direction_Becomes_Too_Small.
+[00:47:13|4|00:17:04] - [00:42:00|253|35.1%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:48:18|4|00:18:08] - [00:43:00|259|36.0%] - V: Search_Direction_Becomes_Too_Small. Q: Maximum_Iterations_Exceeded.
+[00:48:48|4|00:18:39] - [00:44:00|265|36.8%] - V: Maximum_Iterations_Exceeded. 
+[00:49:56|4|00:19:46] - [00:45:00|271|37.6%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:51:14|4|00:21:04] - [00:46:00|277|38.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:51:43|4|00:21:34] - [00:47:00|283|39.3%] - V: Maximum_Iterations_Exceeded. 
+[00:51:43|4|00:21:34] - [00:47:50|288|40.0%] - RL update 12 with 144 samples: v_free=131.919, rho_crit=19.390, v_free_tracking=132.575, weight_V=[0.997 0.968 0.998 0.997 0.995 0.989 0.991 0.993], weight_L=[0.986 0.961 0.936 0.643 0.384 0.366], weight_T=[0.998 0.998 0.998], weight_slack=0.000, 
+[00:52:20|4|00:22:11] - [00:48:00|289|40.1%] - V: Maximum_Iterations_Exceeded. 
+[00:52:34|4|00:22:25] - [01:11:50|432|60.0%] - RL update 13 with 144 samples: v_free=131.688, rho_crit=19.205, v_free_tracking=132.565, weight_V=[0.997 0.950 0.997 0.996 0.994 0.983 0.986 0.990], weight_L=[0.981 0.944 0.907 0.480 0.097 0.063], weight_T=[0.997 0.997 0.997], weight_slack=53.926, 
+[00:52:38|4|00:22:28] - [01:18:00|469|65.1%] - V: Restoration_Failed. 
+[00:52:51|4|00:22:41] - [01:35:50|576|80.0%] - RL update 14 with 144 samples: v_free=131.537, rho_crit=19.052, v_free_tracking=132.559, weight_V=[0.997 0.936 0.996 0.996 0.992 0.980 0.983 0.987], weight_L=[0.976 0.933 0.889 0.368 0.000 0.000], weight_T=[0.997 0.997 0.997], weight_slack=108.861, 
+[00:53:27|4|00:23:18] - [01:59:50|720|100.0%] - RL update 15 with 144 samples: v_free=131.355, rho_crit=18.380, v_free_tracking=132.554, weight_V=[0.997 0.924 0.996 0.995 0.991 0.976 0.981 0.985], weight_L=[0.972 0.923 0.873 0.265 0.000 0.000], weight_T=[0.996 0.996 0.996], weight_slack=167.681, 
+[00:53:27|4|00:23:18] - [01:59:50|720|100.0%] - episode 4 terminated: Jtot=59829.592, TTS=469.764, fails=23
+[00:54:46|5|00:01:19] - [00:23:00|139|19.3%] - V: Maximum_Iterations_Exceeded. 
+[00:54:46|5|00:01:19] - [00:23:50|144|20.0%] - RL update 16 with 144 samples: v_free=131.240, rho_crit=17.554, v_free_tracking=132.549, weight_V=[0.996 0.916 0.995 0.995 0.990 0.974 0.979 0.984], weight_L=[0.967 0.913 0.858 0.171 0.000 0.000], weight_T=[0.996 0.996 0.996], weight_slack=143.907, 
+[00:55:50|5|00:02:22] - [00:24:00|145|20.1%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:56:50|5|00:03:23] - [00:25:00|151|21.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:57:39|5|00:04:11] - [00:26:00|157|21.8%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:58:09|5|00:04:41] - [00:27:00|163|22.6%] - V: Maximum_Iterations_Exceeded. 
+[00:58:21|5|00:04:54] - [00:28:00|169|23.5%] - V: Maximum_Iterations_Exceeded. 
+[00:58:30|5|00:05:03] - [00:29:00|175|24.3%] - V: Maximum_Iterations_Exceeded. 
+[00:58:42|5|00:05:14] - [00:31:00|187|26.0%] - V: Maximum_Iterations_Exceeded. 
+[00:58:51|5|00:05:24] - [00:33:00|199|27.6%] - V: Maximum_Iterations_Exceeded. 
+[00:58:59|5|00:05:32] - [00:34:00|205|28.5%] - V: Maximum_Iterations_Exceeded. 
+[00:59:23|5|00:05:55] - [00:35:00|211|29.3%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[00:59:34|5|00:06:07] - [00:36:00|217|30.1%] - Q: Maximum_Iterations_Exceeded.
+[00:59:47|5|00:06:19] - [00:37:00|223|31.0%] - V: Maximum_Iterations_Exceeded. 
+[00:59:58|5|00:06:30] - [00:39:00|235|32.6%] - V: Maximum_Iterations_Exceeded. 
+[01:00:09|5|00:06:41] - [00:40:00|241|33.5%] - Q: Maximum_Iterations_Exceeded.
+[01:00:21|5|00:06:53] - [00:41:00|247|34.3%] - V: Maximum_Iterations_Exceeded. 
+[01:00:42|5|00:07:15] - [00:42:00|253|35.1%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:01:05|5|00:07:37] - [00:43:00|259|36.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:01:27|5|00:07:59] - [00:44:00|265|36.8%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:01:45|5|00:08:18] - [00:45:00|271|37.6%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:02:44|5|00:09:16] - [00:46:00|277|38.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:02:45|5|00:09:17] - [00:47:50|288|40.0%] - RL update 17 with 144 samples: v_free=131.200, rho_crit=17.380, v_free_tracking=132.547, weight_V=[0.996 0.913 0.995 0.994 0.989 0.973 0.978 0.983], weight_L=[0.964 0.908 0.852 0.125 0.000 0.000], weight_T=[0.995 0.995 0.996], weight_slack=149.830, 
+[01:03:04|5|00:09:37] - [01:11:50|432|60.0%] - RL update 18 with 144 samples: v_free=131.191, rho_crit=17.487, v_free_tracking=132.546, weight_V=[0.996 0.911 0.995 0.994 0.989 0.972 0.978 0.983], weight_L=[0.964 0.907 0.850 0.114 0.000 0.000], weight_T=[0.995 0.995 0.996], weight_slack=170.069, 
+[01:03:27|5|00:09:59] - [01:35:50|576|80.0%] - RL update 19 with 144 samples: v_free=131.143, rho_crit=17.549, v_free_tracking=132.545, weight_V=[0.996 0.907 0.995 0.994 0.989 0.971 0.977 0.982], weight_L=[0.963 0.905 0.846 0.089 0.000 0.000], weight_T=[0.995 0.995 0.996], weight_slack=166.918, 
+[01:03:56|5|00:10:28] - [01:38:00|589|81.8%] - V: Maximum_Iterations_Exceeded. 
+[01:04:25|5|00:10:58] - [01:47:00|643|89.3%] - V: Maximum_Iterations_Exceeded. 
+[01:04:38|5|00:11:10] - [01:59:50|720|100.0%] - RL update 20 with 144 samples: v_free=131.104, rho_crit=17.745, v_free_tracking=132.543, weight_V=[0.996 0.902 0.995 0.994 0.989 0.970 0.976 0.981], weight_L=[0.963 0.903 0.842 0.064 0.000 0.000], weight_T=[0.995 0.995 0.996], weight_slack=155.914, 
+[01:04:38|5|00:11:10] - [01:59:50|720|100.0%] - checkpoint saved
+[01:04:38|5|00:11:10] - [01:59:50|720|100.0%] - episode 5 terminated: Jtot=2944.401, TTS=401.961, fails=23
+[01:05:26|6|00:00:48] - [00:21:00|127|17.6%] - V: Maximum_Iterations_Exceeded. 
+[01:06:41|6|00:02:03] - [00:22:00|133|18.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:07:46|6|00:03:08] - [00:23:00|139|19.3%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:07:46|6|00:03:08] - [00:23:50|144|20.0%] - RL update 21 with 144 samples: v_free=131.104, rho_crit=17.745, v_free_tracking=132.543, weight_V=[0.995 0.902 0.995 0.994 0.989 0.970 0.976 0.981], weight_L=[0.963 0.903 0.842 0.062 0.000 0.000], weight_T=[0.995 0.995 0.996], weight_slack=168.476, 
+[01:08:54|6|00:04:16] - [00:24:00|145|20.1%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:09:58|6|00:05:20] - [00:25:00|151|21.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:11:10|6|00:06:32] - [00:26:00|157|21.8%] - V: Maximum_Iterations_Exceeded. 
+[01:12:19|6|00:07:41] - [00:27:00|163|22.6%] - Q: Maximum_Iterations_Exceeded.
+[01:13:06|6|00:08:28] - [00:29:00|175|24.3%] - V: Maximum_Iterations_Exceeded. 
+[01:14:16|6|00:09:38] - [00:31:00|187|26.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:15:30|6|00:10:52] - [00:32:00|193|26.8%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:16:54|6|00:12:16] - [00:33:00|199|27.6%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:17:31|6|00:12:53] - [00:34:00|205|28.5%] - V: Maximum_Iterations_Exceeded. 
+[01:18:08|6|00:13:30] - [00:36:00|217|30.1%] - V: Maximum_Iterations_Exceeded. Q: Restoration_Failed.
+[01:18:52|6|00:14:13] - [00:37:00|223|31.0%] - Q: Maximum_Iterations_Exceeded.
+[01:19:39|6|00:15:01] - [00:38:00|229|31.8%] - V: Maximum_Iterations_Exceeded. 
+[01:21:06|6|00:16:28] - [00:39:00|235|32.6%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:22:22|6|00:17:43] - [00:40:00|241|33.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:23:45|6|00:19:07] - [00:41:00|247|34.3%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:24:48|6|00:20:09] - [00:42:00|253|35.1%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:25:32|6|00:20:54] - [00:43:00|259|36.0%] - V: Maximum_Iterations_Exceeded. Q: Infeasible_Problem_Detected.
+[01:26:26|6|00:21:47] - [00:44:00|265|36.8%] - Q: Maximum_Iterations_Exceeded.
+[01:27:02|6|00:22:23] - [00:45:00|271|37.6%] - V: Maximum_Iterations_Exceeded. 
+[01:28:29|6|00:23:50] - [00:46:00|277|38.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:28:30|6|00:23:52] - [00:47:50|288|40.0%] - RL update 22 with 144 samples: v_free=130.993, rho_crit=17.647, v_free_tracking=132.538, weight_V=[0.995 0.891 0.994 0.993 0.988 0.967 0.973 0.980], weight_L=[0.958 0.893 0.826 0.000 0.000 0.000], weight_T=[0.994 0.995 0.995], weight_slack=186.718, 
+[01:28:52|6|00:24:14] - [01:07:00|403|56.0%] - V: Restoration_Failed. 
+[01:28:56|6|00:24:18] - [01:11:50|432|60.0%] - RL update 23 with 144 samples: v_free=130.922, rho_crit=17.120, v_free_tracking=132.536, weight_V=[0.995 0.888 0.994 0.993 0.987 0.966 0.972 0.979], weight_L=[0.958 0.889 0.820 0.000 0.000 0.000], weight_T=[0.994 0.994 0.995], weight_slack=200.053, 
+[01:29:11|6|00:24:33] - [01:25:00|511|71.0%] - V: Restoration_Failed. 
+[01:29:54|6|00:25:16] - [01:31:00|547|76.0%] - V: Maximum_Iterations_Exceeded. 
+[01:30:01|6|00:25:22] - [01:35:50|576|80.0%] - RL update 24 with 144 samples: v_free=130.806, rho_crit=16.905, v_free_tracking=132.530, weight_V=[0.995 0.879 0.993 0.992 0.986 0.963 0.970 0.977], weight_L=[0.954 0.880 0.804 0.000 0.000 0.000], weight_T=[0.994 0.994 0.994], weight_slack=213.743, 
+[01:30:19|6|00:25:40] - [01:55:00|691|96.0%] - Q: Restoration_Failed.
+[01:30:27|6|00:25:49] - [01:59:50|720|100.0%] - RL update 25 with 144 samples: v_free=130.768, rho_crit=16.860, v_free_tracking=132.529, weight_V=[0.995 0.876 0.993 0.992 0.986 0.963 0.969 0.977], weight_L=[0.954 0.878 0.801 0.000 0.000 0.000], weight_T=[0.994 0.994 0.994], weight_slack=223.910, 
+[01:30:27|6|00:25:49] - [01:59:50|720|100.0%] - episode 6 terminated: Jtot=2755.659, TTS=402.279, fails=27
+[01:31:20|7|00:00:53] - [00:19:00|115|16.0%] - V: Maximum_Iterations_Exceeded. 
+[01:32:46|7|00:02:19] - [00:21:00|127|17.6%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:33:56|7|00:03:29] - [00:22:00|133|18.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:34:41|7|00:04:13] - [00:23:00|139|19.3%] - V: Maximum_Iterations_Exceeded. 
+[01:34:41|7|00:04:13] - [00:23:50|144|20.0%] - RL update 26 with 144 samples: v_free=130.729, rho_crit=16.816, v_free_tracking=132.528, weight_V=[0.995 0.872 0.993 0.992 0.986 0.962 0.969 0.976], weight_L=[0.953 0.876 0.798 0.000 0.000 0.000], weight_T=[0.994 0.994 0.994], weight_slack=244.246, 
+[01:35:22|7|00:04:54] - [00:24:00|145|20.1%] - Q: Maximum_Iterations_Exceeded.
+[01:35:55|7|00:05:27] - [00:25:00|151|21.0%] - V: Maximum_Iterations_Exceeded. 
+[01:36:24|7|00:05:57] - [00:26:00|157|21.8%] - Q: Maximum_Iterations_Exceeded.
+[01:36:55|7|00:06:28] - [00:27:00|163|22.6%] - V: Maximum_Iterations_Exceeded. 
+[01:37:28|7|00:07:00] - [00:28:00|169|23.5%] - V: Maximum_Iterations_Exceeded. 
+[01:38:00|7|00:07:32] - [00:29:00|175|24.3%] - V: Maximum_Iterations_Exceeded. 
+[01:38:30|7|00:08:03] - [00:30:00|181|25.1%] - V: Maximum_Iterations_Exceeded. 
+[01:39:01|7|00:08:34] - [00:33:00|199|27.6%] - V: Maximum_Iterations_Exceeded. 
+[01:40:01|7|00:09:34] - [00:34:00|205|28.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:41:02|7|00:10:35] - [00:35:00|211|29.3%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:42:00|7|00:11:32] - [00:36:00|217|30.1%] - V: Maximum_Iterations_Exceeded. 
+[01:42:37|7|00:12:10] - [00:37:00|223|31.0%] - V: Maximum_Iterations_Exceeded. 
+[01:43:22|7|00:12:54] - [00:38:00|229|31.8%] - V: Maximum_Iterations_Exceeded. 
+[01:43:52|7|00:13:25] - [00:39:00|235|32.6%] - V: Maximum_Iterations_Exceeded. 
+[01:44:53|7|00:14:25] - [00:40:00|241|33.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:45:52|7|00:15:24] - [00:41:00|247|34.3%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:46:26|7|00:15:58] - [00:42:00|253|35.1%] - V: Maximum_Iterations_Exceeded. 
+[01:47:31|7|00:17:04] - [00:43:00|259|36.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:48:01|7|00:17:33] - [00:44:00|265|36.8%] - Q: Maximum_Iterations_Exceeded.
+[01:48:06|7|00:17:38] - [00:47:50|288|40.0%] - RL update 27 with 144 samples: v_free=130.729, rho_crit=16.817, v_free_tracking=132.528, weight_V=[0.994 0.872 0.993 0.992 0.986 0.962 0.969 0.976], weight_L=[0.953 0.876 0.798 0.000 0.000 0.000], weight_T=[0.994 0.994 0.994], weight_slack=261.667, 
+[01:48:34|7|00:18:06] - [01:11:50|432|60.0%] - RL update 28 with 144 samples: v_free=130.695, rho_crit=16.285, v_free_tracking=132.528, weight_V=[0.994 0.872 0.993 0.992 0.986 0.962 0.969 0.976], weight_L=[0.953 0.876 0.798 0.002 0.002 0.002], weight_T=[0.994 0.994 0.994], weight_slack=287.315, 
+[01:49:13|7|00:18:45] - [01:26:00|517|71.8%] - Q: Maximum_Iterations_Exceeded.
+[01:49:24|7|00:18:56] - [01:34:00|565|78.5%] - V: Restoration_Failed. 
+[01:49:27|7|00:18:59] - [01:35:50|576|80.0%] - RL update 29 with 144 samples: v_free=130.655, rho_crit=15.763, v_free_tracking=132.527, weight_V=[0.994 0.871 0.993 0.992 0.985 0.961 0.968 0.976], weight_L=[0.953 0.874 0.794 0.000 0.000 0.000], weight_T=[0.994 0.994 0.994], weight_slack=293.329, 
+[01:49:56|7|00:19:28] - [01:59:50|720|100.0%] - RL update 30 with 144 samples: v_free=130.614, rho_crit=15.588, v_free_tracking=132.525, weight_V=[0.994 0.868 0.993 0.992 0.985 0.960 0.967 0.975], weight_L=[0.951 0.870 0.788 0.000 0.000 0.000], weight_T=[0.993 0.993 0.994], weight_slack=301.142, 
+[01:49:56|7|00:19:28] - [01:59:50|720|100.0%] - checkpoint saved
+[01:49:56|7|00:19:28] - [01:59:50|720|100.0%] - episode 7 terminated: Jtot=1518.941, TTS=404.442, fails=25
+[01:50:52|8|00:00:55] - [00:20:00|121|16.8%] - V: Maximum_Iterations_Exceeded. 
+[01:51:39|8|00:01:42] - [00:21:00|127|17.6%] - Q: Maximum_Iterations_Exceeded.
+[01:52:06|8|00:02:09] - [00:22:00|133|18.5%] - V: Maximum_Iterations_Exceeded. 
+[01:52:35|8|00:02:39] - [00:23:00|139|19.3%] - V: Maximum_Iterations_Exceeded. 
+[01:52:35|8|00:02:39] - [00:23:50|144|20.0%] - RL update 31 with 144 samples: v_free=130.542, rho_crit=15.415, v_free_tracking=132.522, weight_V=[0.994 0.862 0.993 0.992 0.984 0.959 0.966 0.974], weight_L=[0.949 0.865 0.781 0.000 0.000 0.000], weight_T=[0.993 0.993 0.994], weight_slack=304.003, 
+[01:53:06|8|00:03:10] - [00:25:00|151|21.0%] - V: Maximum_Iterations_Exceeded. 
+[01:53:40|8|00:03:43] - [00:27:00|163|22.6%] - V: Maximum_Iterations_Exceeded. 
+[01:54:06|8|00:04:09] - [00:28:00|169|23.5%] - V: Maximum_Iterations_Exceeded. 
+[01:54:43|8|00:04:47] - [00:30:00|181|25.1%] - V: Maximum_Iterations_Exceeded. 
+[01:55:41|8|00:05:45] - [00:31:00|187|26.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:56:41|8|00:06:45] - [00:32:00|193|26.8%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:57:45|8|00:07:49] - [00:33:00|199|27.6%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[01:58:17|8|00:08:21] - [00:35:00|211|29.3%] - V: Maximum_Iterations_Exceeded. 
+[01:58:42|8|00:08:45] - [00:37:00|223|31.0%] - V: Maximum_Iterations_Exceeded. 
+[01:59:31|8|00:09:35] - [00:38:00|229|31.8%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:00:08|8|00:10:12] - [00:39:00|235|32.6%] - Q: Maximum_Iterations_Exceeded.
+[02:01:00|8|00:11:03] - [00:40:00|241|33.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:02:04|8|00:12:08] - [00:41:00|247|34.3%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:02:53|8|00:12:56] - [00:42:00|253|35.1%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:03:46|8|00:13:50] - [00:43:00|259|36.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:04:26|8|00:14:29] - [00:44:00|265|36.8%] - Q: Maximum_Iterations_Exceeded.
+[02:04:29|8|00:14:32] - [00:47:50|288|40.0%] - RL update 32 with 144 samples: v_free=130.541, rho_crit=15.405, v_free_tracking=132.522, weight_V=[0.994 0.861 0.993 0.991 0.984 0.958 0.966 0.974], weight_L=[0.948 0.864 0.780 0.000 0.000 0.000], weight_T=[0.993 0.993 0.994], weight_slack=310.257, 
+[02:04:52|8|00:14:55] - [01:11:50|432|60.0%] - RL update 33 with 144 samples: v_free=130.541, rho_crit=15.406, v_free_tracking=132.522, weight_V=[0.994 0.861 0.993 0.991 0.984 0.958 0.966 0.974], weight_L=[0.947 0.864 0.779 0.000 0.000 0.000], weight_T=[0.993 0.993 0.994], weight_slack=316.772, 
+[02:05:19|8|00:15:22] - [01:35:50|576|80.0%] - RL update 34 with 144 samples: v_free=130.466, rho_crit=15.319, v_free_tracking=132.521, weight_V=[0.994 0.857 0.992 0.991 0.984 0.957 0.965 0.973], weight_L=[0.946 0.861 0.774 0.000 0.000 0.000], weight_T=[0.993 0.993 0.994], weight_slack=312.765, 
+[02:05:50|8|00:15:53] - [01:59:50|720|100.0%] - RL update 35 with 144 samples: v_free=130.421, rho_crit=15.284, v_free_tracking=132.518, weight_V=[0.994 0.852 0.992 0.991 0.983 0.956 0.964 0.972], weight_L=[0.945 0.857 0.767 0.000 0.000 0.000], weight_T=[0.992 0.993 0.993], weight_slack=325.843, 
+[02:05:50|8|00:15:53] - [01:59:50|720|100.0%] - episode 8 terminated: Jtot=443.286, TTS=410.370, fails=20
+[02:06:46|9|00:00:55] - [00:19:00|115|16.0%] - V: Maximum_Iterations_Exceeded. 
+[02:07:18|9|00:01:27] - [00:20:00|121|16.8%] - Q: Maximum_Iterations_Exceeded.
+[02:07:45|9|00:01:55] - [00:21:00|127|17.6%] - V: Maximum_Iterations_Exceeded. 
+[02:08:34|9|00:02:43] - [00:23:00|139|19.3%] - V: Maximum_Iterations_Exceeded. 
+[02:08:34|9|00:02:43] - [00:23:50|144|20.0%] - RL update 36 with 144 samples: v_free=130.421, rho_crit=15.284, v_free_tracking=132.518, weight_V=[0.993 0.852 0.992 0.991 0.983 0.956 0.963 0.972], weight_L=[0.945 0.857 0.767 0.000 0.000 0.000], weight_T=[0.992 0.993 0.993], weight_slack=337.757, 
+[02:09:11|9|00:03:20] - [00:24:00|145|20.1%] - V: Maximum_Iterations_Exceeded. 
+[02:09:35|9|00:03:45] - [00:25:00|151|21.0%] - V: Maximum_Iterations_Exceeded. 
+[02:10:00|9|00:04:10] - [00:26:00|157|21.8%] - V: Maximum_Iterations_Exceeded. 
+[02:10:30|9|00:04:39] - [00:27:00|163|22.6%] - V: Maximum_Iterations_Exceeded. 
+[02:10:52|9|00:05:02] - [00:28:00|169|23.5%] - V: Maximum_Iterations_Exceeded. 
+[02:11:17|9|00:05:26] - [00:29:00|175|24.3%] - V: Maximum_Iterations_Exceeded. 
+[02:11:41|9|00:05:50] - [00:30:00|181|25.1%] - V: Maximum_Iterations_Exceeded. 
+[02:12:27|9|00:06:36] - [00:31:00|187|26.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:12:51|9|00:07:00] - [00:32:00|193|26.8%] - Q: Maximum_Iterations_Exceeded.
+[02:13:16|9|00:07:25] - [00:33:00|199|27.6%] - V: Maximum_Iterations_Exceeded. 
+[02:13:43|9|00:07:52] - [00:34:00|205|28.5%] - V: Maximum_Iterations_Exceeded. 
+[02:14:09|9|00:08:18] - [00:35:00|211|29.3%] - V: Maximum_Iterations_Exceeded. 
+[02:14:39|9|00:08:48] - [00:36:00|217|30.1%] - V: Maximum_Iterations_Exceeded. 
+[02:15:32|9|00:09:41] - [00:37:00|223|31.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:16:23|9|00:10:32] - [00:38:00|229|31.8%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:17:13|9|00:11:22] - [00:39:00|235|32.6%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:18:17|9|00:12:26] - [00:40:00|241|33.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:18:49|9|00:12:58] - [00:41:00|247|34.3%] - V: Maximum_Iterations_Exceeded. 
+[02:19:38|9|00:13:47] - [00:42:00|253|35.1%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:20:27|9|00:14:37] - [00:43:00|259|36.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:21:18|9|00:15:28] - [00:44:00|265|36.8%] - V: Maximum_Iterations_Exceeded. 
+[02:21:21|9|00:15:30] - [00:47:50|288|40.0%] - RL update 37 with 144 samples: v_free=130.421, rho_crit=15.284, v_free_tracking=132.518, weight_V=[0.993 0.852 0.992 0.991 0.983 0.955 0.963 0.972], weight_L=[0.944 0.857 0.767 0.000 0.000 0.000], weight_T=[0.992 0.993 0.993], weight_slack=346.012, 
+[02:21:46|9|00:15:55] - [01:11:50|432|60.0%] - RL update 38 with 144 samples: v_free=130.421, rho_crit=15.285, v_free_tracking=132.518, weight_V=[0.993 0.852 0.992 0.991 0.983 0.955 0.963 0.972], weight_L=[0.944 0.857 0.767 0.000 0.000 0.000], weight_T=[0.992 0.993 0.993], weight_slack=368.652, 
+[02:22:14|9|00:16:23] - [01:35:50|576|80.0%] - RL update 39 with 144 samples: v_free=130.421, rho_crit=15.284, v_free_tracking=132.518, weight_V=[0.993 0.852 0.992 0.991 0.983 0.955 0.963 0.972], weight_L=[0.944 0.857 0.767 0.000 0.000 0.000], weight_T=[0.992 0.993 0.993], weight_slack=377.349, 
+[02:22:39|9|00:16:48] - [01:59:50|720|100.0%] - RL update 40 with 144 samples: v_free=130.421, rho_crit=15.284, v_free_tracking=132.518, weight_V=[0.993 0.852 0.992 0.991 0.983 0.955 0.963 0.972], weight_L=[0.945 0.857 0.767 0.001 0.001 0.001], weight_T=[0.992 0.993 0.993], weight_slack=407.670, 
+[02:22:39|9|00:16:48] - [01:59:50|720|100.0%] - checkpoint saved
+[02:22:39|9|00:16:48] - [01:59:50|720|100.0%] - episode 9 terminated: Jtot=391.405, TTS=388.077, fails=25
+[02:23:56|10|00:01:17] - [00:18:00|109|15.1%] - Q: Maximum_Iterations_Exceeded.
+[02:24:27|10|00:01:47] - [00:19:00|115|16.0%] - V: Maximum_Iterations_Exceeded. 
+[02:25:28|10|00:02:49] - [00:20:00|121|16.8%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:26:14|10|00:03:35] - [00:21:00|127|17.6%] - Q: Maximum_Iterations_Exceeded.
+[02:26:44|10|00:04:05] - [00:22:00|133|18.5%] - V: Maximum_Iterations_Exceeded. 
+[02:27:43|10|00:05:04] - [00:23:00|139|19.3%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:27:43|10|00:05:04] - [00:23:50|144|20.0%] - RL update 41 with 144 samples: v_free=130.421, rho_crit=15.284, v_free_tracking=132.518, weight_V=[0.993 0.852 0.992 0.991 0.983 0.955 0.963 0.972], weight_L=[0.945 0.857 0.767 0.000 0.000 0.000], weight_T=[0.992 0.993 0.993], weight_slack=418.645, 
+[02:28:13|10|00:05:33] - [00:24:00|145|20.1%] - V: Maximum_Iterations_Exceeded. 
+[02:29:11|10|00:06:32] - [00:25:00|151|21.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:29:36|10|00:06:57] - [00:26:00|157|21.8%] - V: Maximum_Iterations_Exceeded. 
+[02:30:02|10|00:07:23] - [00:27:00|163|22.6%] - V: Maximum_Iterations_Exceeded. 
+[02:30:57|10|00:08:18] - [00:28:00|169|23.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:32:02|10|00:09:23] - [00:29:00|175|24.3%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:32:47|10|00:10:08] - [00:30:00|181|25.1%] - V: Maximum_Iterations_Exceeded. 
+[02:33:15|10|00:10:36] - [00:31:00|187|26.0%] - V: Maximum_Iterations_Exceeded. 
+[02:33:45|10|00:11:06] - [00:33:00|199|27.6%] - V: Maximum_Iterations_Exceeded. 
+[02:34:45|10|00:12:05] - [00:34:00|205|28.5%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:35:45|10|00:13:05] - [00:35:00|211|29.3%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:36:46|10|00:14:07] - [00:36:00|217|30.1%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:37:52|10|00:15:13] - [00:37:00|223|31.0%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:38:54|10|00:16:14] - [00:38:00|229|31.8%] - V: Maximum_Iterations_Exceeded. Q: Maximum_Iterations_Exceeded.
+[02:38:59|10|00:16:20] - [00:39:00|235|32.6%] - V: NonIpopt_Exception_Thrown. Q: NonIpopt_Exception_Thrown.
+[02:38:59|10|00:16:20] - [00:40:00|241|33.5%] - V: NonIpopt_Exception_Thrown. Q: NonIpopt_Exception_Thrown.
+[02:38:59|10|00:16:20] - [00:41:00|247|34.3%] - V: NonIpopt_Exception_Thrown. Q: NonIpopt_Exception_Thrown.
+{Operation terminated by user during <a href="matlab:matlab.internal.language.introspective.errorDocCallback('casadi.Opti/set_initial', 'C:\Users\fairaldi\Documents\MATLAB\lib\casadi-windows-matlabR2016a-v3.5.5\+casadi\Opti.m', 230)" style="font-weight:bold">casadi.Opti/set_initial</a> (<a href="matlab: opentoline('C:\Users\fairaldi\Documents\MATLAB\lib\casadi-windows-matlabR2016a-v3.5.5\+casadi\Opti.m',230,0)">line 230</a>)
+
+
+In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('rlmpc.NMPC/solve', 'C:\Users\fairaldi\OneDrive - Delft University of Technology\PhD\source\traffic_mpc_lstdq\learning\matlab\+rlmpc\NMPC.m', 117)" style="font-weight:bold">rlmpc.NMPC/solve</a> (<a href="matlab: opentoline('C:\Users\fairaldi\OneDrive - Delft University of Technology\PhD\source\traffic_mpc_lstdq\learning\matlab\+rlmpc\NMPC.m',117,0)">line 117</a>)
+                obj.opti.set_initial(obj.vars.(name{1}), vals.(name{1}));
+
+In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('main', 'C:\Users\fairaldi\OneDrive - Delft University of Technology\PhD\source\traffic_mpc_lstdq\learning\matlab\main.m', 306)" style="font-weight:bold">main</a> (<a href="matlab: opentoline('C:\Users\fairaldi\OneDrive - Delft University of Technology\PhD\source\traffic_mpc_lstdq\learning\matlab\main.m',306,0)">line 306</a>)
+                [last_sol, info_Q] = mpc.Q.solve(pars, last_sol);
+} 
