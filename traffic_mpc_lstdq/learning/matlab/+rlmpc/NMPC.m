@@ -84,14 +84,6 @@ classdef NMPC < handle
             end
         end
 
-        function set_ipopt_opts(obj, plugin_opts, solver_opts)
-            obj.opti.solver('ipopt', plugin_opts, solver_opts);
-        end
-
-        function set_cost(obj, cost)
-            obj.opti.minimize(cost) 
-        end
-
         function par = add_par(obj, name, nrows, ncols)
             assert(all(~strcmp(fieldnames(obj.pars), name), 'all'), ...
                 'parameter name already in use')

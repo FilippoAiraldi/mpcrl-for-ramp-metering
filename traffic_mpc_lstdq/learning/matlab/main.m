@@ -118,7 +118,7 @@ for name = ["Q", "V"]
     % instantiate an MPC
     ctrl = rlmpc.NMPC(Np, Nc, M);
     ctrl.init_opti(F, eps); 
-    ctrl.set_ipopt_opts(plugin_opts, solver_opts);
+    ctrl.opti.solver('ipopt', plugin_opts, solver_opts);
 
     % set soft constraint on ramp queue
     slack = ctrl.add_var('slack', n_ramps, M * Np + 1);
@@ -170,7 +170,7 @@ for name = ["Q", "V"]
     end
 
     % assign cost to opti
-    ctrl.set_cost(cost);
+    ctrl.opti.minimize(cost);
 
     % save to struct
     mpc.(name) = ctrl;
@@ -182,7 +182,7 @@ mpc.Q.opti.subject_to(mpc.Q.vars.r(:, 1) - mpc.Q.pars.r_first == 0);
 
 % V approximator has perturbation to enhance exploration
 mpc.V.add_par('perturbation', size(mpc.V.vars.r(:, 1)));
-mpc.V.set_cost(mpc.V.opti.f + mpc.V.pars.perturbation' * mpc.V.vars.r(:, 1));
+mpc.V.opti.minimize(mpc.V.opti.f + mpc.V.pars.perturbation' * mpc.V.vars.r(:, 1));
 
 
 
