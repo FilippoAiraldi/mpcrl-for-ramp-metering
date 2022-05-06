@@ -6,28 +6,46 @@ classdef ReplayMem < handle
         maxcapacity
         data
         length
+        headers
     end
     
 
     methods
-        function obj = ReplayMem(capacity)
+        function obj = ReplayMem(capacity, varargin)
+            % buffer = ReplayMem(capacity, var1, var2, ...)
             obj.maxcapacity = capacity;
-            obj.clear();
+            obj.clear(varargin{:});
         end
 
-        function clear(obj)
-            obj.data = cell(0, 0);
+        function clear(obj, varargin)
+            % clear(capacity, var1, var2, ...)
+
+            % get headers and sizes
+            obj.headers = varargin;
+
+            % initialize data structure
+            obj.data = struct;
+            for h = obj.headers
+                obj.data.(h{1}) = {};
+            end
             obj.length = 0;
         end
 
-        function add(obj, experience)
+        function add(obj, exp)
             % assert(nargin == 2)
             if obj.length < obj.maxcapacity
+                % append to last position
                 obj.length = obj.length + 1;
-                obj.data{obj.length} = experience;
+                for h = obj.headers
+                    obj.data.(h{1}){obj.length} = exp.(h{1});
+                end
             else
-                obj.data(1:end-1) = obj.data(2:end);
-                obj.data{obj.maxcapacity} = experience;
+                % shift each header by one position back and append item to
+                % last position (now empty)
+                for h = obj.headers
+                    obj.data.(h{1}) = obj.data.(h{1})(2:end);
+                    obj.data.(h{1}){end + 1} = exp.(h{1});
+                end
             end
         end
         
@@ -40,8 +58,8 @@ classdef ReplayMem < handle
             if nargin < 3
                 include_last_n = 0;
             elseif floor(include_last_n) ~= include_last_n
-                    include_last_n = round(include_last_n * n);
-                    include_last_n = max(0, min(include_last_n, n));
+                include_last_n = round(n * include_last_n);
+                include_last_n = max(0, min(n, include_last_n));
             end
 
             % get last n
@@ -61,7 +79,13 @@ classdef ReplayMem < handle
             
             % combine into output samples
             idx_samples = [last_n, rand_n];
-            samples = obj.data(idx_samples);
+            samples = struct;
+            samples.n = numel(idx_samples);
+            for h = obj.headers
+                datum = obj.data.(h{1})(idx_samples);
+                samples.(h{1}) = squeeze(...
+                    cat(ndims(datum{1}) + 1, datum{:}));
+            end
         end
     end
 end

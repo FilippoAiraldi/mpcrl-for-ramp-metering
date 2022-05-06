@@ -14,74 +14,79 @@ classdef NMPC < handle
 
 
     methods (Access = public) 
-        function obj = NMPC(Np, Nc, M)
-            obj.Np = Np;
-            obj.Nc = Nc;
-            obj.M = M;
-            obj.opti = casadi.Opti();
-        end
-
-        function init_opti(obj, Fdyn, eps)
-            if nargin < 3
+        function obj = NMPC(Np, Nc, M, Fdyn, eps)
+            if nargin < 5
                 eps = 0; % nonnegative constraint precision
             end
 
+            % get some dimensions
             % F:(w[2],rho[3],v[3],r,d[2],a,v_free,rho_crit)->(q_o[2],w_o_next[2],q[3],rho_next[3],v_next[3])
             n_links = size(Fdyn.mx_in(1), 1);   % number of links
             n_orig = size(Fdyn.mx_in(0), 1);    % number of origins
             n_ramps = size(Fdyn.mx_in(3), 1);   % number of onramps
             n_d = size(Fdyn.mx_in(4), 1);       % number of disturbances
             
-            % create vars
-            obj.vars = struct;
-            obj.vars.w = obj.opti.variable(n_orig, obj.M * obj.Np + 1);     % origin queue lengths  
-            obj.vars.r = obj.opti.variable(n_ramps, obj.Nc);                % ramp metering rates
-            obj.vars.rho = obj.opti.variable(n_links, obj.M * obj.Np + 1);  % link densities
-            obj.vars.v = obj.opti.variable(n_links, obj.M * obj.Np + 1);    % link speeds
+            % create opti stack
+            opti = casadi.Opti();
 
-            % create pars
-            obj.pars = struct;
-            obj.pars.d = obj.opti.parameter(n_d, obj.M * obj.Np);   % origin demands    
-            obj.pars.w0 = obj.opti.parameter(n_orig, 1);            % initial values
-            obj.pars.rho0 = obj.opti.parameter(n_links, 1);                   
-            obj.pars.v0 = obj.opti.parameter(n_links, 1);
+            % create vars
+            vars = struct;
+            vars.w = opti.variable(n_orig, M * Np + 1);     % origin queue lengths  
+            vars.rho = opti.variable(n_links, M * Np + 1);  % link densities
+            vars.v = opti.variable(n_links, M * Np + 1);    % link speeds
+            vars.r = opti.variable(n_ramps, Nc);            % ramp metering rates
+
+			% create pars
+            pars = struct;
+            pars.d = opti.parameter(n_d, M * Np);           % origin demands    
+            pars.w0 = opti.parameter(n_orig, 1);            % initial values
+            pars.rho0 = opti.parameter(n_links, 1);                   
+            pars.v0 = opti.parameter(n_links, 1);
 
             % params for the system dynamics
-            obj.pars.a = obj.opti.parameter(1, 1);
-            obj.pars.v_free = obj.opti.parameter(1, 1);
-            obj.pars.rho_crit = obj.opti.parameter(1, 1);
+            pars.a = opti.parameter(1, 1);
+            pars.v_free = opti.parameter(1, 1);
+            pars.rho_crit = opti.parameter(1, 1);
 
             % constraints on domains
-            obj.opti.subject_to(-obj.vars.r + 0.2 <= 0)
-            obj.opti.subject_to(obj.vars.r - 1 <= 0)
-            obj.opti.subject_to(-obj.vars.w(:) + eps <= 0)
-            obj.opti.subject_to(-obj.vars.rho(:) + eps <= 0)
-            obj.opti.subject_to(-obj.vars.v(:) + eps <= 0)
+            opti.subject_to(-vars.r + 0.2 <= 0)
+            opti.subject_to(vars.r - 1 <= 0)
+            opti.subject_to(-vars.w(:) + eps <= 0)
+            opti.subject_to(-vars.rho(:) + eps <= 0)
+            opti.subject_to(-vars.v(:) + eps <= 0)
             
             % constraints on initial conditions
-            obj.opti.subject_to(obj.vars.w(:, 1) - obj.pars.w0 == 0)
-            obj.opti.subject_to(obj.vars.v(:, 1) - obj.pars.v0 == 0)
-            obj.opti.subject_to(obj.vars.rho(:, 1) - obj.pars.rho0 == 0)
+            opti.subject_to(vars.w(:, 1) - pars.w0 == 0)
+            opti.subject_to(vars.v(:, 1) - pars.v0 == 0)
+            opti.subject_to(vars.rho(:, 1) - pars.rho0 == 0)
 
             % expand control sequence
-            r_exp = [repelem(obj.vars.r, 1, obj.M), ...
-                repelem(obj.vars.r(:, end), 1, obj.M * (obj.Np - obj.Nc))];
+            r_exp = [repelem(vars.r, 1, M), ...
+                repelem(vars.r(:, end), 1, M * (Np - Nc))];
 
             % constraints on state evolution
-            for k = 1:obj.M * obj.Np
+            for k = 1:M * Np
                 [~, w_next, ~, rho_next, v_next] = Fdyn(...
-                    obj.vars.w(:, k), ...
-                    obj.vars.rho(:, k), ...
-                    obj.vars.v(:, k), ...
+                    vars.w(:, k), ...
+                    vars.rho(:, k), ...
+                    vars.v(:, k), ...
                     r_exp(:, k), ...
-                    obj.pars.d(:, k), ...
-                    obj.pars.a, ...
-                    obj.pars.v_free, ...
-                    obj.pars.rho_crit);
-                obj.opti.subject_to(obj.vars.w(:, k + 1) - w_next == 0)
-                obj.opti.subject_to(obj.vars.rho(:, k + 1) - rho_next == 0)
-                obj.opti.subject_to(obj.vars.v(:, k + 1) - v_next == 0)
+                    pars.d(:, k), ...
+                    pars.a, ...
+                    pars.v_free, ...
+                    pars.rho_crit);
+                opti.subject_to(vars.w(:, k + 1) - w_next == 0)
+                opti.subject_to(vars.rho(:, k + 1) - rho_next == 0)
+                opti.subject_to(vars.v(:, k + 1) - v_next == 0)
             end
+
+            % save to instance
+            obj.Np = Np;
+            obj.Nc = Nc;
+            obj.M = M;
+            obj.opti = opti;
+            obj.vars = vars;
+            obj.pars = pars;
         end
 
         function par = add_par(obj, name, nrows, ncols)
