@@ -127,7 +127,7 @@ classdef NMPC < handle
             try
                 s = obj.opti.solve();
                 info.success = true;
-                info.sol_obj = s;
+                info.sol = s;
                 get_value = @(o) s.value(o);
             catch ME1
                 try
@@ -142,12 +142,17 @@ classdef NMPC < handle
 
             % get outputs
             info.f = get_value(obj.opti.f);
-%             info.g = get_value(obj.opti.g);
-%             info.lam_g = get_value(obj.opti.lam_g);
+            % info.g = get_value(obj.opti.g);
+            % info.lam_g = get_value(obj.opti.lam_g);
             sol = struct;
             for name = fieldnames(obj.vars)'
                 sol.(name{1}) = full(get_value(obj.vars.(name{1})));
             end
+        end
+
+        function v = get_rl_pars(obj, names)
+            v = cellfun(@(n) obj.pars.(n), names, 'UniformOutput', false);
+            v = vertcat(v{:});
         end
     end
 end
