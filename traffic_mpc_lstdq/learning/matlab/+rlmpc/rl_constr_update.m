@@ -1,4 +1,4 @@
-function pars = batch_update(pars, bounds, lr, td_error, dQ)
+function [pars, deltas] = rl_constr_update(pars, bounds, f)
     % compute the bounds for the LCQP
     lb = struct;
     ub = struct;
@@ -10,10 +10,10 @@ function pars = batch_update(pars, bounds, lr, td_error, dQ)
     ub = struct2array(ub);
 
     % solve constrained lcqp
-    H = eye(length(lb));
-    f = -lr * (dQ * td_error) / length(td_error);
+    H = eye(length(f));
     [deltas, ~, exitflag] = quadprog(H, f, [], [], [], [], lb, ub, -f, ...
-        optimoptions('quadprog', 'Display', 'off'));
+        optimoptions('quadprog', 'Display', 'off', ...
+            'Algorithm', 'active-set'));
     assert(exitflag >= 1)
 
     % compute next paramters

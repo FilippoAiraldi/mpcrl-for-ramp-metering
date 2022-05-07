@@ -5,7 +5,6 @@ runname = datestr(datetime, 'yyyymmdd_HHMMSS');
 load_checkpoint = false;
 
 
-
 % TO TRY
 % bring modifications from 4th meeting
 
@@ -58,7 +57,7 @@ delta = 0.0122;                 % merging phenomenum parameter
 true_pars = struct('a', 1.867, 'v_free', 102, 'rho_crit', 33.5);
 a = true_pars.a * 1.3;
 v_free = true_pars.v_free * 1.3;
-rho_crit = true_pars.rho_crit * 0.6;
+rho_crit = true_pars.rho_crit * 0.7;
 
 
 
@@ -202,8 +201,9 @@ rl_pars.v_free_tracking = {v_free};
 rl_pars.weight_V = {ones(size(weight_V))};
 rl_pars.weight_L = {ones(size(weight_L))};
 rl_pars.weight_T = {ones(size(weight_T))};
-rl_pars.weight_slack = {ones(size(weight_slack)) * con_violation_penalty};
 rl_pars.weight_rate_var = {rate_var_penalty};
+rl_pars.weight_slack = {ones(size(weight_slack)) * con_violation_penalty};
+
 % rl parameters bounds
 rl_pars_bounds.v_free = [30, 300]; 
 rl_pars_bounds.rho_crit = [10, 200];
@@ -211,9 +211,20 @@ rl_pars_bounds.v_free_tracking = [30, 300];
 rl_pars_bounds.weight_V = [-inf, inf];
 rl_pars_bounds.weight_L = [0, inf];
 rl_pars_bounds.weight_T = [0, inf];
-rl_pars_bounds.weight_slack = [0, inf];
 rl_pars_bounds.weight_rate_var = [1e-3, 1e2];
-% nb_rl_pars = sum(structfun(@(p) numel(p{1}), rl_pars));
+rl_pars_bounds.weight_slack = [0, inf];
+
+% compute symbolic derivatives
+deriv = struct;
+for n = string(fieldnames(mpc)')
+    % assemble all RL parameters in a single vector for V and Q
+    deriv.(n).rl_pars = mpc.(n).get_rl_pars(fieldnames(rl_pars));
+
+    % compute derivative of Lagrangian
+    Lagr = mpc.(n).opti.f + mpc.(n).opti.lam_g' * mpc.(n).opti.g;
+    deriv.(n).dL = simplify(jacobian(Lagr, deriv.(n).rl_pars)');
+    deriv.(n).d2L = simplify(hessian(Lagr, deriv.(n).rl_pars));
+end
 
 % preallocate containers for miscellaneous quantities
 slack = cell(1, episodes);
@@ -230,13 +241,6 @@ links.flow = cell(1, episodes);
 links.density = cell(1, episodes);
 links.speed = cell(1, episodes);
 
-% precompute symbolic Q lagrangian and derivative w.r.t. learnable params
-for name = fieldnames(rl_pars)'
-    dQlagr.(name{1}) = simplify(jacobian(...
-        mpc.Q.opti.f + mpc.Q.opti.lam_g' * mpc.Q.opti.g, ...
-        mpc.Q.pars.(name{1}))');
-end
-
 % initialize mpc last solutions
 last_sol = struct( ...
     'w', repmat(w, 1, M * Np + 1), ...
@@ -246,7 +250,7 @@ last_sol = struct( ...
     'slack', ones(size(mpc.V.vars.slack)) * eps^2);
 
 % create replay memory
-replaymem = rlmpc.ReplayMem(rl_mem_cap, 'td_err', 'dQ');
+replaymem = rlmpc.ReplayMem(rl_mem_cap, 'sum', 'A', 'b');
 
 % load checkpoint
 if load_checkpoint
@@ -332,22 +336,23 @@ for ep = start_ep:episodes
             if ep > 1 || k_mpc > 1
                 if info_V.success && info_Q.success
                     % compute td error
-                    td_error{ep}(k_mpc) = full(Lrl(w_prev, rho_prev)) + ...
+                    td_err = full(Lrl(w_prev, rho_prev)) + ...
                         discount * info_V.f  - info_Q.f;
                     
-                    % save also its percentage value
-                    td_error_perc{ep}(k_mpc) = td_error{ep}(k_mpc) / info_Q.f;
+                    % save
+                    td_error{ep}(k_mpc) = td_err;
+                    td_error_perc{ep}(k_mpc) = td_err / info_Q.f;
 
-                    % compute gradient of Q w.r.t. params
-                    dQ = struct;
-                    for name = fieldnames(rl_pars)'
-                        dQ.(name{1}) = (info_Q.sol_obj.value(dQlagr.(name{1})))';
-                    end
-                    dQ = struct2array(dQ)';
+                    % compute numerical gradients w.r.t. params
+                    dQ = info_Q.sol.value(deriv.Q.dL);
+                    d2Q = info_Q.sol.value(deriv.Q.d2L);
+                    dV = info_V.sol.value(deriv.V.dL);
+                    dtd_err = discount * dV - dQ;
     
                     % store everything in memory
-                    replaymem.add(...
-                        struct('td_err', td_error{ep}(k_mpc), 'dQ', dQ));
+                    replaymem.add(struct(...
+                        'A', td_err * d2Q + dQ * dtd_err', ...
+                        'b', td_err * dQ))
 
                     % util.logging(toc(start_tot_time), ep, toc(start_ep_time), t(k), k, K);
                 else
@@ -395,11 +400,16 @@ for ep = start_ep:episodes
         v = full(v_next);
         
         % perform RL updates
-        if mod(k, rl_update_freq) == 0 && ep > 1 % && replaymem.length >= rl_mem_sample
-            % sample batch and perform update
+        if mod(k, rl_update_freq) == 0 && ep > 1
+            % sample batch 
             sample = replaymem.sample(rl_mem_sample, rl_mem_last_perc);
-            rl_pars = rlmpc.batch_update(rl_pars, rl_pars_bounds, lr, ...
-                sample.td_err, sample.dQ);
+            
+            % expected value of batch update direction
+            dir = -lr * sample.b / sample.n; % 1st order
+            % dir = lr * ((sample.A + 1e-6 * eye(length(sample.b)))  \ sample.b); % 2nd order
+            
+            % perform constrained update
+            rl_pars = rlmpc.rl_constr_update(rl_pars, rl_pars_bounds, dir);
 
             % log update result
             msg = sprintf('RL update %i with %i samples: ', length(rl_pars.v_free) - 1, sample.n);
