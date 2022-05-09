@@ -1,20 +1,26 @@
-function [pars, deltas] = rl_constr_update(pars, bounds, f)
+function [pars, deltas] = rl_constr_update(pars, bounds, H, f, max_delta)
+    if nargin < 5
+        max_delta = 1 / 20;
+    end
+
     % compute the bounds for the LCQP
     lb = struct;
     ub = struct;
     for name = fieldnames(pars)'
-        lb.(name{1}) = (bounds.(name{1})(1) - pars.(name{1}){end})';
-        ub.(name{1}) = (bounds.(name{1})(2) - pars.(name{1}){end})';
+        max_d = abs(pars.(name{1}){end} * max_delta);
+        lb.(name{1}) = max(...
+            (bounds.(name{1})(1) - pars.(name{1}){end})', -max_d);
+        ub.(name{1}) = min(...
+            (bounds.(name{1})(2) - pars.(name{1}){end})', max_d);
     end
     lb = struct2array(lb);
     ub = struct2array(ub);
 
     % solve constrained lcqp
-    H = eye(length(f));
     [deltas, ~, exitflag] = quadprog(H, f, [], [], [], [], lb, ub, -f, ...
         optimoptions('quadprog', 'Display', 'off', ...
             'Algorithm', 'active-set'));
-    assert(exitflag >= 1)
+    assert(exitflag >= 1, 'quadprog failed (exit flag %i)', exitflag)
 
     % compute next paramters
     i = 1;
