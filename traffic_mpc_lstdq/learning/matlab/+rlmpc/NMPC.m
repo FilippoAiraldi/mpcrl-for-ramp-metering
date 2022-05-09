@@ -1,22 +1,26 @@
 classdef NMPC < handle
-    % MPC Wrapper around casadi.Opti to facilitate solving MPC problem for
-    % the given 3-link metanet problem.
+    % NMPC. Wrapper around casadi.Opti to facilitate solving MPC problem 
+    % for the given 3-link metanet problem.
     
 
-    properties (GetAccess = public, SetAccess = public)
-        Np
-        Nc
-        M
-        opti
-        vars % contains opti variables
-        pars % contains opti parameters
+    properties (GetAccess = public, SetAccess = private)
+        Np (1, 1) double 
+        Nc (1, 1) double 
+        M (1, 1) double
+        opti (1, 1) casadi.Opti
+        vars (1, 1) struct % contains opti variables
+        pars (1, 1) struct % contains opti parameters
     end
 
 
     methods (Access = public) 
         function obj = NMPC(Np, Nc, M, Fdyn, eps)
-            if nargin < 5
-                eps = 0; % nonnegative constraint precision
+            % NMPC. Builds an instance of an NMPC with the corresponding
+            % horizons and dynamics.
+            arguments
+                Np, Nc, M (1, 1) double {mustBePositive,mustBeInteger}
+                Fdyn (1, 1) casadi.Function
+                eps (1, 1) double {mustBeNonnegative} = 0
             end
 
             % get some dimensions
@@ -89,29 +93,57 @@ classdef NMPC < handle
             obj.pars = pars;
         end
 
-        function par = add_par(obj, name, nrows, ncols)
+        function par = add_par(obj, name, dim1, dim2)
+            % ADD_PAR. Adds a parameter to the Opti NMPC instance, with the
+            % given name and size.
+            arguments
+                obj (1, 1) rlmpc.NMPC
+                name (1, :) char {mustBeTextScalar}
+                dim1 (1, :) double {mustBePositive,mustBeInteger}
+                dim2 (1, 1) double {mustBePositive,mustBeInteger} = 1
+            end
             assert(all(~strcmp(fieldnames(obj.pars), name), 'all'), ...
                 'parameter name already in use')
+            assert(nargin == 4 || ~isscalar(dim1), ...
+                'specify dimensions in two scalars or a single matrix')
             if nargin < 4
-                ncols = nrows(2);
-                nrows = nrows(1);
+                dim2 = dim1(2);
+                dim1 = dim1(1);
             end
-            par = obj.opti.parameter(nrows, ncols);
+            par = obj.opti.parameter(dim1, dim2);
             obj.pars.(name) = par;
         end
 
-        function var = add_var(obj, name, nrows, ncols)
+        function var = add_var(obj, name, dim1, dim2)
+            % ADD_VAR. Adds a variable to the Opti NMPC instance, with the
+            % given name and size.
+            arguments
+                obj (1, 1) rlmpc.NMPC
+                name (1, :) {mustBeTextScalar}
+                dim1 (1, :) {mustBePositive,mustBeInteger}
+                dim2 (1, 1) {mustBePositive,mustBeInteger} = 1
+            end
             assert(all(~strcmp(fieldnames(obj.vars), name), 'all'), ...
                 'variable name already in use')
+            assert(nargin == 4 || ~isscalar(dim1), ...
+                'specify dimensions in two scalars or a single matrix')
             if nargin < 4
-                ncols = nrows(2);
-                nrows = nrows(1);
+                dim2 = dim1(2);
+                dim1 = dim1(1);
             end
-            var = obj.opti.variable(nrows, ncols);
+            var = obj.opti.variable(dim1, dim2);
             obj.vars.(name) = var;
         end
 
         function [sol, info] = solve(obj, pars, vals)
+            % SOLVE. Solve the NMPC problem with the given parameter values
+            % and initial conditions for the variables.
+            arguments
+                obj (1, 1) rlmpc.NMPC
+                pars (1, :) struct
+                vals (1, :) struct
+            end
+
             % set parameter values
             for name = fieldnames(obj.pars)'
                 obj.opti.set_value(obj.pars.(name{1}), pars.(name{1}));
@@ -150,7 +182,13 @@ classdef NMPC < handle
             end
         end
 
-        function v = get_rl_pars(obj, names)
+        function v = concat_pars(obj, names)
+            % GROUP_PARS. Concatenates in a single vertical array the NMPC 
+            % parameters whose name appears in the list.
+            arguments
+                obj (1, 1) rlmpc.NMPC
+                names (:, 1) cell
+            end
             v = cellfun(@(n) obj.pars.(n), names, 'UniformOutput', false);
             v = vertcat(v{:});
         end

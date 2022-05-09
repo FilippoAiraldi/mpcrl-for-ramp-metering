@@ -13,7 +13,8 @@ if isempty(who())
     % if loading a checkpoint, fill missing variables
     if ~exist('exec_time_tot','var')
         exec_time_tot = nan;
-        rl_pars = structfun(@(x) cell2mat(x), rl_pars, 'UniformOutput', false);
+        rl_pars = structfun(@(x) cell2mat(x), rl_pars, ...
+            'UniformOutput', false);
     end
 end
 
@@ -32,49 +33,55 @@ if plot_summary
     delimiter = ''; %'------------------------';
     Table = {... % all entries must be strings
         % run details
-        'RUN', delimiter; ...
-        'name', runname;...
-        'episodes', sprintf('%i (executed %i)', episodes, ep); ...
-        'tot exec time', duration(0, 0, exec_time_tot, 'Format', 'hh:mm:ss');...
+        'RUN', delimiter; 
+        'name', runname;
+        'episodes', sprintf('%i (executed %i)', episodes, ep); 
+        'tot exec time', ...
+            duration(0, 0, exec_time_tot, 'Format', 'hh:mm:ss'); 
         'mean ep exec time', ...
-            duration(0, 0, mean(exec_times), 'Format', 'hh:mm:ss');
+            duration(0, 0, mean(exec_times), 'Format', 'hh:mm:ss'); 
     
         % MPC details
-        'MPC', delimiter; ...
-        'Np/Nc/M', sprintf('%i/%i/%i', Np, Nc, M); ...
-        'type cost initial', Vcost.name_out(); ...
-        'type cost stage', Lcost.name_out(); ...
-        'type cost terminal', Tcost.name_out(); ...
-        'max iter', solver_opts.max_iter; ... 
-        'rate var. penalty weight', rate_var_penalty; ...
-        'explor. perturbation mag.', perturb_mag; ...
-        'max queues', sprintf('%i, %i', max_queue(1), max_queue(2)); ...
-        'epsilon', eps; ...
+        'MPC', delimiter; 
+        'Np/Nc/M', sprintf('%i/%i/%i', Np, Nc, M); 
+        'type cost initial', Vcost.name_out(); 
+        'type cost stage', Lcost.name_out(); 
+        'type cost terminal', Tcost.name_out(); 
+        'max iter', solver_opts.max_iter;  
+        'rate var. penalty weight', rate_var_penalty; 
+        'explor. perturbation mag.', perturb_mag; 
+        'max queues', mat2str(max_queue); 
+        'epsilon', eps; 
     
         % RL details
-        'RL', delimiter; ...
-        'discount', discount; ...
-        'learning rate', lr; ...
-        'constraint violation penalty', con_violation_penalty; ...
+        'RL', delimiter; 
+        'discount', discount; 
+        'learning rate', lr; 
+        'constraint violation penalty', con_violation_penalty; 
     
         % learning outcomes
-        'LEARNING', delimiter; ...
-        'update frequency (iter)', rl_update_freq; ...
-        'a (true)', sprintf('%7.3f', true_pars.a);...
-        'v_free (true)', sprintf('%7.3f', true_pars.v_free);...
-        'rho_crit (true)', sprintf('%7.3f', true_pars.rho_crit);...
+        'LEARNING', delimiter; 
+        'update frequency (iter)', rl_update_freq; 
+        'a (true)', sprintf('%7.3f', true_pars.a);
+        'v_free (true)', sprintf('%7.3f', true_pars.v_free);
+        'rho_crit (true)', sprintf('%7.3f', true_pars.rho_crit);
         };
+    % RL pars 
     for name = fieldnames(rl_pars)' 
         weight = rl_pars.(name{1});
         if size(weight, 1) > 1
             for i = 1:size(weight, 1)
                 w = weight(i, 1);
-                Table = [Table; { sprintf('%s_%i (init/fin)', name{1}, i), ...
-                    sprintf('%7.3f / %7.3f', weight(i, 1), weight(i, end))}];
+                Table = [Table; { ...
+                    sprintf('%s_%i (init/fin)', name{1}, i), ...
+                    sprintf('%7.3f / %7.3f', weight(i, 1), weight(i, end)) ...
+                }];
             end
         else
-            Table = [Table; { sprintf('%s (init/fin)', name{1}), ...
-                        sprintf('%7.3f / %7.3f', weight(1), weight(end))}];
+            Table = [Table; { ...
+                sprintf('%s (init/fin)', name{1}), ...
+                sprintf('%7.3f / %7.3f', weight(1), weight(end)) ...
+            }];
         end
     end
      
@@ -137,10 +144,12 @@ if plot_traffic
     
     ax(5) = nexttile(5); 
     if size(origins_tot.demand, 1) > 2
-        plot(t_tot(1:step:end), (origins_tot.demand(:, 1:step:length(t_tot)) .* [1; 1; 50])')
+        plot(t_tot(1:step:end), ...
+            (origins_tot.demand(:, 1:step:length(t_tot)) .* [1; 1; 50])')
         hlegend(5) = legend('d_{O1}', 'd_{O2}', 'd_{cong}\times50');
     else
-        plot(t_tot(1:step:end), origins_tot.demand(:, 1:step:length(t_tot))')
+        plot(t_tot(1:step:end), ...
+            origins_tot.demand(:, 1:step:length(t_tot))')
         hlegend(5) = legend('d_{O1}', 'd_{O2}');
     end
     ylabel('origin demand (veh/h)')
@@ -148,10 +157,7 @@ if plot_traffic
     
     ax(6) = nexttile(6); hold on
     plot(t_tot(1:step:end), origins_tot.queue(:, 1:step:end)')
-    if n_ramps > 1
-        plot([t_tot(1), t_tot(end)], [max_queue(1), max_queue(1)], '-.k')
-    end
-    plot([t_tot(1), t_tot(end)], [max_queue(2), max_queue(2)], '-.k')
+    arrayfun(@(q) plot([t_tot(1), t_tot(end)], [q, q], '-.k'), max_queue)
     hold off
     hlegend(6) = legend('\omega_{O1}', '\omega_{O2}', 'max \omega');
     ylabel('queue length (veh)')
@@ -195,15 +201,18 @@ if plot_learning
     ax = matlab.graphics.axis.Axes.empty;
     
     ax(1) = nexttile(1, [1, 2]);
-    performance = arrayfun(@(ep) full(sum(Lrl(origins.queue{ep}, links.density{ep}))), 1:ep_tot);
-    performance_only_tts = arrayfun(@(ep) full(sum(TTS(origins.queue{ep}, links.density{ep}))), 1:ep_tot);
+    performance = arrayfun(@(ep) ...
+        full(sum(Lrl(origins.queue{ep}, links.density{ep}))), 1:ep_tot);
+    performance_only_tts = arrayfun(@(ep) ...
+        full(sum(TTS(origins.queue{ep}, links.density{ep}))), 1:ep_tot);
     yyaxis left
     do_plot(linspace(0, ep_tot, length(performance)), performance)
     % stairs(linspace(0, ep_tot, length(performance) + 1), [performance, performance(end)])
     % ax(1).YLim(1) = 0;
     ylabel('J(\pi)')
     yyaxis right
-    do_plot(linspace(0, ep_tot, length(performance_only_tts)), performance_only_tts)
+    do_plot(linspace(0, ep_tot, ...
+        length(performance_only_tts)), performance_only_tts)
     % stairs(linspace(0, ep_tot, length(performance_only_tts) + 1), [performance_only_tts, performance_only_tts(end)])
     ylabel('TTS(\pi)')
     % bar(0.5:1:(ep_tot-0.5), [performance_only_tts', (performance - performance_only_tts)'], 'stacked')
@@ -214,13 +223,17 @@ if plot_learning
     if exist('td_error_perc', 'var')
         td_error_perc_tot = abs(cell2mat(td_error_perc)) * 100;
         yyaxis left
-        do_plot(linspace(0, ep_tot, length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
+        do_plot(linspace(0, ep_tot, ...
+            length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
         ylabel('TD error \tau')
         yyaxis right
-        do_plot(linspace(0, ep_tot, length(td_error_perc_tot)), td_error_perc_tot, '*', 'MarkerSize', 2)
+        do_plot(linspace(0, ep_tot, ...
+            length(td_error_perc_tot)), td_error_perc_tot, '*', ...
+            'MarkerSize', 2)
         ylabel('%')
     else
-        do_plot(linspace(0, ep_tot, length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
+        do_plot(linspace(0, ep_tot, ...
+            length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
         ylabel('TD error \tau')
     end
     
@@ -263,7 +276,8 @@ if plot_learning
                 w = rescale(w);
             end
             plot(linspace(0, ep_tot, length(w)), w, ...
-                'Marker', markers{mod(i - 1, length(markers)) + 1}, 'MarkerSize', 4)
+                'Marker', markers{mod(i - 1, length(markers)) + 1}, ...
+                'MarkerSize', 4)
             % stairs(linspace(0, ep_tot, length(w)), w, 'Marker', Markers{i}, 'MarkerSize', 4)
             if size(rl_pars.(weight), 1) > 1
                 legendStrings{end + 1} = append(weight, '_', string(j));
@@ -298,7 +312,8 @@ function plot_episodes_separators(ax, hlegend, episodes, Tfin)
         return
     end
 
-    if ~isempty(hlegend) && isa(hlegend, 'matlab.graphics.illustration.Legend')
+    if ~isempty(hlegend) && ...
+                        isa(hlegend, 'matlab.graphics.illustration.Legend')
         n_data = length(hlegend.String);
     end
 
@@ -308,16 +323,8 @@ function plot_episodes_separators(ax, hlegend, episodes, Tfin)
     % plot(ax(i), (1:episodes) * Tfin, [0, ax(i).YLim(2)], ':k', 'LineWidth', 0.25)
     % hold(ax(i), 'off')
 
-    if ~isempty(hlegend) && isa(hlegend, 'matlab.graphics.illustration.Legend')
+    if ~isempty(hlegend) && ...
+                        isa(hlegend, 'matlab.graphics.illustration.Legend')
         hlegend.String = hlegend.String(1:n_data);
     end
 end
-
-
-% function val = try_get(var)
-%     try
-%         val = evalin('caller', var);
-%     catch
-%         val = 'unavailable';
-%     end
-% end

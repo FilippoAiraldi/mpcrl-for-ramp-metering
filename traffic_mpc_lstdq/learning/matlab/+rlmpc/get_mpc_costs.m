@@ -1,5 +1,11 @@
-function [init_cost, stage_cost, terminal_cost] = get_learnable_costs(...
-        n_origins, n_links, init_type, stage_type, final_type)
+function [init_cost, stage_cost, terminal_cost] = get_mpc_costs(...
+                    n_links, n_origins, init_type, stage_type, final_type)
+    % GET_LEARNABLE_COSTS. Returns the MPC's initial cost, stage cost and
+    % terminal cost terms.
+    arguments
+        n_links, n_origins (1, 1) double {mustBePositive,mustBeInteger}
+        init_type, stage_type, final_type (1, :) char {mustBeTextScalar}
+    end
 
     % create symbolic arguments
     w = casadi.SX.sym('w', n_origins, 1);

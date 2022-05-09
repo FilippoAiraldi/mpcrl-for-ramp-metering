@@ -1,12 +1,12 @@
 function profile = create_profile(t, x, y)
-    % profile = CREATE_PROFILE(t, x, y) Creates a profile passing through 
-    %   points (x, y) along time t.
-    
+    % CREATE_PROFILE. Creates a profile passing through points (x, y) along 
+    % time t.
     arguments
         t (1, :) double
         x (1, :) double
         y (1, :) double
     end
+    assert(isequal(size(x), size(y)), 'x and y do not share the same size')
 
     [~, x] = min(abs(t - x'), [], 2);
     if x(1) ~= 1

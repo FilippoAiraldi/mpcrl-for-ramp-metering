@@ -3,21 +3,33 @@ classdef ReplayMem < handle
     
     
     properties (GetAccess = public, SetAccess = private)
-        maxcapacity
-        data
-        length
-        headers
+        capacity (1, 1) double
+        data (1, 1) struct
+        length (1, 1) double
+        headers (1, :) cell
     end
+
     properties (GetAccess = public, SetAccess = public)
-        reduce
+        reduce (1, :) char {mustBeTextScalar} = 'none'
     end
     
+
+
     methods
         function obj = ReplayMem(capacity, reduce, varargin)
-            % buffer = ReplayMem(capacity, var1, var2, ...)
+            % REPLAYMEM. Builds an instance handde to a buffer with the
+            % given capacity, reduction method (applied after sampling),
+            % and the given headers (in varargin)
+            arguments
+                capacity (1, 1) double {mustBePositive,mustBeInteger}
+                reduce (1, :) char {mustBeTextScalar} = 'none'
+            end
+            arguments (Repeating)
+                varargin (1, :) char {mustBeTextScalar}
+            end
             
             % save capacity and reduce
-            obj.maxcapacity = capacity;
+            obj.capacity = capacity;
             if isempty(reduce)
                 reduce = 'none';
             end
@@ -34,10 +46,19 @@ classdef ReplayMem < handle
         end
 
         function clear(obj, varargin)
-            % clear(capacity, var1, var2, ...)
+            % CLEAR. Clears the buffer memory completely. Reinitializes the
+            % headers as well, if provided.
+            arguments
+                obj (1, 1) rlmpc.ReplayMem
+            end
+            arguments (Repeating)
+                varargin (1, :) char {mustBeTextScalar}
+            end
 
-            % get headers and sizes
-            obj.headers = varargin;
+            % get headers
+            if numel(varargin) > 0
+                obj.headers = varargin;
+            end
 
             % initialize data structure
             obj.data = struct;
@@ -48,8 +69,12 @@ classdef ReplayMem < handle
         end
 
         function add(obj, exp)
-            % assert(nargin == 2)
-            if obj.length < obj.maxcapacity
+            % ADD. Adds the given experience item to the buffer.
+            arguments
+                obj (1, 1) rlmpc.ReplayMem
+                exp (1, 1) struct
+            end
+            if obj.length < obj.capacity
                 % append to last position
                 obj.length = obj.length + 1;
                 for h = obj.headers
@@ -66,17 +91,24 @@ classdef ReplayMem < handle
         end
         
         function [samples, idx_samples] = sample(obj, n, include_last_n)
+            % SAMPLE. Extracts from the buffer a sample of given size at
+            % random. If given, forcibly includes also the last N items.
+            arguments
+                obj (1, 1) rlmpc.ReplayMem
+                n (1, 1) double {mustBeNonnegative,mustBeFinite}
+                include_last_n ...
+                    (1, 1) double {mustBeNonnegative,mustBeFinite} = 0
+            end
+
             % check if percentage
             if floor(n) ~= n
-                n = round(n * obj.maxcapacity);
+                n = round(n * obj.capacity);
             end
             n = max(0, min(n, obj.length));
-            if nargin < 3 || isempty(include_last_n)
-                include_last_n = 0;
-            elseif floor(include_last_n) ~= include_last_n
+            if floor(include_last_n) ~= include_last_n
                 include_last_n = round(n * include_last_n);
-                include_last_n = max(0, min(n, include_last_n));
             end
+            include_last_n = max(0, min(n, include_last_n));
 
             % get last n
             if include_last_n > 0

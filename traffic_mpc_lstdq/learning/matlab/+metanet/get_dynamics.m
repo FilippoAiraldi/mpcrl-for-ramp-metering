@@ -1,12 +1,17 @@
 function F = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
-        T, L, lanes, C, rho_max, tau, delta, eta, kappa, eps)
-    % F = GET_DYNAMICS(T, L, lanes, C, rho_max, tau, delta, eta, kappa, eps) 
-    %   Creates a casadi.Function object represeting the dynamics equation 
-    %   of the 3-link traffic network
-
-    if nargin < 14
-        eps = 0; % nonnegative constraint precision
+                    T, L, lanes, C, rho_max, tau, delta, eta, kappa, eps)
+    % GET_DYNAMICS. Creates a casadi.Function object represeting the 
+    % dynamics equation of the 3-link traffic network
+    arguments
+        n_links, n_origins, n_ramps, n_dist ...
+            (1, 1) double {mustBePositive,mustBeInteger}
+        T, L (1, 1) double {mustBePositive}
+        lanes (1, 1) double {mustBePositive,mustBeInteger}
+        C (:, 1) double {mustBeNonnegative}
+        rho_max, tau, delta, eta, kappa (1, 1) double {mustBeNonnegative}
+        eps (1, 1) double {mustBeNonnegative} = 0
     end
+    assert(numel(C) == n_origins, 'origins capacities and number mismatch')
 
     % states, input and disturbances
     w = casadi.SX.sym('w', n_origins, 1);
@@ -31,8 +36,9 @@ function F = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
     v_ = max(eps, v);
     
     % run system dynamics function
-    [q_o, w_o_next, q, rho_next, v_next] = f(w_, rho_, v_, r, d, T, L, ...
-        lanes, C, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa, eps);
+    [q_o, w_o_next, q, rho_next, v_next] = f(w_, rho_, v_, r, d, ...
+        T, L, lanes, C, rho_crit, rho_max, a, ...
+        v_free, tau, delta, eta, kappa, eps);
 
 %     % run system dynamics function
 %     [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, T, L, ...
@@ -60,10 +66,14 @@ end
 
 %% local functions
 function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, ...
-    T, L, lanes, C, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa, eps)
+            T, L, lanes, C, rho_crit, rho_max, a, ...
+            v_free, tau, delta, eta, kappa, eps)
+    % Computes the actual dynamical equations. It can work both with
+    % symbolical variables and numerical variables
 
     link_with_ramp = 3;
 
+    
     %%% ORIGIN
     % compute flow at mainstream origin O1
     q_O1 = min(d(1) + w(1) / T, C(1) * ...
@@ -71,7 +81,7 @@ function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, ...
 
     % compute flow at onramp origin O2
     q_O2 = min(d(2) + w(2) / T, C(2) * ...
-                   min(r(2), (rho_max - rho(link_with_ramp)) / (rho_max - rho_crit)));
+        min(r(2), (rho_max - rho(link_with_ramp)) / (rho_max - rho_crit)));
 
     % step queue at origins O1 and O2
     q_o = [q_O1; q_O2];
@@ -110,11 +120,13 @@ function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, ...
               + T / L * v .* (v_up - v) ...
               - eta * T / tau / L * (rho_down - rho) ./ (rho + kappa));
     v_next(link_with_ramp) = v_next(link_with_ramp) ...
-        - delta * T / L / lanes * q_O2 * v(link_with_ramp) / (rho(link_with_ramp) + kappa);    
+        - delta * T / L / lanes * ...
+            q_O2 * v(link_with_ramp) / (rho(link_with_ramp) + kappa);    
 end
 
 
 function V = Veq(rho, v_free, a, rho_crit, eps)
+    % VEQ. Equilibrium speed in the METANET model
     V = v_free * exp((-1 / a) * ((rho / rho_crit) + eps).^a);
 end
 

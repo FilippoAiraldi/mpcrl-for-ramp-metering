@@ -1,5 +1,6 @@
-function log = logging(...
+function log = info(...
     realtime_tot, ep_n, realtime_ep, sim_time, sim_iter, sim_length, msg)
+    % INFO. Prints an information message to the command window.
 
     % convert floats to durations
     realtime_tot = duration(0, 0, realtime_tot, 'Format', 'hh:mm:ss');

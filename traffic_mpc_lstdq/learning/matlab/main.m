@@ -38,9 +38,9 @@ lanes = 2;                      % lanes per link (adim)
 
 % origins O1 and O2 
 C = [3500, 2000];               % on-ramp capacity (veh/h/lane)
-max_queue = [150, 50];
+max_queue = [150, 50];          % maximum queue (veh) - for constraint
 if ~control_origin_ramp
-    max_queue(1) = inf;
+    max_queue = max_queue(2);
 end
 
 % model parameters
@@ -69,7 +69,8 @@ d_cong = util.create_profile(t, [0.5, .7, 1, 1.2], [20, 60, 60, 20]);
 % add noise
 D = repmat([d1; d2; d_cong], 1, episodes + 1); % +1 to avoid out-of-bound access
 [filter_num, filter_den] = butter(3, 0.2);
-D = filtfilt(filter_num, filter_den, (D + randn(size(D)) .* [75; 75; 1.5])')';
+D = filtfilt(...
+    filter_num, filter_den, (D + randn(size(D)) .* [75; 75; 1.5])')';
 
 % plot((0:length(D) - 1) * T, (D .* [1; 1; 50])'),
 % legend('O1', 'O2', 'cong_{\times50}'), xlabel('time (h)'), ylabel('demand (h)')
@@ -94,7 +95,7 @@ con_violation_penalty = 10;         % rl penalty for constraint violations
 rl_update_freq = round(K / 5);      % when rl should update
 rl_mem_cap = rl_update_freq * 5;    % RL experience replay capacity
 rl_mem_sample = rl_update_freq * 2; % RL experience replay sampling size
-rl_mem_last_perc = 0.5;             % percentage of last experiences to include in sample
+rl_mem_last = 0.5;                  % percentage of last experiences to include in sample
 save_freq = 2;                      % checkpoint saving frequency
 
 % create a symbolic casadi function for the dynamics
@@ -103,11 +104,11 @@ F = metanet.get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
     T, L, lanes, C, rho_max, tau, delta, eta, kappa, eps);
 
 % cost terms (learnable MPC, metanet and RL)
-[Vcost, Lcost, Tcost] = rlmpc.get_learnable_costs(n_origins, n_links, ...
-                                                'affine', 'diag', 'diag');    
-TTS = metanet.TTS(n_origins, n_links, T, L, lanes);
+[Vcost, Lcost, Tcost] = rlmpc.get_mpc_costs(n_links, n_origins, ...
+    'affine', 'diag', 'diag');    
+TTS = metanet.TTS(n_links, n_origins, T, L, lanes);
 Rate_var = metanet.rate_variability(n_ramps, Nc);
-Lrl = rlmpc.get_rl_cost(n_origins, n_ramps, n_links, TTS, max_queue, ...
+Lrl = rlmpc.get_rl_cost(n_links, n_origins, n_ramps, TTS, max_queue, ...
     con_violation_penalty);
 normalization.w = max(max_queue(~isinf(max_queue)));   % normalization constants
 normalization.rho = rho_max;
@@ -124,11 +125,14 @@ for name = ["Q", "V"]
     slack = ctrl.add_var('slack', n_ramps, M * Np + 1);
     ctrl.opti.subject_to(-slack(:) + eps^2 <= 0);
     if ~control_origin_ramp
-        ctrl.opti.subject_to(ctrl.vars.w(2, :) - slack(1, :) - max_queue(2) <= 0)
+        ctrl.opti.subject_to( ...
+            ctrl.vars.w(2, :) - slack(1, :) - max_queue(2) <= 0)
     else
-        ctrl.opti.subject_to(ctrl.vars.w(1, :) - slack(1, :) - max_queue(1) <= 0)
-        ctrl.opti.subject_to(ctrl.vars.w(2, :) - slack(2, :) - max_queue(2) <= 0)
-        warning('there might be problems with the QP update parameter size');
+        ctrl.opti.subject_to( ...
+            ctrl.vars.w(1, :) - slack(1, :) - max_queue(1) <= 0)
+        ctrl.opti.subject_to( ...
+            ctrl.vars.w(2, :) - slack(2, :) - max_queue(2) <= 0)
+        warning('there might be problems with QP update parameter size');
     end
 
     % create required parameters
@@ -183,7 +187,8 @@ mpc.Q.opti.subject_to(mpc.Q.vars.r(:, 1) - mpc.Q.pars.r_first == 0);
 
 % V approximator has perturbation to enhance exploration
 mpc.V.add_par('perturbation', size(mpc.V.vars.r(:, 1)));
-mpc.V.opti.minimize(mpc.V.opti.f + mpc.V.pars.perturbation' * mpc.V.vars.r(:, 1));
+mpc.V.opti.minimize( ...
+    mpc.V.opti.f + mpc.V.pars.perturbation' * mpc.V.vars.r(:, 1));
 
 
 %% Simulation
@@ -218,7 +223,7 @@ rl_pars_bounds.weight_slack = [0, inf];
 deriv = struct;
 for n = string(fieldnames(mpc)')
     % assemble all RL parameters in a single vector for V and Q
-    deriv.(n).rl_pars = mpc.(n).get_rl_pars(fieldnames(rl_pars));
+    deriv.(n).rl_pars = mpc.(n).concat_pars(fieldnames(rl_pars));
 
     % compute derivative of Lagrangian
     Lagr = mpc.(n).opti.f + mpc.(n).opti.lam_g' * mpc.(n).opti.g;
@@ -236,7 +241,7 @@ exec_times = nan(1, episodes);
 origins.queue = cell(1, episodes);
 origins.flow = cell(1, episodes);
 origins.rate = cell(1, episodes);
-origins.demand = mat2cell(D(:, 1:K * episodes), n_dist, repmat(K, 1, episodes));
+origins.demand = cell(1, episodes);
 links.flow = cell(1, episodes);
 links.density = cell(1, episodes);
 links.speed = cell(1, episodes);
@@ -273,9 +278,10 @@ else
 end
 for ep = start_ep:episodes
     % preallocate episode result containers
-    origins.queue{ep} = nan(size(mpc.V.vars.w, 1), K);        
-    origins.flow{ep} = nan(size(mpc.V.vars.w, 1), K);          
+    origins.queue{ep} = nan(size(mpc.V.vars.w, 1), K);
+    origins.flow{ep} = nan(size(mpc.V.vars.w, 1), K);
     origins.rate{ep} = nan(size(mpc.V.vars.r, 1), K);
+    origins.demand{ep} = nan(size(mpc.V.pars.d, 1), K);
     links.flow{ep} = nan(size(mpc.V.vars.v, 1), K);
     links.density{ep} = nan(size(mpc.V.vars.rho, 1), K);
     links.speed{ep} = nan(size(mpc.V.vars.v, 1), K);
@@ -294,9 +300,9 @@ for ep = start_ep:episodes
             % run Q(s(k-1), a(k-1)) (condition excludes very first iteration)
             if ep > 1 || k_mpc > 1
                 pars = struct(...
-                    'd', util.get_future_demand(D, ep, k - M, K, M, Np), ...
-                    'w0', w_prev, 'rho0', rho_prev, 'v0', v_prev, 'a', a, ...
-                    'v_free', rl_pars.v_free{end}, ...
+                    'd', D(:, K*(ep-1) + k-M:K*(ep-1) + k-M + M*Np-1), ...
+                    'w0', w_prev, 'rho0', rho_prev, 'v0', v_prev, ...
+                    'a', a, 'v_free', rl_pars.v_free{end}, ...
                     'rho_crit', rl_pars.rho_crit{end}, ...
                     'v_free_tracking', rl_pars.v_free_tracking{end}, ...
                     'weight_V', rl_pars.weight_V{end}, ...
@@ -318,7 +324,7 @@ for ep = start_ep:episodes
 
             % run V(s(k))
             pars = struct(...
-                'd', util.get_future_demand(D, ep, k, K, M, Np), ...
+                'd', D(:, K*(ep-1) + k:K*(ep-1) + k + M*Np-1), ...
                 'w0', w, 'rho0', rho, 'v0', v, 'a', a, ...
                 'v_free', rl_pars.v_free{end}, ...
                 'rho_crit', rl_pars.rho_crit{end}, ...
@@ -355,7 +361,8 @@ for ep = start_ep:episodes
                         'A', td_err * d2Q + dQ * dtd_err', ...
                         'b', td_err * dQ, 'dQ', dQ));
 
-                    % util.logging(toc(start_tot_time), ep, toc(start_ep_time), t(k), k, K);
+                    util.info(toc(start_tot_time), ep, ...
+                        toc(start_ep_time), t(k), k, K);
                 else
                     nb_fail = nb_fail + 1;
                     msg = '';
@@ -365,7 +372,7 @@ for ep = start_ep:episodes
                     if ~info_Q.success
                         msg = append(msg, sprintf('Q: %s.', info_Q.error));
                     end
-                    util.logging(toc(start_tot_time), ep, ...
+                    util.info(toc(start_tot_time), ep, ...
                         toc(start_ep_time), t(k), k, K, msg);
                 end
             end
@@ -387,7 +394,8 @@ for ep = start_ep:episodes
             w, rho, v, r, D(:, k), ...
             true_pars.a, true_pars.v_free, true_pars.rho_crit);
 
-        % save current state
+        % save current state and other infos
+        origins.demand{ep}(:, k) = D(:, k);
         origins.queue{ep}(:, k) = full(w);
         origins.flow{ep}(:, k) = full(q_o);
         origins.rate{ep}(:, k) = full(r);
@@ -403,7 +411,7 @@ for ep = start_ep:episodes
         % perform RL updates
         if mod(k, rl_update_freq) == 0 && ep > 1
             % sample batch 
-            [sample, Is] = replaymem.sample(rl_mem_sample, rl_mem_last_perc);
+            [sample, Is] = replaymem.sample(rl_mem_sample, rl_mem_last);
             
             % compute hessian and update direction
             A = sample.A + 1e-6 * eye(sample.A);
@@ -412,7 +420,8 @@ for ep = start_ep:episodes
                 % 2nd order update
                 f = lr * (sample.A \ sample.b);
             else
-                warning('when falling back, might need to recalibrate learning rate')
+                warning(['when falling back, might need to ' ...
+                    'recalibrate learning rate'])
                 msg = sprintf('RL fallback - rcond(A)=%i', rcondA);
                 dQ = cell2mat(replaymem.data.dQ(Is));
                 A = dQ * dQ' + 1e-6 * eye(size(dQ, 1));
@@ -422,26 +431,33 @@ for ep = start_ep:episodes
                     f = -lr * (A \ sample.b); 
                 else
                     % 1st order update
-                    msg = sprintf(' %s and rcond(JQ''JQ)=%f)', msg, rcondA);
+                    msg = sprintf(' %s, rcond(JQ''JQ)=%f)', msg, rcondA);
                     f = -lr * sample.b / sample.n; 
                 end
-                util.logging(toc(start_tot_time), ep, toc(start_ep_time), t(k), k, K, msg);
+                util.info(toc(start_tot_time), ep, toc(start_ep_time), ...
+                    t(k), k, K, msg);
             end
             H = eye(length(f));
             
             % perform constrained update
-            rl_pars = rlmpc.rl_constr_update(rl_pars, rl_pars_bounds, H, f);
+            rl_pars = rlmpc.rl_constrained_update( ...
+                rl_pars, rl_pars_bounds, H, f);
 
             % log update result
-            msg = sprintf('RL update %i with %i samples: ', length(rl_pars.v_free) - 1, sample.n);
+            msg = sprintf('RL update %i with %i samples: ', ...
+                length(rl_pars.v_free) - 1, sample.n);
             for name = fieldnames(rl_pars)'
                 if numel(rl_pars.(name{1}){end}) == 1
-                    msg = append(msg, name{1}, sprintf('=%.3f, ', rl_pars.(name{1}){end}));
+                    msg = append(msg, name{1}, ...
+                        sprintf('=%.3f, ', rl_pars.(name{1}){end}));
                 else
-                    msg = append(msg, name{1}, '=[', num2str(rl_pars.(name{1}){end}(:)', '%.3f '), '], ');
+                    msg = append(msg, name{1}, '=[', ...
+                        num2str(rl_pars.(name{1}){end}(:)', '%.3f '), ...
+                        '], ');
                 end
             end
-            util.logging(toc(start_tot_time), ep, toc(start_ep_time), t(k), k, K, msg);
+            util.info(toc(start_tot_time), ep, toc(start_ep_time), ...
+                t(k), k, K, msg);
         end
     end
     exec_times(ep) = toc(start_ep_time);
@@ -449,16 +465,18 @@ for ep = start_ep:episodes
     % save every episode in a while (exclude some variables)
     if mod(ep - 1, save_freq) == 0
         warning('off');
-        save('checkpoint', '-regexp', '^(?!(mpc|cost|ctrl|dQlagr|r_last|v_free_tr|weight_)).*')
+        save('checkpoint', '-regexp', ...
+            '^(?!(mpc|cost|ctrl|dQlagr|r_last|v_free_tr|weight_)).*')
         warning('on');
-        util.logging(toc(start_tot_time), ep, exec_times(ep), t(end), K, K, 'checkpoint saved');
+        util.info(toc(start_tot_time), ep, exec_times(ep), t(end), K, ...
+            K, 'checkpoint saved');
     end
 
     % log intermediate results
     ep_Jtot = full(sum(Lrl(origins.queue{ep}, links.density{ep})));
     ep_TTS = full(sum(TTS(origins.queue{ep}, links.density{ep})));
-    util.logging(toc(start_tot_time), ep, exec_times(ep), t(end), K, K, ...
-        sprintf('episode %i terminated: Jtot=%.3f, TTS=%.3f, fails=%i(%.1f%%)', ...
+    util.info(toc(start_tot_time), ep, exec_times(ep), t(end), K, K, ...
+        sprintf('episode %i: Jtot=%.3f, TTS=%.3f, fails=%i(%.1f%%)', ...
         ep, ep_Jtot, ep_TTS, nb_fail, nb_fail / K * 100));
 
     % plot performance
