@@ -61,12 +61,9 @@ LEARNING
 	- add an offset c * rho to this equation, with c small and learnable, so that for big values of rho we still have some contribution to the speed.
 	- make this term takes effect only for high rhos.. how?
 	- TRY REMOVE SOME MAX ON INPUT AND OUTPUTS AND SET EPS=0 TO SEE IF REMOVING THE NONLINEARITY HELPED
-- make vector or weights for slacks, instead of a single shared learnable weight
-- make the weight of input rate variability cost (the one at 0.4) learnable
-- modify the update rule
-	- custom learning rate for each parameter
-	- use Hessian to avoid having to specify the lr (cannot use batch updates with an hessian, though [are you sure?]) (is the Hessian of the Q function the Hessian of the Lagrangian? yes)
-
+- make vector or weights for slacks, instead of a single shared learnable weight (done)
+- make the weight of input rate variability cost (the one at 0.4) learnable (done)
+- modify the update rule: use Hessian (see Esfahani)
 
 
 ## NOTES
@@ -84,3 +81,52 @@ LEARNING
 		quadratic in density with tracking of rho_crit
    RL
 	same stage cost as MPC + constraint violation penalty (weights are fixed)
+
+
+
+
+############################ CODE FOR HESSIAN AND JACOBIAN, REMOVE IF NECESSARY
+
+########## NMPC.m
+obj.vars.w   = cell(1, obj.M * obj.Np + 1);
+obj.vars.rho = cell(1, obj.M * obj.Np + 1);
+obj.vars.v   = cell(1, obj.M * obj.Np + 1);
+obj.vars.r   = cell(1, obj.Nc);
+for k = 1:obj.M * obj.Np + 1
+	obj.vars.w{k} = obj.opti.variable(n_orig, 1);
+	obj.vars.rho{k} = obj.opti.variable(n_links, 1);
+	obj.vars.v{k} = obj.opti.variable(n_links, 1);
+	if mod(k - 1, obj.M) == 0 && k <= (obj.Nc - 1) * obj.M + 1
+		obj.vars.r{ceil(k / obj.M)} = obj.opti.variable(n_ramps, 1);
+	end
+end
+for name = fieldnames(obj.vars)'
+	obj.vars.(name{1}) = horzcat(obj.vars.(name{1}){:});
+end
+
+########## main.m
+tiledlayout(1, 2)
+nexttile,
+set(gca, 'XAxisLocation','top');
+hold on, axis equal
+ns = cumsum(structfun(@(x) numel(x), mpc.V.vars));
+for i = 1:length(ns) - 1
+    plot([ns(i), ns(i)], [1, mpc.V.opti.ng], 'k-.', 'LineWidth', 0.1)
+end
+spy(jacobian(mpc.V.opti.g, mpc.V.opti.x))
+title('\nabla_x g(x,u)')
+hold off,
+axis([1, mpc.V.opti.nx, 1, mpc.V.opti.ng])
+
+nexttile,
+set(gca, 'XAxisLocation','top');
+hold on, axis equal
+ns = cumsum(structfun(@(x) numel(x), mpc.V.vars));
+for i = 1:length(ns) - 1
+    plot([ns(i), ns(i)], [1, ns(i)], 'k-.', 'LineWidth', 0.1)
+    plot([1, ns(i)], [ns(i), ns(i)], 'k-.', 'LineWidth', 0.1)
+end
+spy(hessian(mpc.V.opti.f, mpc.V.opti.x))
+title('\nabla_x^2 f(x)')
+hold off,
+axis([1, mpc.V.opti.nx, 1, mpc.V.opti.nx]), 
