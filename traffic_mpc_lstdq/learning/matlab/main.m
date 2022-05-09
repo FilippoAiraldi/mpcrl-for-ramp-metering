@@ -250,7 +250,7 @@ last_sol = struct( ...
     'slack', ones(size(mpc.V.vars.slack)) * eps^2);
 
 % create replay memory
-replaymem = rlmpc.ReplayMem(rl_mem_cap, 'sum', 'A', 'b');
+replaymem = rlmpc.ReplayMem(rl_mem_cap, 'sum', 'A', 'b', 'dQ');
 
 % load checkpoint
 if load_checkpoint
@@ -346,13 +346,14 @@ for ep = start_ep:episodes
                     % compute numerical gradients w.r.t. params
                     dQ = info_Q.sol.value(deriv.Q.dL);
                     d2Q = info_Q.sol.value(deriv.Q.d2L);
-                    dV = info_V.sol.value(deriv.V.dL);
-                    dtd_err = discount * dV - dQ;
-    
+                    % dV = info_V.sol.value(deriv.V.dL);
+                    % dtd_err = discount * dV - dQ;
+                    dtd_err = -dQ;
+
                     % store everything in memory
                     replaymem.add(struct(...
                         'A', td_err * d2Q + dQ * dtd_err', ...
-                        'b', td_err * dQ))
+                        'b', td_err * dQ, 'dQ', dQ));
 
                     % util.logging(toc(start_tot_time), ep, toc(start_ep_time), t(k), k, K);
                 else
@@ -402,14 +403,34 @@ for ep = start_ep:episodes
         % perform RL updates
         if mod(k, rl_update_freq) == 0 && ep > 1
             % sample batch 
-            sample = replaymem.sample(rl_mem_sample, rl_mem_last_perc);
+            [sample, Is] = replaymem.sample(rl_mem_sample, rl_mem_last_perc);
             
-            % expected value of batch update direction
-            dir = -lr * sample.b / sample.n; % 1st order
-            % dir = lr * ((sample.A + 1e-6 * eye(length(sample.b)))  \ sample.b); % 2nd order
+            % compute hessian and update direction
+            A = sample.A + 1e-6 * eye(sample.A);
+            rcondA = rcond(A);
+            if rcondA > 1e-6
+                % 2nd order update
+                f = lr * (sample.A \ sample.b);
+            else
+                warning('when falling back, might need to recalibrate learning rate')
+                msg = sprintf('RL fallback - rcond(A)=%i', rcondA);
+                dQ = cell2mat(replaymem.data.dQ(Is));
+                A = dQ * dQ' + 1e-6 * eye(size(dQ, 1));
+                rcondA = rcond(A);
+                if rcond(A) > 1e-6
+                    % 2nd order approx update (Gauss-Netwon)
+                    f = -lr * (A \ sample.b); 
+                else
+                    % 1st order update
+                    msg = sprintf(' %s and rcond(JQ''JQ)=%f)', msg, rcondA);
+                    f = -lr * sample.b / sample.n; 
+                end
+                util.logging(toc(start_tot_time), ep, toc(start_ep_time), t(k), k, K, msg);
+            end
+            H = eye(length(f));
             
             % perform constrained update
-            rl_pars = rlmpc.rl_constr_update(rl_pars, rl_pars_bounds, dir);
+            rl_pars = rlmpc.rl_constr_update(rl_pars, rl_pars_bounds, H, f);
 
             % log update result
             msg = sprintf('RL update %i with %i samples: ', length(rl_pars.v_free) - 1, sample.n);
@@ -467,10 +488,11 @@ diary off
 rl_pars = structfun(@(x) cell2mat(x), rl_pars, 'UniformOutput', false);
 
 % clear useless variables
-clear cost ctrl d D d1 d2 exp f F filter_num filter_den i info k ...
-    last_sol log_filename msg n nb_fail name pars q q_o r r_first r_last r_prev ...
-    replaymem rho rho_next rho_prev save_freq start_ep_time ... 
-    start_ep start_tot_time td_err sz v v_next v_prev w w_next w_prev
+clear cost ctrl d D d1 d2 exp f F filter_num filter_den H i info Is k ...
+    last_sol log_filename msg n nb_fail name pars q q_o r r_first  ...
+    r_last r_prev rcondA replaymem rho rho_next rho_prev save_freq  ... 
+    start_ep_time start_ep start_tot_time td_err sz v v_next v_prev w ...
+    w_next w_prev
 
 % save
 delete checkpoint.mat
