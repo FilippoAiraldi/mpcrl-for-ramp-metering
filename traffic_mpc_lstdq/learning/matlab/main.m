@@ -126,7 +126,7 @@ for name = ["Q", "V"]
     ctrl.opti.subject_to(-slack(:) + eps^2 <= 0);
     if ~control_origin_ramp
         ctrl.opti.subject_to( ...
-            ctrl.vars.w(2, :) - slack(1, :) - max_queue(2) <= 0)
+            ctrl.vars.w(2, :) - slack(1, :) - max_queue <= 0)
     else
         ctrl.opti.subject_to( ...
             ctrl.vars.w(1, :) - slack(1, :) - max_queue(1) <= 0)
