@@ -185,7 +185,9 @@ classdef NMPC < handle
             vals.v = max(obj.eps, vals.v);
             vals.r = min(1, max(0.2, vals.r));
             if isfield(vals, 'slack')
-                vals.slack = max(obj.eps^2, vals.w - obj.max_queue);
+                I = find(isfinite(obj.max_queue));
+                vals.slack = ...
+                        max(obj.eps^2, vals.w(I, :) - obj.max_queue(I));
             end
 
             % set parameter values
