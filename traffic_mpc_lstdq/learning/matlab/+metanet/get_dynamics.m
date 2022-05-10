@@ -40,19 +40,19 @@ function dyn = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
         % ensure nonnegativity of the input
         % run system dynamics function (max for nonnegativity of inputs 
         % and outputs)
-        w_ = max(eps, w);
-        rho_ = max(eps, rho);
-        v_ = max(eps, v);
+%         w_ = max(eps, w);
+%         rho_ = max(eps, rho);
+%         v_ = max(eps, v);
         [q_o, w_o_next, q, rho_next, v_next] = f( ...
-            w_, rho_, v_, r, d, ... % use (w, rho, v) to remove max on input
+            w, rho, v, r, d, ... % use (w, rho, v) to remove max on input
             T, L, lanes, C, rho_max, ...
             rho_crit, a, v_free, ...
             tau, delta, eta, kappa, eps, Veq);
-        q_o = max(eps, q_o);
-        w_o_next = max(eps, w_o_next);
-        q = max(eps, q);
-        rho_next = max(eps, rho_next);
-        v_next = max(eps, v_next);
+%         q_o = max(eps, q_o);
+%         w_o_next = max(eps, w_o_next);
+%         q = max(eps, q);
+%         rho_next = max(eps, rho_next);
+%         v_next = max(eps, v_next);
     
         % create dynamics function args and outputs
         args = struct('w', w, 'rho', rho, 'v', v, 'r', r, 'd', d, ...
