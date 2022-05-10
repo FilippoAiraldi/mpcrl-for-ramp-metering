@@ -1,10 +1,11 @@
-function [init_cost, stage_cost, terminal_cost] = get_mpc_costs(...
-                    n_links, n_origins, init_type, stage_type, final_type)
-    % GET_LEARNABLE_COSTS. Returns the MPC's initial cost, stage cost and
-    % terminal cost terms.
+function [init_cost, stage_cost, terminal_cost] = get_mpc_costs( ...
+                                    n_links, n_origins, ...
+                                    init_type, stage_type, terminal_type)
+    % GET_MPC_COSTS. Returns the MPC's learnable initial cost, stage cost 
+    % and terminal cost terms.
     arguments
         n_links, n_origins (1, 1) double {mustBePositive,mustBeInteger}
-        init_type, stage_type, final_type (1, :) char {mustBeTextScalar}
+        init_type, stage_type, terminal_type (1, :) char {mustBeTextScalar}
     end
 
     % create symbolic arguments
@@ -29,10 +30,11 @@ function [init_cost, stage_cost, terminal_cost] = get_mpc_costs(...
         otherwise
             error('Invalid init type (''affine'', ''constant'')')
     end
-
     init_cost = casadi.Function('init_cost', ...
-        {w, rho, v, weight, w_norm, rho_norm, v_norm}, {J0}, ...
-        {'w', 'rho', 'v', 'weight', 'w_norm', 'rho_norm', 'v_norm'}, {init_type});
+        {w, rho, v, weight, w_norm, rho_norm, v_norm}, ...
+        {J0}, ...
+        {'w', 'rho', 'v', 'weight', 'w_norm', 'rho_norm', 'v_norm'}, ...
+        {init_type});
     assert(isequal(size(J0), [1, 1]))
 
 
@@ -56,37 +58,50 @@ function [init_cost, stage_cost, terminal_cost] = get_mpc_costs(...
         otherwise
             error('Invalid stage type (''full'', ''diag'', ''posdef'')')
     end
-    yr = (rho - rho_crit) / rho_norm;
-    yv = (v - v_free) / v_norm;
-    Jk = yr' * Q_rho * yr + yv' * Q_v * yv;
+
+    Jk = ((rho - rho_crit)' * Q_rho * (rho - rho_crit)) / rho_norm^2 ...
+                    + ((v - v_free)' * Q_v * (v - v_free)) / v_norm^2;
 
     stage_cost = casadi.Function('stage_cost', ...
-        {rho, v, rho_crit, v_free, [weight_rho; weight_v], rho_norm, v_norm}, {Jk}, ...
-        {'rho', 'v', 'rho_crit', 'v_free', 'weight', 'rho_norm', 'v_norm'}, ... 
+        {rho, v, rho_crit, v_free, ...
+                            [weight_rho; weight_v], rho_norm, v_norm}, ...
+        {Jk}, ...
+        {'rho', 'v', 'rho_crit', 'v_free', ...
+                            'weight', 'rho_norm', 'v_norm'}, ... 
         {stage_type});
     assert(isequal(size(Jk), [1, 1]))
 
 
     %% final/terminal cost
-    switch final_type
+    switch terminal_type
         case 'full'
-            weight = casadi.SX.sym('weight', n_links, n_links);
-            Q = weight;
+            weight_rho = casadi.SX.sym('weight_rho', n_links, n_links);
+            weight_v = casadi.SX.sym('weight_v', n_links, n_links);
+            Q_rho = weight_rho;
+            Q_v = weight_v;
         case 'diag'
-            weight = casadi.SX.sym('weight', n_links, 1);
-            Q = diag(weight);
+            weight_rho = casadi.SX.sym('weight_rho', n_links, 1);
+            weight_v = casadi.SX.sym('weight_v', n_links, 1);
+            Q_rho = diag(weight_rho);
+            Q_v = diag(weight_v);
         case 'posdef'
-            weight = casadi.SX.sym('weight', n_links, 1);
-            Q = diag(weight.^2);
+            weight_rho = casadi.SX.sym('weight_rho', n_links, 1);
+            weight_v = casadi.SX.sym('weight_v', n_links, 1);
+            Q_rho = diag(weight_rho.^2);
+            Q_v = diag(weight_v.^2);
         otherwise
             error('Invalid final type (''full'', ''diag'', ''posdef'')')
     end
 
-    yr = (rho - rho_crit) / rho_norm;
-    JN = yr' * Q * yr;
+    JN = ((rho - rho_crit)' * Q_rho * (rho - rho_crit)) / rho_norm^2 ...
+                    + ((v - v_free)' * Q_v * (v - v_free)) / v_norm^2;
 
     terminal_cost = casadi.Function('terminal_cost', ...
-        {rho, rho_crit, weight, rho_norm}, {JN}, ...
-        {'rho', 'rho_crit', 'weight', 'rho_norm'}, {final_type});
+        {rho, v, rho_crit, v_free, ...
+                            [weight_rho; weight_v], rho_norm, v_norm}, ...
+        {JN}, ...
+        {'rho', 'v', 'rho_crit', 'v_free', ...
+                            'weight', 'rho_norm', 'v_norm'}, ... 
+        {stage_type});
     assert(isequal(size(JN), [1, 1]))
 end
