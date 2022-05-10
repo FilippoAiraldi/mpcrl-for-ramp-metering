@@ -7,50 +7,53 @@ classdef NMPC < handle
         Np (1, 1) double 
         Nc (1, 1) double 
         M (1, 1) double
-        opti (1, 1) casadi.Opti
+        opti (1, 1) % dont set class, otherwise an empty opti gets instantiated
         vars (1, 1) struct % contains opti variables
         pars (1, 1) struct % contains opti parameters
     end
 
+    
+    properties (GetAccess = private, SetAccess = private)
+        eps (1, 1) double
+    end
+
 
     methods (Access = public) 
-        function obj = NMPC(Np, Nc, M, Fdyn, eps)
+        function obj = NMPC(Np, Nc, M, dynamics, eps)
             % NMPC. Builds an instance of an NMPC with the corresponding
             % horizons and dynamics.
             arguments
                 Np, Nc, M (1, 1) double {mustBePositive,mustBeInteger}
-                Fdyn (1, 1) casadi.Function
+                dynamics (1, 1) struct
                 eps (1, 1) double {mustBeNonnegative} = 0
             end
-
-            % get some dimensions
-            % F:(w[2],rho[3],v[3],r,d[2],a,v_free,rho_crit)->(q_o[2],w_o_next[2],q[3],rho_next[3],v_next[3])
-            n_links = size(Fdyn.mx_in(1), 1);   % number of links
-            n_orig = size(Fdyn.mx_in(0), 1);    % number of origins
-            n_ramps = size(Fdyn.mx_in(3), 1);   % number of onramps
-            n_d = size(Fdyn.mx_in(4), 1);       % number of disturbances
             
             % create opti stack
             opti = casadi.Opti();
 
-            % create vars
+            % create necessary vars
             vars = struct;
-            vars.w = opti.variable(n_orig, M * Np + 1);     % origin queue lengths  
-            vars.rho = opti.variable(n_links, M * Np + 1);  % link densities
-            vars.v = opti.variable(n_links, M * Np + 1);    % link speeds
-            vars.r = opti.variable(n_ramps, Nc);            % ramp metering rates
+            vars.w = opti.variable(dynamics.states.w.size(1), M * Np + 1);  % origin queue lengths  
+            vars.rho = opti.variable( ...
+                dynamics.states.rho.size(1), M * Np + 1);                   % link densities
+            vars.v = opti.variable(dynamics.states.v.size(1), M * Np + 1);  % link speeds
+            vars.r = opti.variable(dynamics.input.r.size(1), Nc);           % ramp metering rates
 
-			% create pars
+			% create necessary pars
             pars = struct;
-            pars.d = opti.parameter(n_d, M * Np);           % origin demands    
-            pars.w0 = opti.parameter(n_orig, 1);            % initial values
-            pars.rho0 = opti.parameter(n_links, 1);                   
-            pars.v0 = opti.parameter(n_links, 1);
+            pars.d = opti.parameter(dynamics.dist.d.size(1), M * Np);       % origin demands
+            pars.w0 = opti.parameter(dynamics.states.w.size(1), 1);         % initial values
+            pars.rho0 = opti.parameter(dynamics.states.rho.size(1), 1);                   
+            pars.v0 = opti.parameter(dynamics.states.v.size(1), 1);
 
-            % params for the system dynamics
-            pars.a = opti.parameter(1, 1);
-            pars.v_free = opti.parameter(1, 1);
-            pars.rho_crit = opti.parameter(1, 1);
+            % create params for the system dynamics - might vary
+            pars_dyn = {}; % will be helpful later to call dynamics.f
+            for par = fieldnames(dynamics.pars)'
+                sz = dynamics.pars.(par{1}).size;
+                p = opti.parameter(sz(1), sz(2));
+                pars.(par{1}) = p;
+                pars_dyn{end + 1} = p; %#ok<AGROW> 
+            end
 
             % constraints on domains
             opti.subject_to(-vars.r + 0.2 <= 0)
@@ -70,15 +73,13 @@ classdef NMPC < handle
 
             % constraints on state evolution
             for k = 1:M * Np
-                [~, w_next, ~, rho_next, v_next] = Fdyn(...
+                [~, w_next, ~, rho_next, v_next] = dynamics.f(...
                     vars.w(:, k), ...
                     vars.rho(:, k), ...
                     vars.v(:, k), ...
                     r_exp(:, k), ...
                     pars.d(:, k), ...
-                    pars.a, ...
-                    pars.v_free, ...
-                    pars.rho_crit);
+                    pars_dyn{:});
                 opti.subject_to(vars.w(:, k + 1) - w_next == 0)
                 opti.subject_to(vars.rho(:, k + 1) - rho_next == 0)
                 opti.subject_to(vars.v(:, k + 1) - v_next == 0)
@@ -91,6 +92,7 @@ classdef NMPC < handle
             obj.opti = opti;
             obj.vars = vars;
             obj.pars = pars;
+            obj.eps = eps;
         end
 
         function par = add_par(obj, name, dim1, dim2)
@@ -143,6 +145,8 @@ classdef NMPC < handle
                 pars (1, :) struct
                 vals (1, :) struct
             end
+            assert(all(pars.w0 >= obj.eps) && all(pars.rho0 >= obj.eps) ...
+                && all(pars.v0 >= obj.eps), 'infeasible init. conditions')
 
             % set parameter values
             for name = fieldnames(obj.pars)'
