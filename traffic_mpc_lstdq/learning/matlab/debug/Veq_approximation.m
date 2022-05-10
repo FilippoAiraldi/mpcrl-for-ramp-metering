@@ -26,6 +26,8 @@ v_approx_matlab = Veq_approx(rho, v_free, p(1), p(2));
 % plot comparison
 plot(rho, v_real, rho, full(v_approx_matlab))
 
+% NOTES: when learning, height2 should never be exactly zero, there should
+% be a minimum beneath which it cannot go
 
 
 %% local functions
