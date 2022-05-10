@@ -195,7 +195,7 @@ mpc.V.opti.minimize( ...
 % initial conditions
 r = ones(n_ramps, 1);                   % ramp metering rate
 r_prev = ones(n_ramps, 1);              % previous rate
-[w, rho, v] = util.steady_state(F, ...  % queue, density, speed at steady-state
+[w, rho, v] = util.steady_state(F, ...  % queue, density, speed at steady-state     # [0.0001, 0.0001, 4.7837, 4.9515, 8.8243, 100.3402, 96.9460, 86.5319]
     [0; 0], [5; 5; 18], [100; 198; 90], r, D(:, 1), ...
     true_pars.a, true_pars.v_free, true_pars.rho_crit);
 
