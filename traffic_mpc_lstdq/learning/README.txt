@@ -66,6 +66,18 @@ LEARNING
 - modify the update rule: use Hessian (see Esfahani)
 
 
+
+################# 5th meeting #################
+- shorter horizon
+- LICQ of Lagrangian
+- more positive tail of the piecewie approx of Veq
+- hessian of Lagrangia? Might need to expand r, in order to define variables as x0,r0,x1,r1
+- extend terminal states by one M
+	- should initial cost and terminal cost be computed over M init/final states instead of the first and last one?
+	NB: it does not make much sense to extend it, and the reason is that, since the control action is fixed at that point, it would be like just increasing Np by 1. Instead, what might make a difference is on how many states to sum initial and terminal cost.
+
+
+
 ## NOTES
 1. do not use solutions where casadi has not converged to optimal
 
