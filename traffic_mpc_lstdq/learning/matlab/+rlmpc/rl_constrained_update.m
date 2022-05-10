@@ -17,9 +17,9 @@ function [pars, deltas] = rl_constrained_update(pars, bnd, H, f, max_delta)
         rel_delta = abs(pars.(name{1}){end} * max_delta);
         rel_delta = max(rel_delta, 1e-1);
         lb.(name{1}) = max(...
-            bnd.(name{1})(1) - pars.(name{1}){end}, -rel_delta)';
+            bnd.(name{1})(:, 1) - pars.(name{1}){end}, -rel_delta)';
         ub.(name{1}) = min(...
-            bnd.(name{1})(2) - pars.(name{1}){end}, rel_delta)';
+            bnd.(name{1})(:, 2) - pars.(name{1}){end}, rel_delta)';
     end
     lb = struct2array(lb)';
     ub = struct2array(ub)';
