@@ -7,24 +7,24 @@ classdef NMPC < handle
         Np (1, 1) double 
         Nc (1, 1) double 
         M (1, 1) double
+        dynamics (1, 1) struct
+        max_queue (:, 1) double
         opti (1, 1) % dont set class, otherwise an empty opti gets instantiated
         vars (1, 1) struct % contains opti variables
         pars (1, 1) struct % contains opti parameters
-    end
-
-    
-    properties (GetAccess = private, SetAccess = private)
         eps (1, 1) double
     end
 
 
+
     methods (Access = public) 
-        function obj = NMPC(Np, Nc, M, dynamics, eps)
+        function obj = NMPC(Np, Nc, M, dynamics, max_queue, eps)
             % NMPC. Builds an instance of an NMPC with the corresponding
             % horizons and dynamics.
             arguments
                 Np, Nc, M (1, 1) double {mustBePositive,mustBeInteger}
                 dynamics (1, 1) struct
+                max_queue (:, 1) double = []
                 eps (1, 1) double {mustBeNonnegative} = 0
             end
             
@@ -36,7 +36,12 @@ classdef NMPC < handle
             vars.w = opti.variable(dynamics.states.w.size(1), M * Np + 1);  % origin queue lengths  
             vars.rho = opti.variable( ...
                 dynamics.states.rho.size(1), M * Np + 1);                   % link densities
-            vars.v = opti.variable(dynamics.states.v.size(1), M * Np + 1);  % link speeds
+            vars.v = opti.variable(dynamics.states.v.size(1), M * Np + 1);  % link speeds            
+            if ~isempty(max_queue)                                          % optional slacks for max queues
+                assert(length(max_queue) == dynamics.states.w.size(1))
+                vars.slack = opti.variable( ...
+                                    sum(isfinite(max_queue)), M * Np + 1);
+            end
             vars.r = opti.variable(dynamics.input.r.size(1), Nc);           % ramp metering rates
 
 			% create necessary pars
@@ -56,16 +61,32 @@ classdef NMPC < handle
             end
 
             % constraints on domains
-            opti.subject_to(-vars.r + 0.2 <= 0)
-            opti.subject_to(vars.r - 1 <= 0)
+            opti.subject_to(-vars.r(:) + 0.2 <= 0)
+            opti.subject_to(vars.r(:) - 1 <= 0)
             opti.subject_to(-vars.w(:) + eps <= 0)
             opti.subject_to(-vars.rho(:) + eps <= 0)
             opti.subject_to(-vars.v(:) + eps <= 0)
+            if ~isempty(max_queue)
+                opti.subject_to(-vars.slack(:) + eps^2 <= 0)
+            end
             
             % constraints on initial conditions
             opti.subject_to(vars.w(:, 1) - pars.w0 == 0)
             opti.subject_to(vars.v(:, 1) - pars.v0 == 0)
             opti.subject_to(vars.rho(:, 1) - pars.rho0 == 0)
+
+            % (soft) constraints on queues
+            if ~isempty(max_queue)
+                j = 1;
+                for i = 1:length(max_queue)
+                    if ~isfinite(max_queue(i))
+                        continue
+                    end
+                    opti.subject_to( ...
+                       vars.w(i, :) - vars.slack(j, :) - max_queue(i) <= 0)
+                    j = j + 1;
+                end
+            end
 
             % expand control sequence
             r_exp = [repelem(vars.r, 1, M), ...
@@ -89,6 +110,8 @@ classdef NMPC < handle
             obj.Np = Np;
             obj.Nc = Nc;
             obj.M = M;
+            obj.dynamics = dynamics;
+            obj.max_queue = max_queue;
             obj.opti = opti;
             obj.vars = vars;
             obj.pars = pars;
@@ -137,16 +160,33 @@ classdef NMPC < handle
             obj.vars.(name) = var;
         end
 
-        function [sol, info] = solve(obj, pars, vals)
+        function [sol, info] = solve(obj, pars, vals, shift_vals)
             % SOLVE. Solve the NMPC problem with the given parameter values
             % and initial conditions for the variables.
             arguments
                 obj (1, 1) rlmpc.NMPC
-                pars (1, :) struct
-                vals (1, :) struct
+                pars (1, 1) struct
+                vals (1, 1) struct
+                shift_vals (1, 1) logical = true;
             end
+
+            % if requested, shifts the initial conditions for the MPC by M
+            % instants to the left, and pads the right with a simulation
+            if shift_vals
+                vals = obj.shift_vals(pars, vals);
+            end
+
+            % enforce feasibility on initial conditions - ipopt will do it
+            % again in the restoration phase, but let's help it
             assert(all(pars.w0 >= obj.eps) && all(pars.rho0 >= obj.eps) ...
                 && all(pars.v0 >= obj.eps), 'infeasible init. conditions')
+            vals.w = max(obj.eps, vals.w);
+            vals.rho = max(obj.eps, vals.rho);
+            vals.v = max(obj.eps, vals.v);
+            vals.r = min(1, max(0.2, vals.r));
+            if isfield(vals, 'slack')
+                vals.slack = max(obj.eps^2, vals.w - obj.max_queue);
+            end
 
             % set parameter values
             for name = fieldnames(obj.pars)'
@@ -195,6 +235,43 @@ classdef NMPC < handle
             end
             v = cellfun(@(n) obj.pars.(n), names, 'UniformOutput', false);
             v = vertcat(v{:});
+        end
+
+        function vals = shift_vals(obj, pars, vals)
+            arguments
+                obj (1, 1) rlmpc.NMPC
+                pars (1, 1) struct
+                vals (1, 1) struct
+            end
+            % shift the to left, de facto forwarding M instants in time
+            vals.w = [vals.w(:, obj.M + 1:end), ...
+                                    nan(size(vals.w, 1), obj.M)];
+            vals.rho = [vals.rho(:, obj.M + 1:end), ...
+                                    nan(size(vals.rho, 1), obj.M)];
+            vals.v = [vals.v(:, obj.M + 1:end), ...
+                                    nan(size(vals.v, 1), obj.M)];
+
+            % draw random last action
+            r_rand = min(1, max(0.2, ...
+                    mean(vals.r, 2) + randn(size(vals.r, 1), 1) * 0.1));
+            vals.r = [vals.r(:, 2:end), r_rand];
+            
+            % pad to the erased instants to the right with a simulation
+            if isfield(pars, 'pars_Veq_approx')
+                pars_dyn = {pars.rho_crit, pars.pars_Veq_approx};
+            else
+                pars_dyn = {pars.rho_crit, pars.a, pars.v_free};
+            end
+            for k = obj.M * (obj.Np - 1) + 1:obj.M * obj.Np
+                [~, w_next, ~, rho_next, v_next] = obj.dynamics.f( ...
+                            vals.w(:, k), vals.rho(:, k), vals.v(:, k), ...
+                            vals.r(:, end), pars.d(:, k), pars_dyn{:});
+                vals.w(:, k + 1) = full(w_next);
+                vals.rho(:, k + 1) = full(rho_next);
+                vals.v(:, k + 1) = full(v_next);
+            end
+
+            % slacks are taken care when feasibility is enforced
         end
     end
 end
