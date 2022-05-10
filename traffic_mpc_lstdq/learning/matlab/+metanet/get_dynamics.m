@@ -1,7 +1,9 @@
-function F = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
-                    T, L, lanes, C, rho_max, tau, delta, eta, kappa, eps)
-    % GET_DYNAMICS. Creates a casadi.Function object represeting the 
-    % dynamics equation of the 3-link traffic network
+function dyn = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
+        T, L, lanes, C, rho_max, tau, delta, eta, kappa, ...
+        eps, Veq_approx)
+    % GET_DYNAMICS. Creates a structure containing the real and nominal 
+    % dynamics (casadi.Function and its variables) representing the 
+    % underlying dynamics of the 3-link traffic network
     arguments
         n_links, n_origins, n_ramps, n_dist ...
             (1, 1) double {mustBePositive,mustBeInteger}
@@ -10,70 +12,103 @@ function F = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
         C (:, 1) double {mustBeNonnegative}
         rho_max, tau, delta, eta, kappa (1, 1) double {mustBeNonnegative}
         eps (1, 1) double {mustBeNonnegative} = 0
+        Veq_approx (1, 1) casadi.Function = casadi.Function
     end
     assert(numel(C) == n_origins, 'origins capacities and number mismatch')
 
-    % states, input and disturbances
-    w = casadi.SX.sym('w', n_origins, 1);
-    rho = casadi.SX.sym('rho', n_links, 1);
-    v = casadi.SX.sym('v', n_links, 1);
-    r = casadi.SX.sym('r', n_ramps, 1);
-    d = casadi.SX.sym('d', n_dist, 1);
+    dyn = struct;
+    for name = ["real", "nominal"]
+        use_Veq_approx = name == "nominal" && ~Veq_approx.is_null;
 
-    % parameters
-    a = casadi.SX.sym('a', 1, 1);
-    v_free = casadi.SX.sym('v_free', 1, 1);
-    rho_crit = casadi.SX.sym('rho_crit', 1, 1);
-
-    % take care of non-controlled ramps
-    if n_ramps == 1
-        r = [1; r];
-    end
-
-    % ensure nonnegativity - of the input
-    w_ = max(eps, w);
-    rho_ = max(eps, rho);
-    v_ = max(eps, v);
+        % create states, input, disturbances and other parameters
+        w = casadi.SX.sym('w', n_origins, 1);
+        rho = casadi.SX.sym('rho', n_links, 1);
+        v = casadi.SX.sym('v', n_links, 1);
+        r = casadi.SX.sym('r', n_ramps, 1);
+        d = casadi.SX.sym('d', n_dist, 1); 
+        a = casadi.SX.sym('a', 1, 1);
+        v_free = casadi.SX.sym('v_free', 1, 1);
+        rho_crit = casadi.SX.sym('rho_crit', 1, 1);
+        if ~use_Veq_approx
+            Veq = [];
+        else
+            Veq.f = Veq_approx;
+            Veq.pars = casadi.SX.sym( ...
+                        Veq_approx.name_in(1), size(Veq_approx.mx_in(1)));
+        end
     
-    % run system dynamics function
-    [q_o, w_o_next, q, rho_next, v_next] = f(w_, rho_, v_, r, d, ...
-        T, L, lanes, C, rho_crit, rho_max, a, ...
-        v_free, tau, delta, eta, kappa, eps);
-
-%     % run system dynamics function
-%     [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, T, L, ...
-%         lanes, C, rho_crit, rho_max, a, v_free, tau, delta, eta, kappa, eps);
-
-    % ensure nonnegativity - of the output
-    q_o = max(eps, q_o);
-    w_o_next = max(eps, w_o_next);
-    q = max(eps, q);
-    rho_next = max(eps, rho_next);
-    v_next = max(eps, v_next);
-
-    % take care of non-controlled ramps
-    if n_ramps == 1
-        r = r(2);
+        % ensure nonnegativity of the input
+        % run system dynamics function (max for nonnegativity of inputs 
+        % and outputs)
+        w_ = max(eps, w);
+        rho_ = max(eps, rho);
+        v_ = max(eps, v);
+        [q_o, w_o_next, q, rho_next, v_next] = f( ...
+            w_, rho_, v_, r, d, ... % use (w, rho, v) to remove max on input
+            T, L, lanes, C, rho_max, ...
+            rho_crit, a, v_free, ...
+            tau, delta, eta, kappa, eps, Veq);
+        q_o = max(eps, q_o);
+        w_o_next = max(eps, w_o_next);
+        q = max(eps, q);
+        rho_next = max(eps, rho_next);
+        v_next = max(eps, v_next);
+    
+        % create dynamics function args and outputs
+        args = struct('w', w, 'rho', rho, 'v', v, 'r', r, 'd', d, ...
+            'rho_crit', rho_crit);
+        if ~use_Veq_approx
+            args.a = a;
+            args.v_free = v_free;
+        else
+            args.pars_Veq_approx = Veq.pars;
+        end
+        out = struct('q_o', q_o, 'w_o_next', w_o_next, 'q', q, ...
+            'rho_next', rho_next, 'v_next', v_next);
+    
+        % create casadi function and division between vars and pars
+        dyn.(name) = struct;
+        dyn.(name).f = casadi.Function('F', ...
+            struct2cell(args), struct2cell(out), ...
+            fieldnames(args), fieldnames(out));
+        dyn.(name).states = struct('w', w, 'rho', rho, 'v', v); % states
+        dyn.(name).input = struct('r', r);                      % controls
+        dyn.(name).dist = struct('d', d);                       % disturbances
+        dyn.(name).pars = struct;                               % parameters
+        remaining_args = setdiff(fieldnames(args), ...
+                                [fieldnames(dyn.(name).states); ...
+                                fieldnames(dyn.(name).input); ...
+                                fieldnames(dyn.(name).dist)], 'stable');
+        for arg = remaining_args'
+            dyn.(name).pars.(arg{1}) = args.(arg{1});
+        end
     end
 
-    % create casadi function
-    F = casadi.Function('F', {w, rho, v, r, d, a, v_free, rho_crit}, ...
-        {q_o, w_o_next, q, rho_next, v_next}, ...
-        {'w', 'rho', 'v', 'r', 'd', 'a', 'v_free', 'rho_crit'}, ...
-        {'q_o', 'w_o_next', 'q', 'rho_next', 'v_next'});
+    % dynamics
+    % F:(w[2],rho[3],v[3],r,d[3],rho_crit,a,v_free)->(q_o[2],w_o_next[2],q[3],rho_next[3],v_next[3])
+    % dynamics with Veq approx
+    % F:(w[2],rho[3],v[3],r,d[3],rho_crit,pars_Veq_approx)->(q_o[2],w_o_next[2],q[3],rho_next[3],v_next[3])
 end
 
 
+
 %% local functions
-function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, ...
-            T, L, lanes, C, rho_crit, rho_max, a, ...
-            v_free, tau, delta, eta, kappa, eps)
+function [q_o, w_o_next, q, rho_next, v_next] = f( ...
+            w, rho, v, r, d, ...
+            T, L, lanes, C, rho_max, ...
+            rho_crit, a, v_free, ...
+            tau, delta, eta, kappa, eps, Veq_approx)
     % Computes the actual dynamical equations. It can work both with
     % symbolical variables and numerical variables
 
+    % which link the on-ramp is attached to
     link_with_ramp = 3;
+   
+    % if only one rate is given, then apply it to the second origin
+    if numel(r) == 1
+        r = [1; r];
+    end
 
-    
     %%% ORIGIN
     % compute flow at mainstream origin O1
     q_O1 = min(d(1) + w(1) / T, C(1) * ...
@@ -111,8 +146,14 @@ function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, ...
     % step link densities
     rho_next = rho + (T / (L * lanes)) * (q_up - q);
 
-    % compute V
-    Veq_ = Veq(rho, v_free, a, rho_crit, eps);
+    % compute equilibrium V - decide if Veq should be approximated
+    if isempty(Veq_approx)
+        Veq_ = metanet.Veq(rho, v_free, a, rho_crit, eps);
+    else
+        Veq_ = arrayfun(@(x) Veq_approx.f(x, Veq_approx.pars), rho, ...
+                                                'UniformOutput', false);
+        Veq_ = vertcat(Veq_{:});
+    end
 
     % step the speeds of the links
     v_next = (v ...
@@ -122,12 +163,6 @@ function [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, ...
     v_next(link_with_ramp) = v_next(link_with_ramp) ...
         - delta * T / L / lanes * ...
             q_O2 * v(link_with_ramp) / (rho(link_with_ramp) + kappa);    
-end
-
-
-function V = Veq(rho, v_free, a, rho_crit, eps)
-    % VEQ. Equilibrium speed in the METANET model
-    V = v_free * exp((-1 / a) * ((rho / rho_crit) + eps).^a);
 end
 
 
