@@ -8,8 +8,8 @@ function [w_ss, rho_ss, v_ss, err, k] = steady_state( ...
         F (1, 1) casadi.Function
         w0, rho0, v0, r, d (:, 1) double
         rho_crit, a, v_free (1, 1) double {mustBeNonnegative}
-        tol (1, 1) double {mustBeNonnegative} = 1e-5
-        maxiter (1, 1) double {mustBeNonnegative,mustBeInteger} = 5e2
+        tol (1, 1) double {mustBeNonnegative} = 1e-8
+        maxiter (1, 1) double {mustBeNonnegative,mustBeInteger} = 1e3
     end
 
     k = 0;
