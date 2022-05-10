@@ -20,7 +20,7 @@ function [f, p_opt] = get_Veq_approx(v_free, a, rho_crit, rho_max, eps)
         @(p, xi) full(f(xi, p)), ...                        % curve to fit in p
         [-1, v_free, 1], ...                                % inital guess
         x, y, ...                                           % data coordinates
-        [-1e2, 1e-2, 1e-2], [1e-2, v_free * 2, v_free], ... % lb and ub for p
+        [-1e2, 1e-2, 5], [1e-2, v_free * 2, v_free], ...    % lb and ub for p
         optimoptions('lsqcurvefit', 'Display', 'none'));                  
     assert(flag > 0, 'Veq approximation failed (flag=%i)', flag)
     if isrow(p_opt)
@@ -28,7 +28,7 @@ function [f, p_opt] = get_Veq_approx(v_free, a, rho_crit, rho_max, eps)
     end
 
     % plot comparison
-    % plot(x, y, x, full(f(x, p_opt(1), p_opt(2), p_opt(3))))
+    % plot(x, y, x, full(f(x, p_opt)))
 end
 
 
