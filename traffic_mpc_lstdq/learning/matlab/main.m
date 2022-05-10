@@ -5,6 +5,7 @@ runname = datestr(datetime, 'yyyymmdd_HHMMSS');
 load_checkpoint = false;
 
 
+
 % TO TRY
 % bring modifications from 4th meeting
 
@@ -87,6 +88,7 @@ eps = 1e-4;                         % nonnegative constraint precision
 plugin_opts = struct('expand', true, 'print_time', false);
 solver_opts = struct('print_level', 0, 'max_iter', 3e3, 'tol', 1e-7, ...
     'barrier_tol_factor', 1e-3);
+approx_Veq = true;                  % whether to use an approximation of Veq
 perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
 discount = 1;                       % rl discount factor
@@ -98,18 +100,24 @@ rl_mem_sample = rl_update_freq * 2; % RL experience replay sampling size
 rl_mem_last = 0.5;                  % percentage of last experiences to include in sample
 save_freq = 2;                      % checkpoint saving frequency
 
-% create a symbolic casadi function for the dynamics
-n_dist = size(D, 1);                
-F = metanet.get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
-    T, L, lanes, C, rho_max, tau, delta, eta, kappa, eps);
+% create a symbolic casadi function for the dynamics (both true and nominal)
+n_dist = size(D, 1);
+args = {n_links, n_origins, n_ramps, n_dist, T, L, lanes, C, rho_max, ...
+    tau, delta, eta, kappa, eps};
+if approx_Veq
+    [Veq_approx, pars_Veq_approx] = ...
+                metanet.get_Veq_approx(v_free, a, rho_crit, rho_max, eps);
+    args{end + 1} = Veq_approx;
+end
+dynamics = metanet.get_dynamics(args{:});
 
 % cost terms (learnable MPC, metanet and RL)
 [Vcost, Lcost, Tcost] = rlmpc.get_mpc_costs(n_links, n_origins, ...
-    'affine', 'diag', 'diag');    
+                                                'affine', 'diag', 'diag');    
 TTS = metanet.TTS(n_links, n_origins, T, L, lanes);
 Rate_var = metanet.rate_variability(n_ramps, Nc);
 Lrl = rlmpc.get_rl_cost(n_links, n_origins, n_ramps, TTS, max_queue, ...
-    con_violation_penalty);
+                                                    con_violation_penalty);
 normalization.w = max(max_queue(~isinf(max_queue)));   % normalization constants
 normalization.rho = rho_max;
 normalization.v = v_free; 
@@ -118,7 +126,7 @@ normalization.v = v_free;
 mpc = struct;
 for name = ["Q", "V"]
     % instantiate an MPC
-    ctrl = rlmpc.NMPC(Np, Nc, M, F, eps);
+    ctrl = rlmpc.NMPC(Np, Nc, M, dynamics.nominal, eps);
     ctrl.opti.solver('ipopt', plugin_opts, solver_opts);
 
     % set soft constraint on ramp queue
@@ -145,15 +153,15 @@ for name = ["Q", "V"]
     r_last = ctrl.add_par('r_last', size(ctrl.vars.r, 1), 1);
 
     % compute the actual symbolic cost expression with opti vars and pars
-    cost = Vcost(...                                        % affine/constant initial cost
+    cost = Vcost( ...                                       % affine/constant initial cost
             ctrl.vars.w(:, 1), ...     
             ctrl.vars.rho(:, 1), ...            
             ctrl.vars.v(:, 1), ...
             weight_V, ...
-            normalization.w,...
-            normalization.rho,...
+            normalization.w, ...
+            normalization.rho, ...
             normalization.v) ...                              
-        + Tcost(...                                         % quadratic terminal cost
+        + Tcost( ...                                        % quadratic terminal cost
             ctrl.vars.rho(:, end), ...    
             ctrl.pars.rho_crit, ...
             weight_T, ...
@@ -164,11 +172,11 @@ for name = ["Q", "V"]
     for k = 1:M * Np
         cost = cost ...
             + weight_slack(k, :) * slack(:, k) ...          % slack penalty
-            + Lcost(...                                     % quadratic stage cost
+            + Lcost( ...                                    % quadratic stage cost
                 ctrl.vars.rho(:, k), ...         
                 ctrl.vars.v(:, k), ...           
                 ctrl.pars.rho_crit, ...
-                v_free_tracking, ... % ctrl.pars.v_free, ...
+                v_free_tracking, ... % ctrl.pars.v_free
                 weight_L, ...
                 normalization.rho, ...
                 normalization.v) ...                         
@@ -182,8 +190,8 @@ for name = ["Q", "V"]
 end
 
 % Q approximator has additional constraint on first action
-mpc.Q.add_par('r_first', size(mpc.Q.vars.r, 1), 1);
-mpc.Q.opti.subject_to(mpc.Q.vars.r(:, 1) - mpc.Q.pars.r_first == 0);
+mpc.Q.add_par('r0', size(mpc.Q.vars.r, 1), 1);
+mpc.Q.opti.subject_to(mpc.Q.vars.r(:, 1) - mpc.Q.pars.r0 == 0);
 
 % V approximator has perturbation to enhance exploration
 mpc.V.add_par('perturbation', size(mpc.V.vars.r(:, 1)));
@@ -195,35 +203,36 @@ mpc.V.opti.minimize( ...
 % initial conditions
 r = ones(n_ramps, 1);                   % ramp metering rate
 r_prev = ones(n_ramps, 1);              % previous rate
-[w, rho, v] = util.steady_state(F, ...  % queue, density, speed at steady-state     # [0.0001, 0.0001, 4.7837, 4.9515, 8.8243, 100.3402, 96.9460, 86.5319]
-    [0; 0], [5; 5; 18], [100; 198; 90], r, D(:, 1), ...
-    true_pars.a, true_pars.v_free, true_pars.rho_crit);
+[w, rho, v] = util.steady_state( ...    % queue, density, speed at steady-state
+    dynamics.real.f, [0; 0], [5; 5; 18], [100; 198; 90], r, D(:, 1), ...
+    true_pars.rho_crit, true_pars.a, true_pars.v_free);
 
-% initial function approx weights
-rl_pars.v_free = {v_free};
-rl_pars.rho_crit = {rho_crit};
-rl_pars.v_free_tracking = {v_free};
-rl_pars.weight_V = {ones(size(weight_V))};
-rl_pars.weight_L = {ones(size(weight_L))};
-rl_pars.weight_T = {ones(size(weight_T))};
-rl_pars.weight_rate_var = {rate_var_penalty};
-rl_pars.weight_slack = {ones(size(weight_slack)) * con_violation_penalty};
-
-% rl parameters bounds
-rl_pars_bounds.v_free = [30, 300]; 
-rl_pars_bounds.rho_crit = [10, 200];
-rl_pars_bounds.v_free_tracking = [30, 300];
-rl_pars_bounds.weight_V = [-inf, inf];
-rl_pars_bounds.weight_L = [0, inf];
-rl_pars_bounds.weight_T = [0, inf];
-rl_pars_bounds.weight_rate_var = [1e-3, 1e2];
-rl_pars_bounds.weight_slack = [0, inf];
+% initial learnable Q/V function approx. weights and their bounds
+rl_ = cell(0, 3);
+if ~approx_Veq
+    rl_(end + 1, :) = {'v_free', {v_free}, [30, 300]};
+else
+    rl_(end + 1, :) = {'pars_Veq_approx', ...
+        {pars_Veq_approx}, [-1e2, 0; 1e-2, 2 * v_free; 1e-2, 2 * v_free]};
+end
+rl_(end + 1, :) = {'rho_crit', {rho_crit}, [10, 200]};
+rl_(end + 1, :) = {'v_free_tracking', {v_free}, [30, 300]};
+rl_(end + 1, :) = {'weight_V', {ones(size(weight_V))}, [-inf, inf]};
+rl_(end + 1, :) = {'weight_L', {ones(size(weight_L))}, [0, inf]};
+rl_(end + 1, :) = {'weight_T', {ones(size(weight_T))}, [0, inf]};
+rl_(end + 1, :) = {'weight_rate_var', {rate_var_penalty}, [1e-3, 1e3]};
+rl_(end + 1, :) = {'weight_slack', ...
+            {ones(size(weight_slack)) * con_violation_penalty}, [0, inf]};
+rl = struct;
+rl.pars = cell2struct(rl_(:, 2), rl_(:, 1));
+rl.bounds = cell2struct(rl_(:, 3), rl_(:, 1));
+clear rl_
 
 % compute symbolic derivatives
 deriv = struct;
 for n = string(fieldnames(mpc)')
     % assemble all RL parameters in a single vector for V and Q
-    deriv.(n).rl_pars = mpc.(n).concat_pars(fieldnames(rl_pars));
+    deriv.(n).rl_pars = mpc.(n).concat_pars(fieldnames(rl.pars));
 
     % compute derivative of Lagrangian
     Lagr = mpc.(n).opti.f + mpc.(n).opti.lam_g' * mpc.(n).opti.g;
@@ -299,18 +308,16 @@ for ep = start_ep:episodes
 
             % run Q(s(k-1), a(k-1)) (condition excludes very first iteration)
             if ep > 1 || k_mpc > 1
-                pars = struct(...
+                pars = struct( ...
                     'd', D(:, K*(ep-1) + k-M:K*(ep-1) + k-M + M*Np-1), ...
                     'w0', w_prev, 'rho0', rho_prev, 'v0', v_prev, ...
-                    'a', a, 'v_free', rl_pars.v_free{end}, ...
-                    'rho_crit', rl_pars.rho_crit{end}, ...
-                    'v_free_tracking', rl_pars.v_free_tracking{end}, ...
-                    'weight_V', rl_pars.weight_V{end}, ...
-                    'weight_L', rl_pars.weight_L{end}, ...
-                    'weight_T', rl_pars.weight_T{end}, ...
-                    'weight_slack', rl_pars.weight_slack{end}, ...
-                    'weight_rate_var', rl_pars.weight_rate_var{end}, ...
-                    'r_last', r_prev_prev, 'r_first', r_prev); % a(k-2) and a(k-1)
+                    'r_last', r_prev_prev, 'r0', r_prev); % a(k-2) and a(k-1)
+                if ~approx_Veq
+                    pars.a = a;
+                end
+                for n = fieldnames(rl.pars)'
+                    pars.(n{1}) = rl.pars.(n{1}){end};
+                end
                 last_sol.slack = ones(size(mpc.Q.vars.slack)) * eps^2;
                 [last_sol, info_Q] = mpc.Q.solve(pars, last_sol);
             end
@@ -323,18 +330,16 @@ for ep = start_ep:episodes
             end
 
             % run V(s(k))
-            pars = struct(...
+            pars = struct( ...
                 'd', D(:, K*(ep-1) + k:K*(ep-1) + k + M*Np-1), ...
-                'w0', w, 'rho0', rho, 'v0', v, 'a', a, ...
-                'v_free', rl_pars.v_free{end}, ...
-                'rho_crit', rl_pars.rho_crit{end}, ...
-                'v_free_tracking', rl_pars.v_free_tracking{end}, ...
-                'weight_V', rl_pars.weight_V{end}, ...
-                'weight_L', rl_pars.weight_L{end}, ...
-                'weight_T', rl_pars.weight_T{end}, ...
-                'weight_slack', rl_pars.weight_slack{end}, ...
-                'weight_rate_var', rl_pars.weight_rate_var{end}, ...
+                'w0', w, 'rho0', rho, 'v0', v, ...
                 'r_last', r, 'perturbation', pert);
+            if ~approx_Veq
+                pars.a = a;
+            end
+            for n = fieldnames(rl.pars)'
+                pars.(n{1}) = rl.pars.(n{1}){end};
+            end
             last_sol.slack = ones(size(mpc.V.vars.slack)) * eps^2;
             [last_sol, info_V] = mpc.V.solve(pars, last_sol);
 
@@ -342,10 +347,8 @@ for ep = start_ep:episodes
             if ep > 1 || k_mpc > 1
                 if info_V.success && info_Q.success
                     % compute td error
-                    td_err = full(Lrl(w_prev, rho_prev)) + ...
-                        discount * info_V.f  - info_Q.f;
-                    
-                    % save
+                    td_err = full(Lrl(w_prev, rho_prev)) ...
+                                        + discount * info_V.f  - info_Q.f;
                     td_error{ep}(k_mpc) = td_err;
                     td_error_perc{ep}(k_mpc) = td_err / info_Q.f;
 
@@ -356,13 +359,13 @@ for ep = start_ep:episodes
                     % dtd_err = discount * dV - dQ;
                     dtd_err = -dQ;
 
-                    % store everything in memory
+                    % store in memory
                     replaymem.add(struct(...
-                        'A', td_err * d2Q + dQ * dtd_err', ...
-                        'b', td_err * dQ, 'dQ', dQ));
+                                    'A', td_err * d2Q + dQ * dtd_err', ...
+                                    'b', td_err * dQ, 'dQ', dQ));
 
-                    util.info(toc(start_tot_time), ep, ...
-                        toc(start_ep_time), t(k), k, K);
+                    % util.info(toc(start_tot_time), ep, ...
+                    %                     toc(start_ep_time), t(k), k, K);
                 else
                     nb_fail = nb_fail + 1;
                     msg = '';
@@ -373,7 +376,7 @@ for ep = start_ep:episodes
                         msg = append(msg, sprintf('Q: %s.', info_Q.error));
                     end
                     util.info(toc(start_tot_time), ep, ...
-                        toc(start_ep_time), t(k), k, K, msg);
+                                    toc(start_ep_time), t(k), k, K, msg);
                 end
             end
 
@@ -390,9 +393,9 @@ for ep = start_ep:episodes
         end
 
         % step state (according to the true dynamics)
-        [q_o, w_next, q, rho_next, v_next] = F(...
+        [q_o, w_next, q, rho_next, v_next] = dynamics.real.f(...
             w, rho, v, r, D(:, k), ...
-            true_pars.a, true_pars.v_free, true_pars.rho_crit);
+            true_pars.rho_crit, true_pars.a, true_pars.v_free);
 
         % save current state and other infos
         origins.demand{ep}(:, k) = D(:, k);
@@ -414,7 +417,7 @@ for ep = start_ep:episodes
             [sample, Is] = replaymem.sample(rl_mem_sample, rl_mem_last);
             
             % compute hessian and update direction
-            A = sample.A + 1e-6 * eye(sample.A);
+            A = sample.A + 1e-6 * eye(size(sample.A));
             rcondA = rcond(A);
             if rcondA > 1e-6
                 % 2nd order update
@@ -440,24 +443,19 @@ for ep = start_ep:episodes
             H = eye(length(f));
             
             % perform constrained update
-            rl_pars = rlmpc.rl_constrained_update( ...
-                rl_pars, rl_pars_bounds, H, f);
+            % TODO
+            rl.pars = rlmpc.rl_constrained_update( ...
+                                                rl.pars, rl.bounds, H, f);
 
             % log update result
             msg = sprintf('RL update %i with %i samples: ', ...
-                length(rl_pars.v_free) - 1, sample.n);
-            for name = fieldnames(rl_pars)'
-                if numel(rl_pars.(name{1}){end}) == 1
-                    msg = append(msg, name{1}, ...
-                        sprintf('=%.3f, ', rl_pars.(name{1}){end}));
-                else
-                    msg = append(msg, name{1}, '=[', ...
-                        num2str(rl_pars.(name{1}){end}(:)', '%.3f '), ...
-                        '], ');
-                end
+                length(rl.pars.rho_crit) - 1, sample.n);
+            for name = fieldnames(rl.pars)'
+                msg = append(msg, name{1}, '=', ...
+                            mat2str(rl.pars.(name{1}){end}(:)', 6), '; ');
             end
             util.info(toc(start_tot_time), ep, toc(start_ep_time), ...
-                t(k), k, K, msg);
+                                                        t(k), k, K, msg);
         end
     end
     exec_times(ep) = toc(start_ep_time);
@@ -503,10 +501,10 @@ diary off
 
 %% Saving and plotting
 % build arrays
-rl_pars = structfun(@(x) cell2mat(x), rl_pars, 'UniformOutput', false);
+rl.pars = structfun(@(x) cell2mat(x), rl.pars, 'UniformOutput', false);
 
 % clear useless variables
-clear cost ctrl d D d1 d2 exp f F filter_num filter_den H i info Is k ...
+clear cost ctrl d D d1 d2 exp f filter_num filter_den H i info Is k ...
     last_sol log_filename msg n nb_fail name pars q q_o r r_first  ...
     r_last r_prev rcondA replaymem rho rho_next rho_prev save_freq  ... 
     start_ep_time start_ep start_tot_time td_err sz v v_next v_prev w ...
