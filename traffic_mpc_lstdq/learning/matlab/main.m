@@ -86,11 +86,14 @@ Nc = 3;                             % control horizon
 M  = 6;                             % horizon spacing factor
 eps = 0 * 1e-4;                     % nonnegative constraint precision
 plugin_opts = struct('expand', true, 'print_time', false);
-solver_opts = struct('print_level', 0, 'max_iter', 3e3, 'tol', 1e-7, ...
+solver_opts = struct('print_level', 5, 'max_iter', 3e3, 'tol', 1e-7, ...
     'barrier_tol_factor', 1e-3);
-approx_Veq = true;                  % whether to use an approximation of Veq
 perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
+%
+approx_Veq = true;                  % whether to use an approximation of Veq
+max_in_and_out = [false, true];     % whether to apply max to inputs and outputs of dynamics
+%
 discount = 1;                       % rl discount factor
 lr = 1e-4;                          % rl learning rate
 con_violation_penalty = 10;         % rl penalty for constraint violations
@@ -103,7 +106,7 @@ save_freq = 2;                      % checkpoint saving frequency
 % create a symbolic casadi function for the dynamics (both true and nominal)
 n_dist = size(D, 1);
 args = {n_links, n_origins, n_ramps, n_dist, T, L, lanes, C, rho_max, ...
-    tau, delta, eta, kappa, eps};
+    tau, delta, eta, kappa, max_in_and_out, eps};
 if approx_Veq
     [Veq_approx, pars_Veq_approx] = ...
                 metanet.get_Veq_approx(v_free, a, rho_crit, rho_max, eps);
@@ -311,7 +314,7 @@ for ep = start_ep:episodes
                 for n = fieldnames(rl.pars)'
                     pars.(n{1}) = rl.pars.(n{1}){end};
                 end
-                [last_sol, info_Q] = mpc.Q.solve(pars, last_sol);
+                [last_sol, infoQ] = mpc.Q.solve(pars, last_sol);
             end
 
             % choose if to apply perturbation
@@ -332,20 +335,20 @@ for ep = start_ep:episodes
             for n = fieldnames(rl.pars)'
                 pars.(n{1}) = rl.pars.(n{1}){end};
             end
-            [last_sol, info_V] = mpc.V.solve(pars, last_sol);
+            [last_sol, infoV] = mpc.V.solve(pars, last_sol);
 
             % save to memory if successful, or log error 
             if ep > 1 || k_mpc > 1
-                if info_V.success && info_Q.success
+                if infoV.success && infoQ.success
                     % compute td error
                     td_err = full(Lrl(w_prev, rho_prev)) ...
-                                        + discount * info_V.f  - info_Q.f;
+                                        + discount * infoV.f  - infoQ.f;
                     td_error{ep}(k_mpc) = td_err;
-                    td_error_perc{ep}(k_mpc) = td_err / info_Q.f;
+                    td_error_perc{ep}(k_mpc) = td_err / infoQ.f;
 
                     % compute numerical gradients w.r.t. params
-                    dQ = info_Q.sol.value(deriv.Q.dL);
-                    d2Q = info_Q.sol.value(deriv.Q.d2L);
+                    dQ = infoQ.sol.value(deriv.Q.dL);
+                    d2Q = infoQ.sol.value(deriv.Q.d2L);
                     % dV = info_V.sol.value(deriv.V.dL);
                     % dtd_err = discount * dV - dQ;
                     dtd_err = -dQ;
@@ -360,11 +363,11 @@ for ep = start_ep:episodes
                 else
                     nb_fail = nb_fail + 1;
                     msg = '';
-                    if ~info_V.success
-                        msg = sprintf('V: %s. ', info_V.error);
+                    if ~infoV.success
+                        msg = sprintf('V: %s. ', infoV.error);
                     end
-                    if ~info_Q.success
-                        msg = append(msg, sprintf('Q: %s.', info_Q.error));
+                    if ~infoQ.success
+                        msg = append(msg, sprintf('Q: %s.', infoQ.error));
                     end
                     util.info(toc(start_tot_time), ep, ...
                                     toc(start_ep_time), t(k), k, K, msg);

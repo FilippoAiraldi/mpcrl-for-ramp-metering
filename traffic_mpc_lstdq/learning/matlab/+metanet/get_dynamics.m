@@ -1,6 +1,6 @@
 function dyn = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
         T, L, lanes, C, rho_max, tau, delta, eta, kappa, ...
-        eps, Veq_approx)
+        max_in_and_out, eps, Veq_approx)
     % GET_DYNAMICS. Creates a structure containing the real and nominal 
     % dynamics (casadi.Function and its variables) representing the 
     % underlying dynamics of the 3-link traffic network
@@ -11,6 +11,7 @@ function dyn = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
         lanes (1, 1) double {mustBePositive,mustBeInteger}
         C (:, 1) double {mustBeNonnegative}
         rho_max, tau, delta, eta, kappa (1, 1) double {mustBeNonnegative}
+        max_in_and_out (1, 2) logical = [false, false]
         eps (1, 1) double {mustBeNonnegative} = 0
         Veq_approx (1, 1) casadi.Function = casadi.Function
     end
@@ -40,19 +41,24 @@ function dyn = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
         % ensure nonnegativity of the input
         % run system dynamics function (max for nonnegativity of inputs 
         % and outputs)
-%         w_ = max(eps, w);
-%         rho_ = max(eps, rho);
-%         v_ = max(eps, v);
+        states = {w, rho, v};
+        if max_in_and_out(1)
+           for i = length(states) 
+               states{i} = max(eps, states{i});
+           end
+        end
         [q_o, w_o_next, q, rho_next, v_next] = f( ...
-            w, rho, v, r, d, ... % use (w, rho, v) to remove max on input
+            states{:}, r, d, ...
             T, L, lanes, C, rho_max, ...
             rho_crit, a, v_free, ...
             tau, delta, eta, kappa, eps, Veq);
-%         q_o = max(eps, q_o);
-%         w_o_next = max(eps, w_o_next);
-%         q = max(eps, q);
-%         rho_next = max(eps, rho_next);
-%         v_next = max(eps, v_next);
+        if max_in_and_out(2)
+            q_o = max(eps, q_o);
+            w_o_next = max(eps, w_o_next);
+            q = max(eps, q);
+            rho_next = max(eps, rho_next);
+            v_next = max(eps, v_next);
+        end
     
         % create dynamics function args and outputs
         args = struct('w', w, 'rho', rho, 'v', v, 'r', r, 'd', d, ...
