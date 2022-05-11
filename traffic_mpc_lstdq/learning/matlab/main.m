@@ -84,10 +84,10 @@ D = filtfilt(...
 Np = 4;                             % prediction horizon - \approx 3*L/(M*T*v_avg)
 Nc = 3;                             % control horizon
 M  = 6;                             % horizon spacing factor
-eps = 0 * 1e-4;                     % nonnegative constraint precision
+eps = 1e-4;                         % nonnegative constraint precision
 plugin_opts = struct('expand', true, 'print_time', false);
-solver_opts = struct('print_level', 5, 'max_iter', 3e3, 'tol', 1e-7, ...
-    'barrier_tol_factor', 1e-3);
+solver_opts = struct('print_level', 5, 'max_iter', 2e3, 'tol', 1e-7, ...
+                     'barrier_tol_factor', 1e-3);
 perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
 %
@@ -231,9 +231,9 @@ for n = string(fieldnames(mpc)')
     deriv.(n).rl_pars = mpc.(n).concat_pars(fieldnames(rl.pars));
 
     % compute derivative of Lagrangian
-    Lagr = mpc.(n).opti.f + mpc.(n).opti.lam_g' * mpc.(n).opti.g;
-    deriv.(n).dL = simplify(jacobian(Lagr, deriv.(n).rl_pars)');
-    deriv.(n).d2L = simplify(hessian(Lagr, deriv.(n).rl_pars));
+    deriv.(n).Lagr = mpc.(n).opti.f + mpc.(n).opti.lam_g' * mpc.(n).opti.g;
+    deriv.(n).dL = simplify(jacobian(deriv.(n).Lagr, deriv.(n).rl_pars)');
+    deriv.(n).d2L = simplify(hessian(deriv.(n).Lagr, deriv.(n).rl_pars));
 end
 
 % preallocate containers for miscellaneous quantities
@@ -364,7 +364,7 @@ for ep = start_ep:episodes
                     nb_fail = nb_fail + 1;
                     msg = '';
                     if ~infoV.success
-                        msg = sprintf('V: %s. ', infoV.error);
+                        msg = sprintf('V: %s. ', infoV.error); % max iters at k=97, cpu secs=12/13
                     end
                     if ~infoQ.success
                         msg = append(msg, sprintf('Q: %s.', infoQ.error));

@@ -20,6 +20,11 @@ function dyn = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
     dyn = struct;
     for name = ["real", "nominal"]
         use_Veq_approx = name == "nominal" && ~Veq_approx.is_null;
+        if name == "real"
+            eps_ = 0;
+        else
+            eps_ = eps;
+        end
 
         % create states, input, disturbances and other parameters
         w = casadi.SX.sym('w', n_origins, 1);
@@ -42,22 +47,22 @@ function dyn = get_dynamics(n_links, n_origins, n_ramps, n_dist, ...
         % run system dynamics function (max for nonnegativity of inputs 
         % and outputs)
         states = {w, rho, v};
-        if max_in_and_out(1)
+        if name == "real" || max_in_and_out(1)
            for i = length(states) 
-               states{i} = max(eps, states{i});
+               states{i} = max(eps_, states{i});
            end
         end
         [q_o, w_o_next, q, rho_next, v_next] = f( ...
             states{:}, r, d, ...
             T, L, lanes, C, rho_max, ...
             rho_crit, a, v_free, ...
-            tau, delta, eta, kappa, eps, Veq);
-        if max_in_and_out(2)
-            q_o = max(eps, q_o);
-            w_o_next = max(eps, w_o_next);
-            q = max(eps, q);
-            rho_next = max(eps, rho_next);
-            v_next = max(eps, v_next);
+            tau, delta, eta, kappa, eps_, Veq);
+        if name == "real" || max_in_and_out(2) % real dynamics should not ouput negatives
+            q_o = max(eps_, q_o);
+            w_o_next = max(eps_, w_o_next);
+            q = max(eps_, q);
+            rho_next = max(eps_, rho_next);
+            v_next = max(eps_, v_next);
         end
     
         % create dynamics function args and outputs

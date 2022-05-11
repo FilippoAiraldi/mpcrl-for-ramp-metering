@@ -178,12 +178,15 @@ classdef NMPC < handle
 
             % enforce feasibility on initial conditions - ipopt will do it
             % again in the restoration phase, but let's help it
-            assert(all(pars.w0 >= obj.eps) && all(pars.rho0 >= obj.eps) ...
-                && all(pars.v0 >= obj.eps), 'infeasible init. conditions')
-            vals.w = max(obj.eps, vals.w);
-            vals.rho = max(obj.eps, vals.rho);
-            vals.v = max(obj.eps, vals.v);
-            vals.r = min(1, max(0.2, vals.r));
+%             assert(all(pars.w0 >= obj.eps) && all(pars.rho0 >= obj.eps) ...
+%                 && all(pars.v0 >= obj.eps), 'infeasible init. conditions')
+            pars.w0   = max(obj.eps, pars.w0);
+            pars.rho0 = max(obj.eps, pars.rho0);
+            pars.v0   = max(obj.eps, pars.v0);
+            vals.w    = max(obj.eps, vals.w);
+            vals.rho  = max(obj.eps, vals.rho);
+            vals.v    = max(obj.eps, vals.v);
+            vals.r    = min(1, max(0.2, vals.r));
             if isfield(vals, 'slack')
                 I = find(isfinite(obj.max_queue));
                 vals.slack = ...
