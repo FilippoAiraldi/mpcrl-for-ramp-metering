@@ -69,7 +69,7 @@ LEARNING
 
 ################# 5th meeting #################
 - shorter horizon
-- LICQ of Lagrangian
+- LICQ (not really satisfied)
 - more positive tail of the piecewie approx of Veq
 - hessian of Lagrangia? Might need to expand r, in order to define variables as x0,r0,x1,r1
 - extend terminal states by one M
