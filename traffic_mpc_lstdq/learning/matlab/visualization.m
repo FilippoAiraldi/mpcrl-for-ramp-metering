@@ -6,7 +6,7 @@
 if isempty(who())
     warning('off');
 %     load data\20220407_094808_data.mat
-    load 20220413_220606_data.mat
+    load 0_no_eps_no_max.mat
 %     load checkpoint.mat
     warning('on');
 
@@ -67,8 +67,8 @@ if plot_summary
         'rho_crit (true)', sprintf('%7.3f', true_pars.rho_crit);
         };
     % RL pars 
-    for name = fieldnames(rl_pars)' 
-        weight = rl_pars.(name{1});
+    for name = fieldnames(rl.pars)' 
+        weight = rl.pars.(name{1});
         if size(weight, 1) > 1
             for i = 1:size(weight, 1)
                 w = weight(i, 1);
@@ -133,9 +133,9 @@ if plot_traffic
     ylabel('flow (veh/h)')
     
     ax(3) = nexttile(3);
-    plot(t_tot(1:step:end), links_tot.density(:, 1:step:end)', '-')
+    plot(t_tot(1:step:end), links_tot.density(:, 1:step:end)' / lanes, '-')
     hlegend(3) = legend('\rho_{L1}', '\rho_{L2}', '\rho_{L3}');
-    ylabel('density (veh/km)')
+    ylabel('density (veh/km/lane)')
     
     ax(4) = nexttile(4);
     slack_tot = mean(cell2mat(slack), 1);
@@ -249,10 +249,10 @@ if plot_learning
     ax(3) = nexttile(7); hold on
     true_pars.v_free_tracking = true_pars.v_free;
     legendStrings = {};
-    pars = intersect(fieldnames(rl_pars), traffic_pars);
+    pars = intersect(fieldnames(rl.pars), traffic_pars);
     for i = 1:length(pars)
         par = pars{i};
-        stairs(linspace(0, ep_tot, length(rl_pars.(par))), rl_pars.(par))
+        stairs(linspace(0, ep_tot, length(rl.pars.(par))), rl.pars.(par))
         ax(3).ColorOrderIndex = i;
         plot([0, ep_tot], [true_pars.(par), true_pars.(par)], '--')
         legendStrings = [legendStrings, {par, ''}];
@@ -266,12 +266,12 @@ if plot_learning
     
     ax(4) = nexttile(6, [2, 1]); hold on
     markers = {'o', '*', 'x', 'v', 'd', '^', 's', '>', '<', '+'};
-    weights = setdiff(fieldnames(rl_pars), traffic_pars);
+    weights = setdiff(fieldnames(rl.pars), traffic_pars);
     legendStrings = {};
     for i = 1:length(weights)
         weight = weights{i};
-        for j = 1:size(rl_pars.(weight), 1)
-            w = rl_pars.(weight)(j, :);
+        for j = 1:size(rl.pars.(weight), 1)
+            w = rl.pars.(weight)(j, :);
             if scaled_learned
                 w = rescale(w);
             end
@@ -279,7 +279,7 @@ if plot_learning
                 'Marker', markers{mod(i - 1, length(markers)) + 1}, ...
                 'MarkerSize', 4)
             % stairs(linspace(0, ep_tot, length(w)), w, 'Marker', Markers{i}, 'MarkerSize', 4)
-            if size(rl_pars.(weight), 1) > 1
+            if size(rl.pars.(weight), 1) > 1
                 legendStrings{end + 1} = append(weight, '_', string(j));
             else
                 legendStrings{end + 1} = weight;
