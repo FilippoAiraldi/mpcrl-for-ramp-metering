@@ -206,6 +206,32 @@ classdef NMPC < handle
                 vals = obj.shift_vals(pars, vals);
             end
 
+            % if multistarting, solve the problem n times, returning only 
+            % the best solution that is feasible. If none are feasible,
+            % pick the best among them.
+            if multistart > 1
+                for i = 1:multistart % unable to parallelize SWIG references...
+                    % perturb initial conditions and solve i-th problem
+                    vals_i = vals;
+                    vals_i.w = vals.w + randn(size(vals.w)) * (i-1)/5;
+                    vals_i.rho = vals.rho + randn(size(vals.v)) * (i-1)/5;
+                    vals_i.v = vals.v + randn(size(vals.v)) * (i-1)/5;
+                    vals_i.r = vals.r + randn(size(vals.r)) * (i-1)/10;
+                    [sol_i, info_i] = obj.solve( ...
+                                pars, vals_i, false, use_fmincon);
+
+                    % decide if better than current
+                    if (i == 1  || ...                                  % pick the first
+                            (~info.success && info_i.success) || ...    % pick first that is feasible
+                            ((info.success == info_i.success) ...       % if both (in)feasible, compare fval
+                                                    && info_i.f < info.f))
+                        sol = sol_i;
+                        info = info_i;
+                    end
+                end
+                return
+            end
+
             % enforce feasibility on initial conditions - ipopt will do it
             % again in the restoration phase, but let's help it
             pars.w0   = max(obj.eps, pars.w0);

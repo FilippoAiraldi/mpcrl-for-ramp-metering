@@ -335,7 +335,7 @@ for ep = start_ep:episodes
             for n = fieldnames(rl.pars)'
                 pars.(n{1}) = rl.pars.(n{1}){end};
             end
-            [last_sol, infoV] = mpc.V.solve(pars, last_sol, true, true);
+            [last_sol, infoV] = mpc.V.solve(pars, last_sol, true, true, 5);
 
             % save to memory if successful, or log error 
             if ep > 1 || k_mpc > 1
