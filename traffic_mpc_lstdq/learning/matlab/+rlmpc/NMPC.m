@@ -3,6 +3,7 @@ classdef NMPC < handle
     % for the given 3-link metanet problem.
     
 
+
     properties (GetAccess = public, SetAccess = private)
         Np (1, 1) double 
         Nc (1, 1) double 
@@ -13,8 +14,8 @@ classdef NMPC < handle
         vars (1, 1) struct % contains opti variables
         pars (1, 1) struct % contains opti parameters
         eps (1, 1) double
-        %
-        I_g (1, 1) struct = struct;
+        % 
+        con (1, 1) struct
     end
 
 
@@ -120,6 +121,17 @@ classdef NMPC < handle
             end
             I_g_eq = [I_g_eq, ng + 1:opti.ng];
 
+            % categorize constraints
+            g = opti.g;
+            lam_g = opti.lam_g;
+            con = struct( ...
+                'eq', struct('I', I_g_eq, ...
+                             'g', g(I_g_eq), ...
+                             'lam_g', lam_g(I_g_eq)), ...
+                'ineq', struct('I', I_g_ineq, ...
+                               'g', g(I_g_ineq), ...
+                               'lam_g', lam_g(I_g_ineq)));
+
             % save to instance
             obj.Np = Np;
             obj.Nc = Nc;
@@ -129,8 +141,8 @@ classdef NMPC < handle
             obj.opti = opti;
             obj.vars = vars;
             obj.pars = pars;
+            obj.con = con;
             obj.eps = eps;
-            obj.I_g = struct('eq', I_g_eq, 'ineq', I_g_ineq);
         end
 
         function par = add_par(obj, name, dim1, dim2)
@@ -176,7 +188,7 @@ classdef NMPC < handle
         end
 
         function [sol, info] = solve(obj, pars, vals, ...
-                                                shift_vals, use_fmincon)
+                                    shift_vals, use_fmincon, multistart)
             % SOLVE. Solve the NMPC problem with the given parameter values
             % and initial conditions for the variables.
             arguments
@@ -185,6 +197,7 @@ classdef NMPC < handle
                 vals (1, 1) struct
                 shift_vals (1, 1) logical = true;
                 use_fmincon (1, 1) logical = false;
+                multistart (1, 1) {mustBePositive,mustBeInteger} = 1
             end
 
             % if requested, shifts the initial conditions for the MPC by M
@@ -195,8 +208,6 @@ classdef NMPC < handle
 
             % enforce feasibility on initial conditions - ipopt will do it
             % again in the restoration phase, but let's help it
-%             assert(all(pars.w0 >= obj.eps) && all(pars.rho0 >= obj.eps) ...
-%                 && all(pars.v0 >= obj.eps), 'infeasible init. conditions')
             pars.w0   = max(obj.eps, pars.w0);
             pars.rho0 = max(obj.eps, pars.rho0);
             pars.v0   = max(obj.eps, pars.v0);
@@ -210,15 +221,10 @@ classdef NMPC < handle
                         max(obj.eps^2, vals.w(I, :) - obj.max_queue(I));
             end
 
-            % set parameter values
-            for name = fieldnames(obj.pars)'
-                obj.opti.set_value(obj.pars.(name{1}), pars.(name{1}));
-            end
-
-            % EXPERIMENTAL
+            % choose which optimizer to run
             if use_fmincon
-                [sol, get_value, ~, f, ~, ~, ~, flag, output] = ...
-                                    rlmpc.fmc.solveSQP_simple(obj, vals);
+                [sol, get_value, ~, f, ~, ~, flag, output] = ...
+                                    rlmpc.fmc.solveSQP(obj, pars, vals);
                 info.f = f;
                 info.success = flag > 0;
                 if ~info.success
@@ -226,40 +232,41 @@ classdef NMPC < handle
                     info.error = strtrim(msg{1});
                 end
                 info.get_value = get_value;
-                return
-            end
-
-            % set initial conditions for the solver
-            for name = fieldnames(obj.vars)'
-                obj.opti.set_initial(obj.vars.(name{1}), vals.(name{1}));
-            end
-
-            % run solver
-            info = struct;
-            try
-                s = obj.opti.solve();
-                info.success = true;
-                get_value = @(o) s.value(o);
-                info.get_value = get_value;
-            catch ME1
+            else
+                % set parameter values and set initial conditions
+                for name = fieldnames(obj.pars)'
+                    obj.opti.set_value(obj.pars.(name{1}), pars.(name{1}));
+                end
+                for name = fieldnames(obj.vars)'
+                    obj.opti.set_initial( ...
+                                    obj.vars.(name{1}), vals.(name{1}));
+                end
+    
+                % run solver
+                info = struct;
                 try
-                    stats = obj.opti.debug.stats();
-                    info.success = false;
-                    info.error = stats.return_status;
-                    get_value = @(o) obj.opti.debug.value(o);
+                    s = obj.opti.solve();
+                    info.success = true;
+                    get_value = @(o) s.value(o);
                     info.get_value = get_value;
-                catch ME2
-                    rethrow(addCause(ME2, ME1))
-                end   
-            end
-
-            % get outputs
-            info.f = get_value(obj.opti.f);
-            % info.g = get_value(obj.opti.g);
-            % info.lam_g = get_value(obj.opti.lam_g);
-            sol = struct;
-            for name = fieldnames(obj.vars)'
-                sol.(name{1}) = get_value(obj.vars.(name{1}));
+                catch ME1
+                    try
+                        stats = obj.opti.debug.stats();
+                        info.success = false;
+                        info.error = stats.return_status;
+                        get_value = @(o) obj.opti.debug.value(o);
+                        info.get_value = get_value;
+                    catch ME2
+                        rethrow(addCause(ME2, ME1))
+                    end   
+                end
+    
+                % get outputs
+                info.f = get_value(obj.opti.f);
+                sol = struct;
+                for name = fieldnames(obj.vars)'
+                    sol.(name{1}) = get_value(obj.vars.(name{1}));
+                end
             end
         end
 

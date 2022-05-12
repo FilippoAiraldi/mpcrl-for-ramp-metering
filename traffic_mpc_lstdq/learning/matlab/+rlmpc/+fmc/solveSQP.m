@@ -1,26 +1,24 @@
- function [sol, get_value, x_opt, fval, p, g, lam_g, flag, output] = ...
-                                                solveSQP(mpc, vals)
+ function [sol, get_value, x_opt, fval, p, lam_g, flag, output] = ...
+                                                solveSQP(mpc, pars, vals)
     arguments
         mpc (1, 1) rlmpc.NMPC
+        pars (1, 1) struct
         vals (1, 1) struct
     end
 
     % pre-compute stuff
     x0 = subsevalf(mpc.opti.x, mpc.vars, vals);
-    p = mpc.opti.value(mpc.opti.p);
+    p = subsevalf(mpc.opti.p, mpc.pars, pars);
     df = jacobian(mpc.opti.f, mpc.opti.x)';
-%     H = hessian(mpc.opti.f + mpc.opti.lam_g' * mpc.opti.g, mpc.opti.x);
-    g = mpc.opti.g;
-    g_eq = g(mpc.I_g.eq);
-    dg_eq = jacobian(g_eq, mpc.opti.x)';
-    g_ineq = g(mpc.I_g.ineq);
-    dg_ineq = jacobian(g_ineq, mpc.opti.x)';
+    % H = hessian(mpc.opti.f + mpc.opti.lam_g' * mpc.opti.g, mpc.opti.x);
+    dg_eq = jacobian(mpc.con.eq.g, mpc.opti.x)';
+    dg_ineq = jacobian(mpc.con.ineq.g, mpc.opti.x)';
 
     % objective 
     obj = @(x) objective(x, mpc, p, df);
 
-    % non linear constraints - dynamics
-    nlcon = @(x) nonlcon(x, mpc, p, g_eq, dg_eq, g_ineq, dg_ineq);
+    % non linear constraints
+    nlcon = @(x) nonlcon(x, mpc, p, dg_eq, dg_ineq);
 
     % solve the sqp problem
     opts = optimoptions('fmincon', 'Algorithm', 'sqp', ...
@@ -30,7 +28,7 @@
                         'ScaleProblem', true, ...
                         'SpecifyObjectiveGradient', true, ...
                         'SpecifyConstraintGradient', true);
-    [x_opt, fval, flag, output, lam_g_struct] = fmincon(obj, ...
+    [x_opt, fval, flag, output, lam_g_S] = fmincon(obj, ...
                             x0, [], [], [], [], [], [], nlcon, opts);
 %     if flag <= 0
 %         % fall back to interior point
@@ -47,15 +45,12 @@
 
     % put multiplier in a unique vector
     lam_g = nan(size(mpc.opti.g));
-    lam_g(mpc.I_g.eq) = lam_g_struct.eqnonlin;
-    lam_g(mpc.I_g.ineq) = lam_g_struct.ineqnonlin;
+    lam_g(mpc.con.eq.I) = lam_g_S.eqnonlin;
+    lam_g(mpc.con.ineq.I) = lam_g_S.ineqnonlin;
 
     % build a function to get the values 
     get_value = @(o) subsevalf(o, ...
             [mpc.opti.p; mpc.opti.x; mpc.opti.lam_g], [p; x_opt; lam_g]);
-
-    % return constraint value at the optimal
-    g = get_value(mpc.opti.g);
 
     % compute per-variable solution
     sol = struct;
@@ -66,7 +61,7 @@ end
 
 
 
-%%
+%% local functions
 function y = subsevalf(expr, old, new)
     y = expr;
 
@@ -99,13 +94,12 @@ function [f, df] = objective(x, mpc, p, df_sym)
     df = subsevalf(df_sym, [mpc.opti.p; mpc.opti.x], [p; x]);
 end
 
-function [c, ceq, dc, dceq] = nonlcon(x, mpc, p, ...
-                                            g_eq, dg_eq, g_ineq, dg_ineq)
+function [c, ceq, dc, dceq] = nonlcon(x, mpc, p, dg_eq, dg_ineq)
     % nonlinear inequalities
-    c = subsevalf(g_ineq, [mpc.opti.p; mpc.opti.x], [p; x]);
+    c = subsevalf(mpc.con.ineq.g, [mpc.opti.p; mpc.opti.x], [p; x]);
 
     % nonlinear equalities 
-    ceq = subsevalf(g_eq, [mpc.opti.p; mpc.opti.x], [p; x]);
+    ceq = subsevalf(mpc.con.eq.g, [mpc.opti.p; mpc.opti.x], [p; x]);
 
     % compute the constraint gradients
     if nargout == 2
@@ -115,18 +109,18 @@ function [c, ceq, dc, dceq] = nonlcon(x, mpc, p, ...
     dceq = subsevalf(dg_eq, [mpc.opti.p; mpc.opti.x], [p; x]);
 end
 
-function H = hessianfcn(x, lambda, mpc, p, H_sym)
-    lam_g = nan(size(mpc.opti.g));
-    lam_g(mpc.I_g.eq) = lambda.eqnonlin;
-    lam_g(mpc.I_g.ineq) = lambda.ineqnonlin;
+% function H = hessianfcn(x, lambda, mpc, p, H_sym)
+%     lam_g = nan(size(mpc.opti.g));
+%     lam_g(mpc.I_g.eq) = lambda.eqnonlin;
+%     lam_g(mpc.I_g.ineq) = lambda.ineqnonlin;
+% 
+%     H = subsevalf(H_sym, ... 
+%                 [mpc.opti.p; mpc.opti.x; mpc.opti.lam_g], [p; x; lam_g]);
+% end
 
-    H = subsevalf(H_sym, [mpc.opti.p; mpc.opti.x; mpc.opti.lam_g], ...
-                                                            [p; x; lam_g]);
-end
 
 
-
-%%
+%% old code
 %  function [x_opt, fval, flag, output, lam_g] = solveSQP(mpc, pars, vals)
 %     arguments
 %         mpc (1, 1) rlmpc.NMPC
