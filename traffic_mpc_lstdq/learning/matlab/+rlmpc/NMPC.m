@@ -13,6 +13,8 @@ classdef NMPC < handle
         vars (1, 1) struct % contains opti variables
         pars (1, 1) struct % contains opti parameters
         eps (1, 1) double
+        %
+        I_g (1, 1) struct = struct;
     end
 
 
@@ -60,22 +62,31 @@ classdef NMPC < handle
                 pars_dyn{end + 1} = p; %#ok<AGROW> 
             end
 
+            % indices of equality and inequality constraints
+            I_g_eq = [];
+            I_g_ineq = [];
+
             % constraints on domains
-            opti.subject_to(-vars.r(:) + 0.2 <= 0)
-            opti.subject_to(vars.r(:) - 1 <= 0)
+            ng = opti.ng;
             opti.subject_to(-vars.w(:) + eps <= 0)
             opti.subject_to(-vars.rho(:) + eps <= 0)
             opti.subject_to(-vars.v(:) + eps <= 0)
             if ~isempty(max_queue)
                 opti.subject_to(-vars.slack(:) + eps^2 <= 0)
             end
+            opti.subject_to(-vars.r(:) + 0.2 <= 0)
+            opti.subject_to(vars.r(:) - 1 <= 0)
+            I_g_ineq = [I_g_ineq, ng + 1:opti.ng];
             
             % constraints on initial conditions
+            ng = opti.ng;
             opti.subject_to(vars.w(:, 1) - pars.w0 == 0)
             opti.subject_to(vars.v(:, 1) - pars.v0 == 0)
             opti.subject_to(vars.rho(:, 1) - pars.rho0 == 0)
+            I_g_eq = [I_g_eq, ng + 1:opti.ng];
 
             % (soft) constraints on queues
+            ng = opti.ng;
             if ~isempty(max_queue)
                 j = 1;
                 for i = 1:length(max_queue)
@@ -87,12 +98,14 @@ classdef NMPC < handle
                     j = j + 1;
                 end
             end
+            I_g_ineq = [I_g_ineq, ng + 1:opti.ng];
 
             % expand control sequence
             r_exp = [repelem(vars.r, 1, M), ...
                 repelem(vars.r(:, end), 1, M * (Np - Nc))];
 
             % constraints on state evolution
+            ng = opti.ng;
             for k = 1:M * Np
                 [~, w_next, ~, rho_next, v_next] = dynamics.f(...
                     vars.w(:, k), ...
@@ -105,6 +118,7 @@ classdef NMPC < handle
                 opti.subject_to(vars.rho(:, k + 1) - rho_next == 0)
                 opti.subject_to(vars.v(:, k + 1) - v_next == 0)
             end
+            I_g_eq = [I_g_eq, ng + 1:opti.ng];
 
             % save to instance
             obj.Np = Np;
@@ -116,6 +130,7 @@ classdef NMPC < handle
             obj.vars = vars;
             obj.pars = pars;
             obj.eps = eps;
+            obj.I_g = struct('eq', I_g_eq, 'ineq', I_g_ineq);
         end
 
         function par = add_par(obj, name, dim1, dim2)
@@ -160,7 +175,8 @@ classdef NMPC < handle
             obj.vars.(name) = var;
         end
 
-        function [sol, info] = solve(obj, pars, vals, shift_vals)
+        function [sol, info] = solve(obj, pars, vals, ...
+                                                shift_vals, use_fmincon)
             % SOLVE. Solve the NMPC problem with the given parameter values
             % and initial conditions for the variables.
             arguments
@@ -168,6 +184,7 @@ classdef NMPC < handle
                 pars (1, 1) struct
                 vals (1, 1) struct
                 shift_vals (1, 1) logical = true;
+                use_fmincon (1, 1) logical = false;
             end
 
             % if requested, shifts the initial conditions for the MPC by M
@@ -198,6 +215,20 @@ classdef NMPC < handle
                 obj.opti.set_value(obj.pars.(name{1}), pars.(name{1}));
             end
 
+            % EXPERIMENTAL
+            if use_fmincon
+                [sol, get_value, ~, f, ~, ~, ~, flag, output] = ...
+                                    rlmpc.fmc.solveSQP_simple(obj, vals);
+                info.f = f;
+                info.success = flag > 0;
+                if ~info.success
+                    msg = split(output.message, '.');
+                    info.error = strtrim(msg{1});
+                end
+                info.get_value = get_value;
+                return
+            end
+
             % set initial conditions for the solver
             for name = fieldnames(obj.vars)'
                 obj.opti.set_initial(obj.vars.(name{1}), vals.(name{1}));
@@ -208,14 +239,15 @@ classdef NMPC < handle
             try
                 s = obj.opti.solve();
                 info.success = true;
-                info.sol = s;
                 get_value = @(o) s.value(o);
+                info.get_value = get_value;
             catch ME1
                 try
                     stats = obj.opti.debug.stats();
                     info.success = false;
                     info.error = stats.return_status;
                     get_value = @(o) obj.opti.debug.value(o);
+                    info.get_value = get_value;
                 catch ME2
                     rethrow(addCause(ME2, ME1))
                 end   
@@ -227,7 +259,7 @@ classdef NMPC < handle
             % info.lam_g = get_value(obj.opti.lam_g);
             sol = struct;
             for name = fieldnames(obj.vars)'
-                sol.(name{1}) = full(get_value(obj.vars.(name{1})));
+                sol.(name{1}) = get_value(obj.vars.(name{1}));
             end
         end
 

@@ -21,7 +21,7 @@ load_checkpoint = false;
 
 %% Model
 % simulation
-episodes = 50;                  % number of episodes to repeat
+episodes = 1;                  % number of episodes to repeat
 Tfin = 2;                       % simulation time per episode (h)
 T = 10 / 3600;                  % simulation step size (h)
 K = Tfin / T;                   % simulation steps per episode (integer)
@@ -84,7 +84,7 @@ D = filtfilt(...
 Np = 4;                             % prediction horizon - \approx 3*L/(M*T*v_avg)
 Nc = 3;                             % control horizon
 M  = 6;                             % horizon spacing factor
-eps = 1e-4;                         % nonnegative constraint precision
+eps = 0 * 1e-4;                         % nonnegative constraint precision
 plugin_opts = struct('expand', true, 'print_time', false);
 solver_opts = struct('print_level', 5, 'max_iter', 2e3, 'tol', 1e-7, ...
                      'barrier_tol_factor', 1e-3);
@@ -92,7 +92,7 @@ perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
 %
 approx_Veq = true;                  % whether to use an approximation of Veq
-max_in_and_out = [false, true];     % whether to apply max to inputs and outputs of dynamics
+max_in_and_out = [false, false];     % whether to apply max to inputs and outputs of dynamics
 %
 discount = 1;                       % rl discount factor
 lr = 1e-4;                          % rl learning rate
@@ -314,7 +314,7 @@ for ep = start_ep:episodes
                 for n = fieldnames(rl.pars)'
                     pars.(n{1}) = rl.pars.(n{1}){end};
                 end
-                [last_sol, infoQ] = mpc.Q.solve(pars, last_sol);
+                [last_sol, infoQ] = mpc.Q.solve(pars, last_sol, true, true);
             end
 
             % choose if to apply perturbation
@@ -335,7 +335,7 @@ for ep = start_ep:episodes
             for n = fieldnames(rl.pars)'
                 pars.(n{1}) = rl.pars.(n{1}){end};
             end
-            [last_sol, infoV] = mpc.V.solve(pars, last_sol);
+            [last_sol, infoV] = mpc.V.solve(pars, last_sol, true, true);
 
             % save to memory if successful, or log error 
             if ep > 1 || k_mpc > 1
@@ -347,24 +347,24 @@ for ep = start_ep:episodes
                     td_error_perc{ep}(k_mpc) = td_err / infoQ.f;
 
                     % compute numerical gradients w.r.t. params
-                    dQ = infoQ.sol.value(deriv.Q.dL);
-                    d2Q = infoQ.sol.value(deriv.Q.d2L);
+                    dQ = infoQ.get_value(deriv.Q.dL);
+                    d2Q = infoQ.get_value(deriv.Q.d2L);
                     % dV = info_V.sol.value(deriv.V.dL);
                     % dtd_err = discount * dV - dQ;
                     dtd_err = -dQ;
 
                     % store in memory
-                    replaymem.add(struct(...
+                    replaymem.add(struct( ...
                                     'A', td_err * d2Q + dQ * dtd_err', ...
                                     'b', td_err * dQ, 'dQ', dQ));
 
-                    % util.info(toc(start_tot_time), ep, ...
-                    %                     toc(start_ep_time), t(k), k, K);
+                    util.info(toc(start_tot_time), ep, ...
+                                        toc(start_ep_time), t(k), k, K);
                 else
                     nb_fail = nb_fail + 1;
                     msg = '';
                     if ~infoV.success
-                        msg = sprintf('V: %s. ', infoV.error); % max iters at k=97, cpu secs=12/13
+                        msg = sprintf('V: %s. ', infoV.error);
                     end
                     if ~infoQ.success
                         msg = append(msg, sprintf('Q: %s.', infoQ.error));
@@ -469,7 +469,7 @@ for ep = start_ep:episodes
     ep_TTS = full(sum(TTS(origins.queue{ep}, links.density{ep})));
     util.info(toc(start_tot_time), ep, exec_times(ep), t(end), K, K, ...
         sprintf('episode %i: Jtot=%.3f, TTS=%.3f, fails=%i(%.1f%%)', ...
-        ep, ep_Jtot, ep_TTS, nb_fail, nb_fail / K * 100));
+        ep, ep_Jtot, ep_TTS, nb_fail, nb_fail / K * M * 100));
 
     % plot performance
     if ~exist('ph_J', 'var') || ~isvalid(ph_J)
