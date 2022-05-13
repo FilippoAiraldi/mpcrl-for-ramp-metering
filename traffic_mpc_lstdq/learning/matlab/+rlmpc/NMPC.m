@@ -14,19 +14,20 @@ classdef NMPC < handle
         vars (1, 1) struct % contains opti variables
         pars (1, 1) struct % contains opti parameters
         eps (1, 1) double
-        % 
         con (1, 1) struct
+        opts (1, 1) struct
     end
 
 
 
     methods (Access = public) 
-        function obj = NMPC(Np, Nc, M, dynamics, max_queue, eps)
+        function obj = NMPC(Np, Nc, M, dynamics, opts, max_queue, eps)
             % NMPC. Builds an instance of an NMPC with the corresponding
             % horizons and dynamics.
             arguments
                 Np, Nc, M (1, 1) double {mustBePositive,mustBeInteger}
                 dynamics (1, 1) struct
+                opts (1, 1) struct = struct
                 max_queue (:, 1) double = []
                 eps (1, 1) double {mustBeNonnegative} = 0
             end
@@ -131,6 +132,9 @@ classdef NMPC < handle
                 'ineq', struct('I', I_g_ineq, ...
                                'g', g(I_g_ineq), ...
                                'lam_g', lam_g(I_g_ineq)));
+            
+            % set the solver
+            opti.solver('ipopt', opts.plugin, opts.solver);
 
             % save to instance
             obj.Np = Np;
@@ -143,6 +147,7 @@ classdef NMPC < handle
             obj.pars = pars;
             obj.con = con;
             obj.eps = eps;
+            obj.opts = opts;
         end
 
         function par = add_par(obj, name, dim1, dim2)
@@ -201,98 +206,24 @@ classdef NMPC < handle
             end
 
             % if requested, shifts the initial conditions for the MPC by M
-            % instants to the left, and pads the right with a simulation
+            % instants to the left, and pads the right with a simulation.
+            % This step is independent of the algorithm and multistart.
             if shift_vals
-                vals = obj.shift_vals(pars, vals);
+                vals = obj.shift_vals( ...
+                                pars, vals, obj.M, obj.Np, obj.dynamics.f);
             end
 
-            % if multistarting, solve the problem n times, returning only 
-            % the best solution that is feasible. If none are feasible,
-            % pick the best among them.
-            if multistart > 1
-                for i = 1:multistart % unable to parallelize SWIG references...
-                    % perturb initial conditions and solve i-th problem
-                    vals_i = vals;
-                    vals_i.w = vals.w + randn(size(vals.w)) * (i-1)/5;
-                    vals_i.rho = vals.rho + randn(size(vals.v)) * (i-1)/5;
-                    vals_i.v = vals.v + randn(size(vals.v)) * (i-1)/5;
-                    vals_i.r = vals.r + randn(size(vals.r)) * (i-1)/10;
-                    [sol_i, info_i] = obj.solve( ...
-                                pars, vals_i, false, use_fmincon);
+            % order pars and vars according to the order of creation
+            % vals = orderfields(vals, obj.vars);
+            % pars = orderfields(pars, obj.pars);
 
-                    % decide if better than current
-                    if (i == 1  || ...                                  % pick the first
-                            (~info.success && info_i.success) || ...    % pick first that is feasible
-                            ((info.success == info_i.success) ...       % if both (in)feasible, compare fval
-                                                    && info_i.f < info.f))
-                        sol = sol_i;
-                        info = info_i;
-                    end
-                end
-                return
-            end
-
-            % enforce feasibility on initial conditions - ipopt will do it
-            % again in the restoration phase, but let's help it
-            pars.w0   = max(obj.eps, pars.w0);
-            pars.rho0 = max(obj.eps, pars.rho0);
-            pars.v0   = max(obj.eps, pars.v0);
-            vals.w    = max(obj.eps, vals.w);
-            vals.rho  = max(obj.eps, vals.rho);
-            vals.v    = max(obj.eps, vals.v);
-            vals.r    = min(1, max(0.2, vals.r));
-            if isfield(vals, 'slack')
-                I = find(isfinite(obj.max_queue));
-                vals.slack = ...
-                        max(obj.eps^2, vals.w(I, :) - obj.max_queue(I));
-            end
-
-            % choose which optimizer to run
+            % decide which algorithm to use
             if use_fmincon
-                [sol, get_value, ~, f, ~, ~, flag, output] = ...
-                                    rlmpc.fmc.solveSQP(obj, pars, vals);
-                info.f = f;
-                info.success = flag > 0;
-                if ~info.success
-                    msg = split(output.message, '.');
-                    info.error = strtrim(msg{1});
-                end
-                info.get_value = get_value;
+                [sol, info] = obj.solve_fmincon_multistart( ...
+                                                pars, vals, multistart);
             else
-                % set parameter values and set initial conditions
-                for name = fieldnames(obj.pars)'
-                    obj.opti.set_value(obj.pars.(name{1}), pars.(name{1}));
-                end
-                for name = fieldnames(obj.vars)'
-                    obj.opti.set_initial( ...
-                                    obj.vars.(name{1}), vals.(name{1}));
-                end
-    
-                % run solver
-                info = struct;
-                try
-                    s = obj.opti.solve();
-                    info.success = true;
-                    get_value = @(o) s.value(o);
-                    info.get_value = get_value;
-                catch ME1
-                    try
-                        stats = obj.opti.debug.stats();
-                        info.success = false;
-                        info.error = stats.return_status;
-                        get_value = @(o) obj.opti.debug.value(o);
-                        info.get_value = get_value;
-                    catch ME2
-                        rethrow(addCause(ME2, ME1))
-                    end   
-                end
-    
-                % get outputs
-                info.f = get_value(obj.opti.f);
-                sol = struct;
-                for name = fieldnames(obj.vars)'
-                    sol.(name{1}) = get_value(obj.vars.(name{1}));
-                end
+                [sol, info] = obj.solve_opti_multistart( ...
+                                                pars, vals, multistart);
             end
         end
 
@@ -306,21 +237,235 @@ classdef NMPC < handle
             v = cellfun(@(n) obj.pars.(n), names, 'UniformOutput', false);
             v = vertcat(v{:});
         end
+    end
 
-        function vals = shift_vals(obj, pars, vals)
-            arguments
-                obj (1, 1) rlmpc.NMPC
-                pars (1, 1) struct
-                vals (1, 1) struct
+
+
+    methods (Access = protected)
+        function [sol, info] = solve_fmincon_multistart(obj, pars, ...
+                                                        vals, multistart)
+            % solve_fmincon must be obj-agnostic in order to run in
+            % parallel. So here we prepare its inputs.
+
+            % do this only once
+            if ~isfile('F_gen.c')
+                warning(['generating mex file for SPQ solver; delete ' ...
+                            '"F_gen.c" to force repeating the process.'])
+
+                % compute symbolic derivatives and generate code
+                df = jacobian(obj.opti.f, obj.opti.x)';
+                dg_eq = jacobian(obj.con.eq.g, obj.opti.x)';
+                dg_ineq = jacobian(obj.con.ineq.g, obj.opti.x)';
+                F = casadi.Function('F', {obj.opti.p, obj.opti.x}, ...
+                                 {obj.opti.f, df, obj.con.eq.g, ...
+                                        dg_eq, obj.con.ineq.g, dg_ineq});
+                F.generate('F_gen.c', struct('mex', true));
+
+                % load it as a mex
+                mex('F_gen.c', '-largeArrayDims');
             end
-            % shift the to left, de facto forwarding M instants in time
-            vals.w = [vals.w(:, obj.M + 1:end), ...
-                                    nan(size(vals.w, 1), obj.M)];
-            vals.rho = [vals.rho(:, obj.M + 1:end), ...
-                                    nan(size(vals.rho, 1), obj.M)];
-            vals.v = [vals.v(:, obj.M + 1:end), ...
-                                    nan(size(vals.v, 1), obj.M)];
 
+            % save some variables, so obj does not enter the loop
+            eps_ = obj.eps;
+            max_queue_ = obj.max_queue;
+            opts_ = obj.opts.fmincon;
+            varnames = fieldnames(obj.vars)';
+            parnames = fieldnames(obj.pars)';
+
+            % call SQP solver 
+            if multistart == 1
+                sol = rlmpc.solveSQP( ...
+                                    pars, vals, varnames, parnames, opts_);
+            else
+                % solve in parallel
+                sols = cell(1, multistart);
+                parfor i = 1:multistart % multistart / 2)
+                    % perturb initial conditions
+                    vals_i = rlmpc.NMPC.perturb_vals(vals, i);
+                    [pars_i, vals_i] = rlmpc.NMPC.enforce_feasibility( ...
+                                pars, vals_i, eps_, max_queue_);
+    
+                    % Solve the SQP
+                    sols{i} = rlmpc.solveSQP( ...
+                                pars_i, vals_i, varnames, parnames, opts_);
+                end
+    
+                % find best among all solutions
+                sol = sols{1};
+                i_opt = 1; 
+                for i = 2:multistart
+                    sol_i = sols{i};
+                    if (~sol_i.success && sol_i.success) || ...             % pick first that is feasible
+                       ((sol_i.success == sol_i.success) && ...             % if both (in)feasible, compare f 
+                                                        sol_i.f < sol_i.f)    
+                        sol = sol_i;
+                        i_opt = i;
+                    end
+                end
+            end
+
+            % put multiplier in a unique vector
+            lam_g = nan(obj.opti.ng, 1);
+            lam_g(obj.con.eq.I) = sol.lam_g.eqnonlin;
+            lam_g(obj.con.ineq.I) = sol.lam_g.ineqnonlin;
+            
+            % build info
+            get_value = @(o) rlmpc.NMPC.subsevalf(o, ...
+                            [obj.opti.p; obj.opti.x; obj.opti.lam_g], ...
+                            [sol.p; sol.x; lam_g]);
+            info = struct('f', sol.f, 'success', sol.success, ...
+                   'msg', sol.msg, 'get_value', get_value, 'i_opt', i_opt);
+        
+            % compute per-variable solution
+            sol = struct;
+            for n = varnames
+                sol.(n{1}) = get_value(obj.vars.(n{1}));
+            end
+        end
+
+        function [sol, info] = solve_opti(obj, pars, vals)
+            % set parameter values and set initial conditions
+            for name = fieldnames(obj.pars)'
+                obj.opti.set_value(obj.pars.(name{1}), pars.(name{1}));
+            end
+            for name = fieldnames(obj.vars)'
+                obj.opti.set_initial(obj.vars.(name{1}), vals.(name{1}));
+            end
+    
+            % run solver
+            info = struct;
+            try
+                s = obj.opti.solve();
+                info.success = true;
+                info.get_value = @(o) s.value(o);
+            catch ME1
+                try
+                    info.success = false;
+                    info.get_value = @(o) obj.opti.debug.value(o);
+                catch ME2
+                    rethrow(addCause(ME2, ME1))
+                end   
+            end
+            
+            % get outputs
+            info.f = info.get_value(obj.opti.f);
+            info.msg = obj.opti.debug.stats.return_status;
+            sol = struct;
+            for name = fieldnames(obj.vars)'
+                sol.(name{1}) = get_value(obj.vars.(name{1}));
+            end
+        end
+
+        function [sol, info] = solve_opti_multistart(obj, pars, vals, ...
+                                                                multistart)
+            % check if problem can be solved just once
+            if multistart == 1
+                [sol, info] = solve_opti(obj, pars, vals);
+                return
+            end
+
+            % to run the problem in parallel, we have to convert it to an
+            % NLP (see https://web.casadi.org/blog/parfor/)
+            nlp = struct('x', obj.opti.x, 'p', obj.opti.p, ...
+                         'f', obj.opti.f, 'g', obj.opti.g);
+            opts_ = obj.opts.plugin;
+            opts_.ipopt = obj.opts.solver;
+            solver = casadi.nlpsol('solver', 'ipopt', nlp, opts_);
+
+            % save some variables, so obj does not enter the loop
+            eps_ = obj.eps;
+            max_queue_ = obj.max_queue;
+            lbg_ = evalf(obj.opti.lbg); % for some reason, need to copy these
+            ubg_ = evalf(obj.opti.ubg);
+            varnames = fieldnames(obj.vars)';
+            parnames = fieldnames(obj.pars)';
+            
+            % solve in parallel
+            sols = cell(1, multistart);
+            infos = cell(1, multistart);
+            parfor i = 1:multistart % multistart / 2)
+                % perturb initial conditions
+                vals_i = rlmpc.NMPC.perturb_vals(vals, i);
+                [pars_i, vals_i] = rlmpc.NMPC.enforce_feasibility( ...
+                            pars, vals_i, eps_, max_queue_);
+
+                % convert to vectors
+                x0 = cellfun(@(n) vals_i.(n)(:), varnames, ...
+                                                'UniformOutput', false);
+                x0 = vertcat(x0{:});
+                p = cellfun(@(n) pars_i.(n)(:), parnames, ...
+                                                'UniformOutput', false);
+                p = vertcat(p{:});
+
+                % Solve the NLP
+                sol = solver('x0' , x0, 'p', p, ...
+                                 'lbx', 0, 'ubx', inf, ...
+                                 'lbg', lbg_, 'ubg', ubg_); %#ok<PFBNS> 
+                f = full(sol.f);
+                sols{i} = struct('f', f, 'x', full(sol.x), 'p', p, ...
+                                 'g', full(sol.g), ...
+                                 'lam_g', full(sol.lam_g));
+                stats = solver.stats;
+                
+                % build info 
+                info = struct;  
+                info.f = f;
+                if strcmp(stats.return_status, 'Solve_Succeeded')
+                    info.success = true;
+                else
+                    info.success = false;
+                    info.error = stats.return_status;
+                end
+                infos{i} = info;
+            end
+
+            % find best among all solutions
+            sol = sols{1};
+            info = infos{1};
+            i_opt = 1;
+            for i = 2:multistart
+                sol_i = sols{i};
+                info_i = infos{i};
+                if (~info.success && info_i.success) || ...                 % pick first that is feasible
+                   ((info.success == info_i.success) && info_i.f < info.f)  % if both (in)feasible, compare f   
+                    sol = sol_i;
+                    info = info_i;
+                    i_opt = i;
+                end
+            end
+            info.i_opt = i_opt;
+
+            % build a function to get the values 
+            info.get_value = @(o) rlmpc.NMPC.subsevalf(o, ...
+                    [obj.opti.p; obj.opti.x; obj.opti.lam_g], ...
+                    [sol.p; sol.x; sol.lam_g]);
+        
+            % compute per-variable solution
+            sol = struct;
+            for n = varnames
+                sol.(n{1}) = info.get_value(obj.vars.(n{1}));
+            end
+        end
+    end
+
+
+
+    methods (Access = protected, Static)
+        function vals = perturb_vals(vals, mag)
+            % perturb initial conditions by some magnitude
+            b = (mag - 1) / 5;
+            vals.w = vals.w + randn(size(vals.w)) * b;
+            vals.rho = vals.rho + randn(size(vals.v)) * b;
+            vals.v = vals.v + randn(size(vals.v)) * b;
+            vals.r = vals.r + randn(size(vals.r)) * b / 2;
+        end
+
+        function vals = shift_vals(pars, vals, M, Np, Fdyn)
+            % shift to left, de facto forwarding M instants in time
+            vals.w = [vals.w(:, M + 1:end), nan(size(vals.w, 1), M)];
+            vals.rho = [vals.rho(:, M + 1:end), nan(size(vals.rho, 1), M)];
+            vals.v = [vals.v(:, M + 1:end), nan(size(vals.v, 1), M)];
+        
             % draw random last action
             r_rand = min(1, max(0.2, ...
                     mean(vals.r, 2) + randn(size(vals.r, 1), 1) * 0.1));
@@ -332,16 +477,52 @@ classdef NMPC < handle
             else
                 pars_dyn = {pars.rho_crit, pars.a, pars.v_free};
             end
-            for k = obj.M * (obj.Np - 1) + 1:obj.M * obj.Np
-                [~, w_next, ~, rho_next, v_next] = obj.dynamics.f( ...
+            for k = M * (Np - 1) + 1:M * Np
+                [~, w_next, ~, rho_next, v_next] = Fdyn( ...
                             vals.w(:, k), vals.rho(:, k), vals.v(:, k), ...
                             vals.r(:, end), pars.d(:, k), pars_dyn{:});
                 vals.w(:, k + 1) = full(w_next);
                 vals.rho(:, k + 1) = full(rho_next);
                 vals.v(:, k + 1) = full(v_next);
             end
-
+        
             % slacks are taken care when feasibility is enforced
+        end
+
+        function [pars, vals] = enforce_feasibility( ...
+                                                pars, vals, eps, max_queue)
+            % enforce feasibility on initial conditions - ipopt will do it
+            % again in the restoration phase, but let's help it
+            pars.w0   = max(eps, pars.w0);
+            pars.rho0 = max(eps, pars.rho0);
+            pars.v0   = max(eps, pars.v0);
+            vals.w    = max(eps, vals.w);
+            vals.rho  = max(eps, vals.rho);
+            vals.v    = max(eps, vals.v);
+            vals.r    = min(1, max(0.2, vals.r));
+            if isfield(vals, 'slack')
+                I = find(isfinite(max_queue));
+                vals.slack = ...
+                        max(eps^2, vals.w(I, :) - max_queue(I));
+            end
+        end
+    
+        function y = subsevalf(expr, old, new)
+            y = expr;
+            if isstruct(old)
+                assert(isstruct(new))
+                for n = fieldnames(old)'
+                    y = casadi.substitute(y, old.(n{1}), new.(n{1}));
+                end
+            elseif iscell(old)
+                assert(iscell(new))
+                for n = 1:length(cell)
+                    y = casadi.substitute(y, old{n}, new{n});
+                end
+            else
+                y = casadi.substitute(y, old, new);
+            end
+            y = full(evalf(y));
         end
     end
 end

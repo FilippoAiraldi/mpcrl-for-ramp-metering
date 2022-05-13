@@ -1,5 +1,5 @@
 % made with MATLAB 2021b
-clc, clearvars, close all, diary off
+clc, clearvars, close all, diary off, warning('on')
 rng(42)
 runname = datestr(datetime, 'yyyymmdd_HHMMSS');
 load_checkpoint = false;
@@ -81,18 +81,27 @@ D = filtfilt(...
 
 %% MPC-based RL
 % parameters (constant)
+approx_Veq = true;                  % whether to use an approximation of Veq
+max_in_and_out = [false, false];    % whether to apply max to inputs and outputs of dynamics
+%
 Np = 4;                             % prediction horizon - \approx 3*L/(M*T*v_avg)
 Nc = 3;                             % control horizon
 M  = 6;                             % horizon spacing factor
 eps = 0 * 1e-4;                         % nonnegative constraint precision
-plugin_opts = struct('expand', true, 'print_time', false);
-solver_opts = struct('print_level', 5, 'max_iter', 2e3, 'tol', 1e-7, ...
+opts.plugin = struct('expand', true, 'print_time', false);
+opts.solver = struct('print_level', 0, 'max_iter', 2e3, 'tol', 1e-7, ...
                      'barrier_tol_factor', 1e-3);
+opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
+                            'Display', 'none', ...
+                            'OptimalityTolerance', 1e-6, ...
+                            'StepTolerance', 1e-6, ...
+                            'ScaleProblem', true, ...
+                            'SpecifyObjectiveGradient', true, ...
+                            'SpecifyConstraintGradient', true);
 perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
-%
-approx_Veq = true;                  % whether to use an approximation of Veq
-max_in_and_out = [false, false];     % whether to apply max to inputs and outputs of dynamics
+use_fmincon = true;                 % whether to use opti or fmincon
+multistart = 10;                    % multistarting NMPC solver
 %
 discount = 1;                       % rl discount factor
 lr = 1e-4;                          % rl learning rate
@@ -129,8 +138,7 @@ normalization.v = v_free;
 mpc = struct;
 for name = ["Q", "V"]
     % instantiate an MPC
-    ctrl = rlmpc.NMPC(Np, Nc, M, dynamics.nominal, max_queue, eps);
-    ctrl.opti.solver('ipopt', plugin_opts, solver_opts);
+    ctrl = rlmpc.NMPC(Np, Nc, M, dynamics.nominal, opts, max_queue, eps);
 
     % create required parameters
     v_free_tracking = ctrl.add_par('v_free_tracking', 1, 1); 
@@ -254,10 +262,10 @@ links.speed = cell(1, episodes);
 % initialize mpc last solutions to steady-state
 last_sol = struct( ...
     'w', repmat(w, 1, M * Np + 1), ...
-    'r', ones(size(mpc.V.vars.r)), ...
     'rho', repmat(rho, 1, M * Np + 1), ...
     'v', repmat(v, 1, M * Np + 1), ...
-    'slack', ones(size(mpc.V.vars.slack)) * eps^2);
+    'slack', ones(size(mpc.V.vars.slack)) * eps^2, ...
+    'r', ones(size(mpc.V.vars.r)));
 
 % create replay memory
 replaymem = rlmpc.ReplayMem(rl_mem_cap, 'sum', 'A', 'b', 'dQ');
@@ -314,7 +322,8 @@ for ep = start_ep:episodes
                 for n = fieldnames(rl.pars)'
                     pars.(n{1}) = rl.pars.(n{1}){end};
                 end
-                [last_sol, infoQ] = mpc.Q.solve(pars, last_sol, true, true);
+                [last_sol, infoQ] = mpc.Q.solve( ...
+                        pars, last_sol, true, use_fmincon, multistart);
             end
 
             % choose if to apply perturbation
@@ -335,7 +344,8 @@ for ep = start_ep:episodes
             for n = fieldnames(rl.pars)'
                 pars.(n{1}) = rl.pars.(n{1}){end};
             end
-            [last_sol, infoV] = mpc.V.solve(pars, last_sol, true, true, 5);
+            [last_sol, infoV] = mpc.V.solve( ...
+                        pars, last_sol, true, use_fmincon, multistart);
 
             % save to memory if successful, or log error 
             if ep > 1 || k_mpc > 1
@@ -358,16 +368,16 @@ for ep = start_ep:episodes
                                     'A', td_err * d2Q + dQ * dtd_err', ...
                                     'b', td_err * dQ, 'dQ', dQ));
 
-                    util.info(toc(start_tot_time), ep, ...
-                                        toc(start_ep_time), t(k), k, K);
+                    % util.info(toc(start_tot_time), ep, ...
+                    %                     toc(start_ep_time), t(k), k, K);
                 else
                     nb_fail = nb_fail + 1;
                     msg = '';
                     if ~infoV.success
-                        msg = sprintf('V: %s. ', infoV.error);
+                        msg = sprintf('V: %s. ', infoV.msg);
                     end
                     if ~infoQ.success
-                        msg = append(msg, sprintf('Q: %s.', infoQ.error));
+                        msg = append(msg, sprintf('Q: %s.', infoQ.msg));
                     end
                     util.info(toc(start_tot_time), ep, ...
                                     toc(start_ep_time), t(k), k, K, msg);
