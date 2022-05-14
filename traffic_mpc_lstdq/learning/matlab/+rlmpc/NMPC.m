@@ -43,7 +43,7 @@ classdef NMPC < handle
             vars.v = opti.variable(dynamics.states.v.size(1), M * Np + 1);  % link speeds            
             if ~isempty(max_queue)                                          % optional slacks for max queues
                 assert(length(max_queue) == dynamics.states.w.size(1))
-                vars.slack = opti.variable( ...
+                vars.slack_max_w = opti.variable( ...
                                     sum(isfinite(max_queue)), M * Np + 1);
             end
             vars.r = opti.variable(dynamics.input.r.size(1), Nc);           % ramp metering rates
@@ -69,7 +69,7 @@ classdef NMPC < handle
             opti.subject_to(-vars.rho(:) + eps <= 0)
             opti.subject_to(-vars.v(:) + eps <= 0)
             if ~isempty(max_queue)
-                opti.subject_to(-vars.slack(:) + eps^2 <= 0)
+                opti.subject_to(-vars.slack_max_w(:) + eps^2 <= 0)
             end
             opti.subject_to(-vars.r(:) + 0.2 <= 0)
             opti.subject_to(vars.r(:) - 1 <= 0)
@@ -86,8 +86,8 @@ classdef NMPC < handle
                     if ~isfinite(max_queue(i))
                         continue
                     end
-                    opti.subject_to( ...
-                       vars.w(i, :) - vars.slack(j, :) - max_queue(i) <= 0)
+                    opti.subject_to(vars.w(i, :) - ...
+                                vars.slack_max_w(j, :) - max_queue(i) <= 0)
                     j = j + 1;
                 end
             end
@@ -301,7 +301,10 @@ classdef NMPC < handle
                             [obj.opti.p; obj.opti.x; obj.opti.lam_g], ...
                             [sol.p; sol.x; lam_g]);
             info = struct('f', sol.f, 'success', sol.success, ...
-                   'msg', sol.msg, 'get_value', get_value, 'i_opt', i_opt);
+                                'msg', sol.msg, 'get_value', get_value);
+            if multistart ~= 1
+                info.i_opt = i_opt;
+            end
         
             % compute per-variable solution
             sol = struct;
@@ -487,9 +490,9 @@ classdef NMPC < handle
             vals.rho  = max(eps, vals.rho);
             vals.v    = max(eps, vals.v);
             vals.r    = min(1, max(0.2, vals.r));
-            if isfield(vals, 'slack')
+            if isfield(vals, 'slack_max_w')
                 I = find(isfinite(max_queue));
-                vals.slack = ...
+                vals.slack_max_w = ...
                         max(eps^2, vals.w(I, :) - max_queue(I));
             end
         end

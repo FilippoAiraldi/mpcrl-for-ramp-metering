@@ -101,7 +101,7 @@ opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
 perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
 use_fmincon = true;                 % whether to use opti or fmincon
-multistart = 10;                    % multistarting NMPC solver
+multistart = 1;                    % multistarting NMPC solver
 %
 discount = 1;                       % rl discount factor
 lr = 1e-4;                          % rl learning rate
@@ -148,7 +148,8 @@ for name = ["Q", "V"]
                 find(startsWith(string(Lcost.name_in), 'weight')) - 1)));
     weight_T = ctrl.add_par('weight_T', size(Tcost.mx_in( ...
                 find(startsWith(string(Tcost.name_in), 'weight')) - 1)));
-    weight_slack = ctrl.add_par('weight_slack', numel(ctrl.vars.slack), 1);
+    weight_slack_max_w = ctrl.add_par('weight_slack_max_w', ...
+                                        numel(ctrl.vars.slack_max_w), 1);
     weight_rate_var = ctrl.add_par('weight_rate_var', 1, 1);
     r_last = ctrl.add_par('r_last', size(ctrl.vars.r, 1), 1);
 
@@ -178,9 +179,9 @@ for name = ["Q", "V"]
                         weight_T, ...
                         normalization.rho, ...
                         normalization.v);
-    % slack cost
-    ws = reshape(weight_slack, size(ctrl.vars.slack));
-    cost = cost + trace(ws' * ctrl.vars.slack); 
+    % max queue slack cost
+    ws = reshape(weight_slack_max_w, size(ctrl.vars.slack_max_w));
+    cost = cost + trace(ws' * ctrl.vars.slack_max_w); 
     % traffic-related cost
     cost = cost ...
         + sum(TTS(ctrl.vars.w, ctrl.vars.rho)) ...          % TTS
@@ -225,8 +226,8 @@ rl_(end + 1, :) = {'weight_V', {ones(size(weight_V))}, [-inf, inf]};
 rl_(end + 1, :) = {'weight_L', {ones(size(weight_L))}, [0, inf]};
 rl_(end + 1, :) = {'weight_T', {ones(size(weight_T))}, [0, inf]};
 rl_(end + 1, :) = {'weight_rate_var', {rate_var_penalty}, [1e-3, 1e3]};
-rl_(end + 1, :) = {'weight_slack', ...
-            {ones(size(weight_slack)) * con_violation_penalty}, [0, inf]};
+rl_(end + 1, :) = {'weight_slack_max_w', ...
+       {ones(size(weight_slack_max_w)) * con_violation_penalty}, [0, inf]};
 rl = struct;
 rl.pars = cell2struct(rl_(:, 2), rl_(:, 1));
 rl.bounds = cell2struct(rl_(:, 3), rl_(:, 1));
@@ -245,7 +246,8 @@ for n = string(fieldnames(mpc)')
 end
 
 % preallocate containers for miscellaneous quantities
-slack = cell(1, episodes);
+slacks = struct;
+slacks.max_w = cell(1, episodes);
 td_error = cell(1, episodes);
 td_error_perc = cell(1, episodes);  % td error as a percentage of the Q function
 exec_times = nan(1, episodes);
@@ -264,7 +266,7 @@ last_sol = struct( ...
     'w', repmat(w, 1, M * Np + 1), ...
     'rho', repmat(rho, 1, M * Np + 1), ...
     'v', repmat(v, 1, M * Np + 1), ...
-    'slack', ones(size(mpc.V.vars.slack)) * eps^2, ...
+    'slack_max_w', ones(size(mpc.V.vars.slack_max_w)) * eps^2, ...
     'r', ones(size(mpc.V.vars.r)));
 
 % create replay memory
@@ -298,7 +300,7 @@ for ep = start_ep:episodes
     links.flow{ep} = nan(size(mpc.V.vars.v, 1), K);
     links.density{ep} = nan(size(mpc.V.vars.rho, 1), K);
     links.speed{ep} = nan(size(mpc.V.vars.v, 1), K);
-    slack{ep} = nan(size(mpc.V.vars.slack, 1), ceil(K / M));
+    slacks.max_w{ep} = nan(numel(mpc.V.vars.slack_max_w), ceil(K / M));
     td_error{ep} = nan(1, ceil(K / M));
     td_error_perc{ep} = nan(1, ceil(K / M));
 
@@ -386,7 +388,7 @@ for ep = start_ep:episodes
 
             % get optimal a_k from V(s_k)
             r = last_sol.r(:, 1);
-            slack{ep}(:, k_mpc) = mean(last_sol.slack, 2);
+            slack.max_w{ep}(:, k_mpc) = last_sol.slack_max_w(:);
 
             % save for next transition
             r_prev_prev = r_prev;
