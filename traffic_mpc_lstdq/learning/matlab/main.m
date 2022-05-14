@@ -87,22 +87,27 @@ max_in_and_out = [false, false];    % whether to apply max to inputs and outputs
 Np = 4;                             % prediction horizon - \approx 3*L/(M*T*v_avg)
 Nc = 3;                             % control horizon
 M  = 6;                             % horizon spacing factor
-eps = 0 * 1e-4;                         % nonnegative constraint precision
-opts.plugin = struct('expand', true, 'print_time', false);
-opts.solver = struct('print_level', 0, 'max_iter', 2e3, 'tol', 1e-7, ...
-                     'barrier_tol_factor', 1e-3);
+eps = 0;                            % nonnegative constraint precision
+opts.nlpsol = struct('expand', true, 'print_time', false, ...
+    'ipopt', struct('print_level', 0, 'max_iter', 2e3, 'tol', 1e-7, ...
+                    'barrier_tol_factor', 1e-3));
+% opts.nlpsol = struct('expand', true, 'qpsol', 'qrqp', ...
+%     'print_header', false, 'print_iteration', false, 'verbose', false, ...
+%     'print_status', false, 'print_time', false, 'qpsol_options', ...
+%     struct('print_iter', false, 'print_header', false, ...
+%            'error_on_fail', false)); % sqpmethod
 opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
                             'Display', 'none', ...
-                            'OptimalityTolerance', 1e-6, ...
-                            'StepTolerance', 1e-6, ...
+                            'OptimalityTolerance', 1e-7, ...
+                            'StepTolerance', 1e-7, ...
                             'ScaleProblem', true, ...
                             'SpecifyObjectiveGradient', true, ...
                             'SpecifyConstraintGradient', true);
 perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
-use_fmincon = false;                 % whether to use opti or fmincon
-multistart = 1;                    % multistarting NMPC solver
-soft_domain_constraints = false;     % whether to use soft constraints on positivity of states
+use_fmincon = true;                % whether to use opti or fmincon
+multistart = 10;                    % multistarting NMPC solver
+soft_domain_constraints = false;    % whether to use soft constraints on positivity of states  % TODO: not working
 %
 discount = 1;                       % rl discount factor
 lr = 1e-4;                          % rl learning rate
@@ -139,21 +144,22 @@ normalization.v = v_free;
 mpc = struct;
 for name = ["Q", "V"]
     % instantiate an MPC
-    ctrl = rlmpc.NMPC(Np, Nc, M, dynamics.nominal, opts, ...
-                                max_queue, soft_domain_constraints, eps);
+    ctrl = rlmpc.NMPC(name, Np, Nc, M, dynamics.nominal, max_queue, ...
+                                            soft_domain_constraints, eps);
 
     % create required parameters
-    v_free_tracking = ctrl.add_par('v_free_tracking', 1, 1); 
+    v_free_tracking = ctrl.add_par('v_free_tracking', [1, 1]); 
     weight_V = ctrl.add_par('weight_V', size(Vcost.mx_in( ...
                 find(startsWith(string(Vcost.name_in), 'weight')) - 1)));
     weight_L = ctrl.add_par('weight_L', size(Lcost.mx_in( ...
                 find(startsWith(string(Lcost.name_in), 'weight')) - 1)));
     weight_T = ctrl.add_par('weight_T', size(Tcost.mx_in( ...
                 find(startsWith(string(Tcost.name_in), 'weight')) - 1)));
-    weight_slack_max_w = ctrl.add_par('weight_slack_max_w', ...
-                                        numel(ctrl.vars.slack_max_w), 1);
-    weight_rate_var = ctrl.add_par('weight_rate_var', 1, 1);
-    r_last = ctrl.add_par('r_last', size(ctrl.vars.r, 1), 1);
+    weight_slack_w_max = ctrl.add_par('weight_slack_w_max', ...
+                                        [numel(ctrl.vars.slack_w_max), 1]);
+    weight_rate_var = ctrl.add_par('weight_rate_var', [1, 1]);
+    r_last = ctrl.add_par('r_last', [size(ctrl.vars.r, 1), 1]);
+    % TODO should the slack weights on domain positivity be learnable?
 
     % compute the actual symbolic cost expression with opti vars and pars
     % initial, stage and terminal learnable costs
@@ -182,28 +188,28 @@ for name = ["Q", "V"]
                         normalization.rho, ...
                         normalization.v);
     % max queue slack cost
-    ws = reshape(weight_slack_max_w, size(ctrl.vars.slack_max_w));
-    cost = cost + trace(ws' * ctrl.vars.slack_max_w); 
+    ws = reshape(weight_slack_w_max, size(ctrl.vars.slack_w_max));
+    cost = cost + trace(ws' * ctrl.vars.slack_w_max); 
     % traffic-related cost
     cost = cost ...
         + sum(TTS(ctrl.vars.w, ctrl.vars.rho)) ...          % TTS
         + weight_rate_var * Rate_var(r_last, ctrl.vars.r);  % terminal rate variability
 
     % assign cost to opti
-    ctrl.opti.minimize(cost);
+    ctrl.minimize(cost);
 
     % save to struct
     mpc.(name) = ctrl;
 end
 
 % Q approximator has additional constraint on first action
-mpc.Q.add_par('r0', size(mpc.Q.vars.r, 1), 1);
-mpc.Q.opti.subject_to(mpc.Q.vars.r(:, 1) - mpc.Q.pars.r0 == 0);
+mpc.Q.add_par('r0', [size(mpc.Q.vars.r, 1), 1]);
+mpc.Q.add_con('r0_blocked', mpc.Q.vars.r(:, 1) - mpc.Q.pars.r0, 0, 0);
 
 % V approximator has perturbation to enhance exploration
 mpc.V.add_par('perturbation', size(mpc.V.vars.r(:, 1)));
-mpc.V.opti.minimize( ...
-    mpc.V.opti.f + mpc.V.pars.perturbation' * mpc.V.vars.r(:, 1));
+mpc.V.minimize( ...
+    mpc.V.f + mpc.V.pars.perturbation' * mpc.V.vars.r(:, 1));
 
 
 %% Simulation
@@ -215,25 +221,24 @@ r_prev = ones(n_ramps, 1);              % previous rate
     true_pars.rho_crit, true_pars.a, true_pars.v_free);
 
 % initial learnable Q/V function approx. weights and their bounds
-rl_ = cell(0, 3);
+args = cell(0, 3);
 if ~approx_Veq
-    rl_(end + 1, :) = {'v_free', {v_free}, [30, 300]};
+    args(end + 1, :) = {'v_free', {v_free}, [30, 300]};
 else
-    rl_(end + 1, :) = {'pars_Veq_approx', ...
+    args(end + 1, :) = {'pars_Veq_approx', ...
         {pars_Veq_approx}, [-1e2, 0; 1e-2, 2 * v_free; 1e-2, 2 * v_free]};
 end
-rl_(end + 1, :) = {'rho_crit', {rho_crit}, [10, 200]};
-rl_(end + 1, :) = {'v_free_tracking', {v_free}, [30, 300]};
-rl_(end + 1, :) = {'weight_V', {ones(size(weight_V))}, [-inf, inf]};
-rl_(end + 1, :) = {'weight_L', {ones(size(weight_L))}, [0, inf]};
-rl_(end + 1, :) = {'weight_T', {ones(size(weight_T))}, [0, inf]};
-rl_(end + 1, :) = {'weight_rate_var', {rate_var_penalty}, [1e-3, 1e3]};
-rl_(end + 1, :) = {'weight_slack_max_w', ...
-       {ones(size(weight_slack_max_w)) * con_violation_penalty}, [0, inf]};
+args(end + 1, :) = {'rho_crit', {rho_crit}, [10, 200]};
+args(end + 1, :) = {'v_free_tracking', {v_free}, [30, 300]};
+args(end + 1, :) = {'weight_V', {ones(size(weight_V))}, [-inf, inf]};
+args(end + 1, :) = {'weight_L', {ones(size(weight_L))}, [0, inf]};
+args(end + 1, :) = {'weight_T', {ones(size(weight_T))}, [0, inf]};
+args(end + 1, :) = {'weight_rate_var', {rate_var_penalty}, [1e-3, 1e3]};
+args(end + 1, :) = {'weight_slack_w_max', ...
+       {ones(size(weight_slack_w_max)) * con_violation_penalty}, [0, inf]};
 rl = struct;
-rl.pars = cell2struct(rl_(:, 2), rl_(:, 1));
-rl.bounds = cell2struct(rl_(:, 3), rl_(:, 1));
-clear rl_
+rl.pars = cell2struct(args(:, 2), args(:, 1));
+rl.bounds = cell2struct(args(:, 3), args(:, 1));
 
 % compute symbolic derivatives
 deriv = struct;
@@ -242,14 +247,14 @@ for n = string(fieldnames(mpc)')
     deriv.(n).rl_pars = mpc.(n).concat_pars(fieldnames(rl.pars));
 
     % compute derivative of Lagrangian
-    deriv.(n).Lagr = mpc.(n).opti.f + mpc.(n).opti.lam_g' * mpc.(n).opti.g;
-    deriv.(n).dL = simplify(jacobian(deriv.(n).Lagr, deriv.(n).rl_pars)');
-    deriv.(n).d2L = simplify(hessian(deriv.(n).Lagr, deriv.(n).rl_pars));
+    L = mpc.(n).lagrangian;
+    deriv.(n).dL = simplify(jacobian(L, deriv.(n).rl_pars)');
+    deriv.(n).d2L = simplify(hessian(L, deriv.(n).rl_pars));
 end
 
 % preallocate containers for miscellaneous quantities
 slacks = struct;
-slacks.max_w = cell(1, episodes);
+slacks.w_max = cell(1, episodes);
 td_error = cell(1, episodes);
 td_error_perc = cell(1, episodes);  % td error as a percentage of the Q function
 exec_times = nan(1, episodes);
@@ -268,8 +273,17 @@ last_sol = struct( ...
     'w', repmat(w, 1, M * Np + 1), ...
     'rho', repmat(rho, 1, M * Np + 1), ...
     'v', repmat(v, 1, M * Np + 1), ...
-    'slack_max_w', ones(size(mpc.V.vars.slack_max_w)) * eps^2, ...
+    'slack_w_max', ones(size(mpc.V.vars.slack_w_max)) * eps^2, ...
     'r', ones(size(mpc.V.vars.r)));
+
+% initialize mpc solvers
+if ~use_fmincon
+    mpc.Q.init_solver(opts.nlpsol);
+    mpc.V.init_solver(opts.nlpsol);
+else
+    mpc.Q.init_solver(opts.fmincon);
+    mpc.V.init_solver(opts.fmincon);
+end
 
 % create replay memory
 replaymem = rlmpc.ReplayMem(rl_mem_cap, 'sum', 'A', 'b', 'dQ');
@@ -302,7 +316,7 @@ for ep = start_ep:episodes
     links.flow{ep} = nan(size(mpc.V.vars.v, 1), K);
     links.density{ep} = nan(size(mpc.V.vars.rho, 1), K);
     links.speed{ep} = nan(size(mpc.V.vars.v, 1), K);
-    slacks.max_w{ep} = nan(numel(mpc.V.vars.slack_max_w), ceil(K / M));
+    slacks.w_max{ep} = nan(numel(mpc.V.vars.slack_w_max), ceil(K / M));
     td_error{ep} = nan(1, ceil(K / M));
     td_error_perc{ep} = nan(1, ceil(K / M));
 
@@ -326,8 +340,8 @@ for ep = start_ep:episodes
                 for n = fieldnames(rl.pars)'
                     pars.(n{1}) = rl.pars.(n{1}){end};
                 end
-                [last_sol, infoQ] = mpc.Q.solve( ...
-                        pars, last_sol, true, use_fmincon, multistart);
+                [last_sol, infoQ] = mpc.Q.solve(pars, last_sol, true, ...
+                                                            multistart);
             end
 
             % choose if to apply perturbation
@@ -348,8 +362,7 @@ for ep = start_ep:episodes
             for n = fieldnames(rl.pars)'
                 pars.(n{1}) = rl.pars.(n{1}){end};
             end
-            [last_sol, infoV] = mpc.V.solve( ...
-                        pars, last_sol, true, use_fmincon, multistart);
+            [last_sol, infoV] = mpc.V.solve(pars,last_sol,true,multistart);
 
             % save to memory if successful, or log error 
             if ep > 1 || k_mpc > 1
@@ -372,8 +385,11 @@ for ep = start_ep:episodes
                                     'A', td_err * d2Q + dQ * dtd_err', ...
                                     'b', td_err * dQ, 'dQ', dQ));
 
-                    % util.info(toc(start_tot_time), ep, ...
-                    %                     toc(start_ep_time), t(k), k, K);
+                    msg = sprintf('dL_V=%.4e, dL_Q=%.4e', ...
+                        sum(abs(infoV.get_value(jacobian(mpc.V.lagrangian, mpc.V.x)))), ...
+                        sum(abs(infoQ.get_value(jacobian(mpc.Q.lagrangian, mpc.Q.x)))));
+                    util.info(toc(start_tot_time), ep, ...
+                                    toc(start_ep_time), t(k), k, K, msg);
                 else
                     nb_fail = nb_fail + 1;
                     msg = '';
@@ -390,7 +406,7 @@ for ep = start_ep:episodes
 
             % get optimal a_k from V(s_k)
             r = last_sol.r(:, 1);
-            slack.max_w{ep}(:, k_mpc) = last_sol.slack_max_w(:);
+            slack.w_max{ep}(:, k_mpc) = last_sol.slack_w_max(:);
 
             % save for next transition
             r_prev_prev = r_prev;
@@ -512,9 +528,9 @@ diary off
 rl.pars = structfun(@(x) cell2mat(x), rl.pars, 'UniformOutput', false);
 
 % clear useless variables
-clear cost ctrl d D d1 d2 exp f filter_num filter_den H i info Is k ...
-    last_sol log_filename msg n nb_fail name pars q q_o r r_first  ...
-    r_last r_prev rcondA replaymem rho rho_next rho_prev save_freq  ... 
+clear args cost ctrl d D d1 d2 exp f filter_num filter_den H i info Is ...
+    k last_sol log_filename msg n nb_fail name pars q q_o r r_first ...
+    r_last r_prev rcondA replaymem rho rho_next rho_prev save_freq ... 
     start_ep_time start_ep start_tot_time td_err sz v v_next v_prev w ...
     w_next w_prev
 

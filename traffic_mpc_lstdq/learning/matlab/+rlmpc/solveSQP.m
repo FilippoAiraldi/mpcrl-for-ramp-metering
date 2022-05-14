@@ -1,38 +1,30 @@
-function sol = solveSQP(pars, vals, varnames, parnames, opts)
-    % convert to vectors
-    x0 = cellfun(@(n) vals.(n)(:), varnames, ...
-                                    'UniformOutput', false);
-    x0 = vertcat(x0{:});
-    p = cellfun(@(n) pars.(n)(:), parnames, ...
-                                    'UniformOutput', false);
-    p = vertcat(p{:});
-
+function sol = solveSQP(callername, p, x0, lbx, ubx, opts)
     % create functions
-    obj = @(x) objective(p, x);
-    nlcon = @(x) nonlcon(p, x);
+    obj = @(x) objective(callername, p, x);
+    nlcon = @(x) nonlcon(callername, p, x);
 
     % solver
-    [x, f, flag, output, lam_g] = fmincon(obj, ...
-                            x0, [], [], [], [], [], [], nlcon, opts);
+    [x, f, flag, output, lambda] = fmincon(obj, ...
+                            x0, [], [], [], [], lbx, ubx, nlcon, opts);
 
     % remove garbage from message
     output = split(output.message, '.');
     output = strtrim(output{1});
 
     % return struct
-    sol = struct('x', x, 'p', p, 'f', f, 'lam_g', lam_g, ...
+    sol = struct('x', x, 'p', p, 'f', f, 'lambda', lambda, ...
                                     'success', flag > 0, 'msg', output);
 end
 
 
 
 %% local functions
-function [f, df] = objective(p, x)
-    [f, df] = F_gen(p, x);
+function [f, df] = objective(name, p, x)
+    [f, df] = feval(['F_gen_', name], p, x);
 end
 
-function [g_ineq, g_eq, dg_ineq, dg_eq] = nonlcon(p, x)
-    [~, ~, g_eq, dg_eq, g_ineq, dg_ineq] = F_gen(p, x);
+function [g_ineq, g_eq, dg_ineq, dg_eq] = nonlcon(name, p, x)
+    [~, ~, g_eq, dg_eq, g_ineq, dg_ineq] = feval(['F_gen_', name], p, x);
 end
 
 
