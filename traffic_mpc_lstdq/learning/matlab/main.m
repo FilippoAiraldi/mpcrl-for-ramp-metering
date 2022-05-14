@@ -100,8 +100,9 @@ opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
                             'SpecifyConstraintGradient', true);
 perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
-use_fmincon = true;                 % whether to use opti or fmincon
+use_fmincon = false;                 % whether to use opti or fmincon
 multistart = 1;                    % multistarting NMPC solver
+soft_domain_constraints = false;     % whether to use soft constraints on positivity of states
 %
 discount = 1;                       % rl discount factor
 lr = 1e-4;                          % rl learning rate
@@ -138,7 +139,8 @@ normalization.v = v_free;
 mpc = struct;
 for name = ["Q", "V"]
     % instantiate an MPC
-    ctrl = rlmpc.NMPC(Np, Nc, M, dynamics.nominal, opts, max_queue, eps);
+    ctrl = rlmpc.NMPC(Np, Nc, M, dynamics.nominal, opts, ...
+                                max_queue, soft_domain_constraints, eps);
 
     % create required parameters
     v_free_tracking = ctrl.add_par('v_free_tracking', 1, 1); 

@@ -21,7 +21,8 @@ classdef NMPC < handle
 
 
     methods (Access = public) 
-        function obj = NMPC(Np, Nc, M, dynamics, opts, max_queue, eps)
+        function obj = NMPC(Np, Nc, M, dynamics, opts, ...
+                                        max_queue, soft_domain_con, eps)
             % NMPC. Builds an instance of an NMPC with the corresponding
             % horizons and dynamics.
             arguments
@@ -29,6 +30,7 @@ classdef NMPC < handle
                 dynamics (1, 1) struct
                 opts (1, 1) struct = struct
                 max_queue (:, 1) double = []
+                soft_domain_con (1, 1) logical = false
                 eps (1, 1) double {mustBeNonnegative} = 0
             end
             
@@ -41,6 +43,14 @@ classdef NMPC < handle
             vars.rho = opti.variable( ...
                 dynamics.states.rho.size(1), M * Np + 1);                   % link densities
             vars.v = opti.variable(dynamics.states.v.size(1), M * Np + 1);  % link speeds            
+            if soft_domain_con
+                vars.slack_w = opti.variable( ...
+                                    vars.w.size(1), vars.w.size(2));
+                vars.slack_rho = opti.variable( ...
+                                    vars.rho.size(1), vars.rho.size(2));
+                vars.slack_v = opti.variable( ...
+                                    vars.v.size(1), vars.v.size(2));
+            end
             if ~isempty(max_queue)                                          % optional slacks for max queues
                 assert(length(max_queue) == dynamics.states.w.size(1))
                 vars.slack_max_w = opti.variable( ...
@@ -65,38 +75,39 @@ classdef NMPC < handle
             end
 
             % constraints on domains
-            opti.subject_to(-vars.w(:) + eps <= 0)
-            opti.subject_to(-vars.rho(:) + eps <= 0)
-            opti.subject_to(-vars.v(:) + eps <= 0)
-            if ~isempty(max_queue)
-                opti.subject_to(-vars.slack_max_w(:) + eps^2 <= 0)
+            for n = fieldnames(vars)'
+                if startsWith(n{1}, 'slack')
+                    opti.subject_to(-vars.(n{1})(:) + eps^2 <= 0)
+                elseif strcmp(n{1}, 'r')
+                    opti.subject_to(-vars.r(:) + 0.2 <= 0)
+                    opti.subject_to(vars.r(:) - 1 <= 0)
+                else
+                    if ~soft_domain_con
+                        opti.subject_to(-vars.(n{1})(:) + eps <= 0)
+                    else
+                        opti.subject_to(-vars.(n{1})(:) - ...
+                                    vars.(['slack_', n{1}])(:) + eps <= 0)
+                    end
+                end
             end
-            opti.subject_to(-vars.r(:) + 0.2 <= 0)
-            opti.subject_to(vars.r(:) - 1 <= 0)
-            
+
+            % (soft) constraints on queues
+            if ~isempty(max_queue)
+                I = find(isfinite(max_queue));
+                for i = 1:size(vars.slack_max_w, 1)
+                    opti.subject_to(vars.w(I(i), :) - ...
+                            vars.slack_max_w(i, :) - max_queue(I(i)) <= 0)
+                end
+            end
+
             % constraints on initial conditions
             opti.subject_to(vars.w(:, 1) - pars.w0 == 0)
             opti.subject_to(vars.v(:, 1) - pars.v0 == 0)
             opti.subject_to(vars.rho(:, 1) - pars.rho0 == 0)
 
-            % (soft) constraints on queues
-            if ~isempty(max_queue)
-                j = 1;
-                for i = 1:length(max_queue)
-                    if ~isfinite(max_queue(i))
-                        continue
-                    end
-                    opti.subject_to(vars.w(i, :) - ...
-                                vars.slack_max_w(j, :) - max_queue(i) <= 0)
-                    j = j + 1;
-                end
-            end
-
-            % expand control sequence
-            r_exp = [repelem(vars.r, 1, M), ...
-                repelem(vars.r(:, end), 1, M * (Np - Nc))];
-
             % constraints on state evolution
+            r_exp = [repelem(vars.r, 1, M), ...
+                                repelem(vars.r(:, end), 1, M * (Np - Nc))];
             for k = 1:M * Np
                 [~, w_next, ~, rho_next, v_next] = dynamics.f(...
                     vars.w(:, k), ...
@@ -342,7 +353,7 @@ classdef NMPC < handle
             info.msg = obj.opti.debug.stats.return_status;
             sol = struct;
             for name = fieldnames(obj.vars)'
-                sol.(name{1}) = get_value(obj.vars.(name{1}));
+                sol.(name{1}) = info.get_value(obj.vars.(name{1}));
             end
         end
 
