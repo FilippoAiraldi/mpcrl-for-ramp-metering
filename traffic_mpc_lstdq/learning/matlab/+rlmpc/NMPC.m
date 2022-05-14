@@ -64,12 +64,7 @@ classdef NMPC < handle
                 pars_dyn{end + 1} = p; %#ok<AGROW> 
             end
 
-            % indices of equality and inequality constraints
-            I_g_eq = [];
-            I_g_ineq = [];
-
             % constraints on domains
-            ng = opti.ng;
             opti.subject_to(-vars.w(:) + eps <= 0)
             opti.subject_to(-vars.rho(:) + eps <= 0)
             opti.subject_to(-vars.v(:) + eps <= 0)
@@ -78,17 +73,13 @@ classdef NMPC < handle
             end
             opti.subject_to(-vars.r(:) + 0.2 <= 0)
             opti.subject_to(vars.r(:) - 1 <= 0)
-            I_g_ineq = [I_g_ineq, ng + 1:opti.ng];
             
             % constraints on initial conditions
-            ng = opti.ng;
             opti.subject_to(vars.w(:, 1) - pars.w0 == 0)
             opti.subject_to(vars.v(:, 1) - pars.v0 == 0)
             opti.subject_to(vars.rho(:, 1) - pars.rho0 == 0)
-            I_g_eq = [I_g_eq, ng + 1:opti.ng];
 
             % (soft) constraints on queues
-            ng = opti.ng;
             if ~isempty(max_queue)
                 j = 1;
                 for i = 1:length(max_queue)
@@ -100,14 +91,12 @@ classdef NMPC < handle
                     j = j + 1;
                 end
             end
-            I_g_ineq = [I_g_ineq, ng + 1:opti.ng];
 
             % expand control sequence
             r_exp = [repelem(vars.r, 1, M), ...
                 repelem(vars.r(:, end), 1, M * (Np - Nc))];
 
             % constraints on state evolution
-            ng = opti.ng;
             for k = 1:M * Np
                 [~, w_next, ~, rho_next, v_next] = dynamics.f(...
                     vars.w(:, k), ...
@@ -120,18 +109,16 @@ classdef NMPC < handle
                 opti.subject_to(vars.rho(:, k + 1) - rho_next == 0)
                 opti.subject_to(vars.v(:, k + 1) - v_next == 0)
             end
-            I_g_eq = [I_g_eq, ng + 1:opti.ng];
 
             % categorize constraints
+            mask_eq = logical(full(evalf(opti.lbg == opti.ubg)));
+            Ieq = find(mask_eq);
+            Iin = find(~mask_eq);
             g = opti.g;
             lam_g = opti.lam_g;
-            con = struct( ...
-                'eq', struct('I', I_g_eq, ...
-                             'g', g(I_g_eq), ...
-                             'lam_g', lam_g(I_g_eq)), ...
-                'ineq', struct('I', I_g_ineq, ...
-                               'g', g(I_g_ineq), ...
-                               'lam_g', lam_g(I_g_ineq)));
+            con = struct;
+            con.eq = struct('I', Ieq, 'g', g(Ieq), 'lam_g', lam_g(Ieq));
+            con.ineq = struct('I', Iin, 'g', g(Iin), 'lam_g', lam_g(Iin));
             
             % set the solver
             opti.solver('ipopt', opts.plugin, opts.solver);
