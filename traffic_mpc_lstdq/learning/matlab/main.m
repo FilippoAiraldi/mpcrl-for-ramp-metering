@@ -88,14 +88,15 @@ Np = 4;                             % prediction horizon - \approx 3*L/(M*T*v_av
 Nc = 3;                             % control horizon
 M  = 6;                             % horizon spacing factor
 eps = 0;                            % nonnegative constraint precision
-opts.nlpsol = struct('expand', true, 'print_time', false, ...
-    'ipopt', struct('print_level', 0, 'max_iter', 2e3, 'tol', 1e-7, ...
-                    'barrier_tol_factor', 1e-3));
-% opts.nlpsol = struct('expand', true, 'qpsol', 'qrqp', ...
-%     'print_header', false, 'print_iteration', false, 'verbose', false, ...
-%     'print_status', false, 'print_time', false, 'qpsol_options', ...
-%     struct('print_iter', false, 'print_header', false, ...
-%            'error_on_fail', false)); % sqpmethod
+opts.ipopt = struct('expand', 1, 'print_time', 0, 'ipopt', ...
+                struct('print_level', 0, 'max_iter', 2e3, 'tol', 1e-7, ...
+                       'barrier_tol_factor', 1e-3));
+opts.sqpmethod = struct('expand', 1, 'qpsol', 'qrqp', 'verbose', 0, ...
+                        'print_header', 0, 'print_iteration', 0, ...
+                        'print_status', 0, 'print_time', 0, ...
+                        'qpsol_options', struct('print_iter', 0, ...
+                                                'print_header', 0, ...
+                                                'error_on_fail', 0));
 opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
                             'Display', 'none', ...
                             'OptimalityTolerance', 1e-7, ...
@@ -105,8 +106,9 @@ opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
                             'SpecifyConstraintGradient', true);
 perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
-use_fmincon = true;                % whether to use opti or fmincon
-multistart = 10;                    % multistarting NMPC solver
+methods = {'ipopt', 'sqpmethod', 'fmincon'};
+method = methods{1};
+multistart = 1;                    % multistarting NMPC solver
 soft_domain_constraints = false;    % whether to use soft constraints on positivity of states  % TODO: not working
 %
 discount = 1;                       % rl discount factor
@@ -247,9 +249,9 @@ for n = string(fieldnames(mpc)')
     deriv.(n).rl_pars = mpc.(n).concat_pars(fieldnames(rl.pars));
 
     % compute derivative of Lagrangian
-    L = mpc.(n).lagrangian;
-    deriv.(n).dL = simplify(jacobian(L, deriv.(n).rl_pars)');
-    deriv.(n).d2L = simplify(hessian(L, deriv.(n).rl_pars));
+    Lagr = mpc.(n).lagrangian;
+    deriv.(n).dL = simplify(jacobian(Lagr, deriv.(n).rl_pars)');
+    deriv.(n).d2L = simplify(hessian(Lagr, deriv.(n).rl_pars));
 end
 
 % preallocate containers for miscellaneous quantities
@@ -277,13 +279,18 @@ last_sol = struct( ...
     'r', ones(size(mpc.V.vars.r)));
 
 % initialize mpc solvers
-if ~use_fmincon
-    mpc.Q.init_solver(opts.nlpsol);
-    mpc.V.init_solver(opts.nlpsol);
-else
-    mpc.Q.init_solver(opts.fmincon);
-    mpc.V.init_solver(opts.fmincon);
+switch method
+    case 'ipopt'
+        args = opts.ipopt;
+    case 'sqpmethod'
+        args = opts.sqpmethod;
+    case 'fmincon'
+        args = opts.fmincon;
+    otherwise
+        error('invalid method')
 end
+mpc.Q.init_solver(args);
+mpc.V.init_solver(args);
 
 % create replay memory
 replaymem = rlmpc.ReplayMem(rl_mem_cap, 'sum', 'A', 'b', 'dQ');
@@ -366,6 +373,10 @@ for ep = start_ep:episodes
 
             % save to memory if successful, or log error 
             if ep > 1 || k_mpc > 1
+                msg = sprintf('dL_V=%.4e, dL_Q=%.4e ', ...
+                    sum(abs(infoV.get_value(jacobian(mpc.V.lagrangian, mpc.V.x)))), ...
+                    sum(abs(infoQ.get_value(jacobian(mpc.Q.lagrangian, mpc.Q.x)))));
+
                 if infoV.success && infoQ.success
                     % compute td error
                     td_err = full(Lrl(w_prev, rho_prev)) ...
@@ -385,16 +396,14 @@ for ep = start_ep:episodes
                                     'A', td_err * d2Q + dQ * dtd_err', ...
                                     'b', td_err * dQ, 'dQ', dQ));
 
-                    msg = sprintf('dL_V=%.4e, dL_Q=%.4e', ...
-                        sum(abs(infoV.get_value(jacobian(mpc.V.lagrangian, mpc.V.x)))), ...
-                        sum(abs(infoQ.get_value(jacobian(mpc.Q.lagrangian, mpc.Q.x)))));
                     util.info(toc(start_tot_time), ep, ...
-                                    toc(start_ep_time), t(k), k, K, msg);
+                                    toc(start_ep_time), t(k), k, K);
                 else
                     nb_fail = nb_fail + 1;
-                    msg = '';
+%                     msg = '';
                     if ~infoV.success
-                        msg = sprintf('V: %s. ', infoV.msg);
+                        msg = append(msg, sprintf('V: %s. ', infoV.msg));
+                        
                     end
                     if ~infoQ.success
                         msg = append(msg, sprintf('Q: %s.', infoQ.msg));
@@ -406,7 +415,7 @@ for ep = start_ep:episodes
 
             % get optimal a_k from V(s_k)
             r = last_sol.r(:, 1);
-            slack.w_max{ep}(:, k_mpc) = last_sol.slack_w_max(:);
+            slacks.w_max{ep}(:, k_mpc) = last_sol.slack_w_max(:);
 
             % save for next transition
             r_prev_prev = r_prev;
@@ -527,16 +536,17 @@ diary off
 % build arrays
 rl.pars = structfun(@(x) cell2mat(x), rl.pars, 'UniformOutput', false);
 
-% clear useless variables
-clear args cost ctrl d D d1 d2 exp f filter_num filter_den H i info Is ...
-    k last_sol log_filename msg n nb_fail name pars q q_o r r_first ...
-    r_last r_prev rcondA replaymem rho rho_next rho_prev save_freq ... 
-    start_ep_time start_ep start_tot_time td_err sz v v_next v_prev w ...
-    w_next w_prev
-
-% save
+% clear and save
+clear ans args cost ctrl D d d_cong deriv dtd_err d1 d2 dQ d2Q dynamics ...
+      exp ep_Jtot ep_TTS f filter_num filter_den H i infoQ infoV Is k ...
+      Lagr last_sol load_checkpoint log_filename methods mpc msg n ...
+      nb_fail name pars ph_J ph_TTS q q_o r r_first r_last r_prev ...
+      rcondA replaymem rho rho_next rho_prev save_freq start_ep_time ...
+      start_ep start_tot_time td_err sz v v_free_tracking v_next v_prev ...
+      w w_next w_prev weight_L weight_rate_var weight_T weight_V ...
+      weight_L ws
 delete checkpoint.mat
-warning('off');
 save(strcat(runname, '_data.mat'));
-warning('on');
+
+% plot
 run visualization.m

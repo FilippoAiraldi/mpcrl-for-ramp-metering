@@ -53,7 +53,7 @@ if plot_summary
         'explor. perturbation mag.', perturb_mag; 
         'max queues', mat2str(max_queue); 
         'epsilon', eps; 
-        'fmincon', use_fmincon;
+        'method', method;
     
         % RL details
         'RL', delimiter; 
@@ -188,8 +188,9 @@ if plot_slacks
     slacks_tot = structfun(@(x) cell2mat(x), slacks, ...
                                                 'UniformOutput', false);
     names = fieldnames(slacks);
-    n_cols = ceil(sqrt(length(names)));
-    n_rows = n_cols + min(1, mod(6, 3)) - 1;
+    n = length(names);
+    n_cols = ceil(sqrt(n));
+    n_rows = ceil(n / n_cols);
     figure;
     tiledlayout(n_rows, n_cols, 'Padding', 'none', ...
                                                 'TileSpacing', 'compact')
