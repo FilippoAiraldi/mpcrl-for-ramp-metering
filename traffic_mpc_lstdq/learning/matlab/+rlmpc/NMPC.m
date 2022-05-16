@@ -458,7 +458,7 @@ classdef NMPC < handle
             S = [obj.p; obj.x; obj.lam_g; obj.lam_lbx; obj.lam_ubx];
             D = [p_; sol.x; sol.lam_g; lam_lbx_; lam_ubx_];
             get_value = @(o) rlmpc.NMPC.subsevalf(o, S, D);
-            info = struct('f', sol.f, 'msg', status, ...
+            info = struct('f', full(sol.f), 'msg', status, ...
                           'success', success, 'get_value', get_value);  
             if multistart ~= 1
                 info.i_opt = i_opt;
@@ -514,6 +514,8 @@ classdef NMPC < handle
         end
     
         function y = subsevalf(expr, old, new, eval)
+            % SUBSEVAL. Substitute in the expression the old variable with
+            % the new, and evaluate the expression if required.
             y = expr;
             if isstruct(old)
                 assert(isstruct(new))

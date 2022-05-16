@@ -1,30 +1,32 @@
 % clc, clear all, close all
 
 
+
 %% plotting variables
 % if no variables, load from file
 if isempty(who())
-    warning('off');
 %     load data\20220407_094808_data.mat
-    load 0_no_eps_no_max.mat
-%     load checkpoint.mat
-    warning('on');
+    load checkpoint.mat
 
     % if loading a checkpoint, fill missing variables
     if ~exist('exec_time_tot','var')
         exec_time_tot = nan;
-        rl_pars = structfun(@(x) cell2mat(x), rl_pars, ...
-            'UniformOutput', false);
+        rl.pars = structfun(@(x) cell2mat(x), rl.pars, ...
+                                                'UniformOutput', false);
     end
 end
 
 % plotting options
 step = 3; % reduce number of datapoints to be plot
+
 plot_summary = true;
 plot_traffic = true;
+plot_slacks = true;
 plot_learning = true;
+
+mean_slack = false;
 scaled_learned = false;
-log_plots = false;
+log_learned = false;
 
 
 
@@ -47,11 +49,11 @@ if plot_summary
         'type cost initial', Vcost.name_out(); 
         'type cost stage', Lcost.name_out(); 
         'type cost terminal', Tcost.name_out(); 
-        'max iter', solver_opts.max_iter;  
         'rate var. penalty weight', rate_var_penalty; 
         'explor. perturbation mag.', perturb_mag; 
         'max queues', mat2str(max_queue); 
         'epsilon', eps; 
+        'fmincon', use_fmincon;
     
         % RL details
         'RL', delimiter; 
@@ -136,36 +138,31 @@ if plot_traffic
     plot(t_tot(1:step:end), links_tot.density(:, 1:step:end)' / lanes, '-')
     hlegend(3) = legend('\rho_{L1}', '\rho_{L2}', '\rho_{L3}');
     ylabel('density (veh/km/lane)')
-    
-    ax(4) = nexttile(4);
-    slack_tot = mean(cell2mat(slack), 1);
-    plot(linspace(t_tot(1), t_tot(end), length(slack_tot)), slack_tot);
-    ylabel('slack \sigma')
-    
-    ax(5) = nexttile(5); 
-    if size(origins_tot.demand, 1) > 2
-        plot(t_tot(1:step:end), ...
-            (origins_tot.demand(:, 1:step:length(t_tot)) .* [1; 1; 50])')
-        hlegend(5) = legend('d_{O1}', 'd_{O2}', 'd_{cong}\times50');
-    else
-        plot(t_tot(1:step:end), ...
-            origins_tot.demand(:, 1:step:length(t_tot))')
-        hlegend(5) = legend('d_{O1}', 'd_{O2}');
-    end
-    ylabel('origin demand (veh/h)')
-    % ax(5).YLim(2) = 4000;
-    
-    ax(6) = nexttile(6); hold on
-    plot(t_tot(1:step:end), origins_tot.queue(:, 1:step:end)')
-    arrayfun(@(q) plot([t_tot(1), t_tot(end)], [q, q], '-.k'), max_queue)
-    hold off
-    hlegend(6) = legend('\omega_{O1}', '\omega_{O2}', 'max \omega');
-    ylabel('queue length (veh)')
-    
-    ax(7) = nexttile(7); 
+      
+    ax(4) = nexttile(4); 
     plot(t_tot(1:step:end), origins_tot.flow(:, 1:step:end)')
     hlegend(7) = legend('q_{O1}', 'q_{O2}');
     ylabel('origin flow (veh/h)')
+
+    ax(5) = nexttile(5); hold on
+    ax(5).ColorOrderIndex = 3;
+    plot(t_tot(1:step:end), origins_tot.demand(3, 1:step:length(t_tot))')
+    hlegend(5) = legend('d_{cong}'); hold off;
+    ylabel('boundary congested\newlinedensity (veh/km/lane)')
+
+    ax(6) = nexttile(6); 
+    plot(t_tot(1:step:end), origins_tot.demand(1:2, 1:step:length(t_tot))')
+    hlegend(6) = legend('d_{O1}', 'd_{O2}');
+    ylabel('origin demand (veh/h)')
+    % ax(6).YLim(2) = 4000;
+
+    ax(7) = nexttile(7); hold on
+    plot(t_tot(1:step:end), origins_tot.queue(:, 1:step:end)')
+    arrayfun(@(q) plot([t_tot(1), t_tot(end)], [q, q], '-.k'), ...
+                                        max_queue(isfinite(max_queue)));
+    hold off
+    hlegend(6) = legend('\omega_{O1}', '\omega_{O2}', 'max \omega');
+    ylabel('queue length (veh)')
     
     ax(8) = nexttile(8); hold on,
     if size(origins_tot.rate, 1) == 1
@@ -176,7 +173,7 @@ if plot_traffic
         stairs(t_tot(1:step:end), origins_tot.rate(:, 1:step:end)')
         hlegend(8) = legend('r_{O1}', 'r_{O2}');
     end
-    ylabel('metering rate')
+    ylabel('metering rate'), hold off;
     
     linkaxes(ax, 'x')
     for i = 1:length(ax)
@@ -187,8 +184,53 @@ if plot_traffic
     end
 end
 
+if plot_slacks
+    slacks_tot = structfun(@(x) cell2mat(x), slacks, ...
+                                                'UniformOutput', false);
+    names = fieldnames(slacks);
+    n_cols = ceil(sqrt(length(names)));
+    n_rows = n_cols + min(1, mod(6, 3)) - 1;
+    figure;
+    tiledlayout(n_rows, n_cols, 'Padding', 'none', ...
+                                                'TileSpacing', 'compact')
+    sgtitle(runname, 'Interpreter', 'none')
+    ax = matlab.graphics.axis.Axes.empty;
+    hlegend = matlab.graphics.illustration.Legend.empty;
+    
+    for i = 1:length(names)
+        ax(i) = nexttile; 
+        slack = slacks_tot.(names{i});
+        t = linspace(t_tot(1), t_tot(end), size(slack, 2));
+        if mean_slack
+            slack = mean(slack, 1);
+            plot(t, slack);
+            hlegend(i) = legend(['avg slack ', strrep(names{i},'_',' ')]);
+        else
+            n = size(slack, 1);
+            cmap = jet(n);
+            hold on
+            for k = 1:n
+               plot(t, slack(k, :), 'Color', cmap(k, :));
+            end
+            hold off
+            n = arrayfun(@(i) ['slack ', num2str(i)], 1:n, ...
+                                                    'UniformOutput', false);
+            hlegend(i) = legend(n{:});
+        end
+        ylabel(['slack ', strrep(names{i}, '_', ' ')]), 
+    end
+
+    linkaxes(ax, 'x')
+    for i = 1:length(ax)
+        xlabel(ax(i), 'time (h)')
+        plot_episodes_separators(ax(i), hlegend(i), ep_tot, Tfin)
+        % ax(i).YLim(1) = 0;
+        ax(i).XLim(2) = t_tot(end);
+    end
+end
+
 if plot_learning
-    if log_plots
+    if log_learned
         do_plot = @(x, y, varargin) semilogy(x, abs(y), varargin{:});
     else
         do_plot = @(x, y, varargin) plot(x, y, varargin{:});
@@ -207,16 +249,11 @@ if plot_learning
         full(sum(TTS(origins.queue{ep}, links.density{ep}))), 1:ep_tot);
     yyaxis left
     do_plot(linspace(0, ep_tot, length(performance)), performance)
-    % stairs(linspace(0, ep_tot, length(performance) + 1), [performance, performance(end)])
-    % ax(1).YLim(1) = 0;
     ylabel('J(\pi)')
     yyaxis right
     do_plot(linspace(0, ep_tot, ...
         length(performance_only_tts)), performance_only_tts)
-    % stairs(linspace(0, ep_tot, length(performance_only_tts) + 1), [performance_only_tts, performance_only_tts(end)])
     ylabel('TTS(\pi)')
-    % bar(0.5:1:(ep_tot-0.5), [performance_only_tts', (performance - performance_only_tts)'], 'stacked')
-    % ylabel('J(\pi)')
     
     ax(2) = nexttile(3, [1, 2]);
     td_error_tot = cell2mat(td_error);
@@ -245,9 +282,9 @@ if plot_learning
     ax_.XLim(2) = t_tot(end);
     
     traffic_pars = {'a'; 'v_free'; 'v_free_tracking'; 'rho_crit'};
+    true_pars.v_free_tracking = true_pars.v_free;
 
     ax(3) = nexttile(7); hold on
-    true_pars.v_free_tracking = true_pars.v_free;
     legendStrings = {};
     pars = intersect(fieldnames(rl.pars), traffic_pars);
     for i = 1:length(pars)
@@ -257,7 +294,7 @@ if plot_learning
         plot([0, ep_tot], [true_pars.(par), true_pars.(par)], '--')
         legendStrings = [legendStrings, {par, ''}];
     end
-    if log_plots
+    if log_learned
         set(ax(3), 'YScale', 'log');
     end
     legend(legendStrings{:}, 'interpreter', 'none', 'FontSize', 6)
@@ -265,6 +302,7 @@ if plot_learning
     ylabel('learned parameters')
     
     ax(4) = nexttile(6, [2, 1]); hold on
+
     markers = {'o', '*', 'x', 'v', 'd', '^', 's', '>', '<', '+'};
     weights = setdiff(fieldnames(rl.pars), traffic_pars);
     legendStrings = {};
@@ -278,7 +316,6 @@ if plot_learning
             plot(linspace(0, ep_tot, length(w)), w, ...
                 'Marker', markers{mod(i - 1, length(markers)) + 1}, ...
                 'MarkerSize', 4)
-            % stairs(linspace(0, ep_tot, length(w)), w, 'Marker', Markers{i}, 'MarkerSize', 4)
             if size(rl.pars.(weight), 1) > 1
                 legendStrings{end + 1} = append(weight, '_', string(j));
             else
@@ -286,7 +323,7 @@ if plot_learning
             end
         end
     end
-    if log_plots
+    if log_learned
         set(ax(4), 'YScale', 'log');
     end
     hold off

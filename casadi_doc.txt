@@ -88,6 +88,7 @@ OPTI PLUGIN OPTIONS
 
 
 SQPMETHOD
+
 > "print_time"          [OT_BOOL]      "print information about execution time. Implies record_time."
 > "record_time"          [OT_BOOL]      "record information about execution time, for retrieval with stats()."
 > "verbose"          [OT_BOOL]      "Verbose evaluation -- for debugging"
