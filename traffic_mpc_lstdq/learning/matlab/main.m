@@ -6,6 +6,10 @@ load_checkpoint = false;
 
 
 
+warning('remove msg on dLagr')
+
+
+
 % TO TRY
 % bring modifications from 4th meeting
 
@@ -107,13 +111,13 @@ opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
 perturb_mag = 0;                    % magnitude of exploratory perturbation
 rate_var_penalty = 0.4;             % penalty weight for rate variability
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
-method = methods{1};
-multistart = 1;                    % multistarting NMPC solver
-soft_domain_constraints = false;    % whether to use soft constraints on positivity of states  % TODO: not working
+method = methods{1};                % solver method for MPC
+multistart = 10;                    % multistarting NMPC solver
+soft_domain_constraints = true;     % whether to use soft constraints on positivity of states  % TODO: not working
 %
 discount = 1;                       % rl discount factor
 lr = 1e-4;                          % rl learning rate
-con_violation_penalty = 10;         % rl penalty for constraint violations
+con_violation_penalty = 10;         % penalty for constraint violations
 rl_update_freq = round(K / 5);      % when rl should update
 rl_mem_cap = rl_update_freq * 5;    % RL experience replay capacity
 rl_mem_sample = rl_update_freq * 2; % RL experience replay sampling size
@@ -149,26 +153,31 @@ for name = ["Q", "V"]
     ctrl = rlmpc.NMPC(name, Np, Nc, M, dynamics.nominal, max_queue, ...
                                             soft_domain_constraints, eps);
 
-    % create required parameters
-    v_free_tracking = ctrl.add_par('v_free_tracking', [1, 1]); 
-    weight_V = ctrl.add_par('weight_V', size(Vcost.mx_in( ...
-                find(startsWith(string(Vcost.name_in), 'weight')) - 1)));
-    weight_L = ctrl.add_par('weight_L', size(Lcost.mx_in( ...
-                find(startsWith(string(Lcost.name_in), 'weight')) - 1)));
-    weight_T = ctrl.add_par('weight_T', size(Tcost.mx_in( ...
-                find(startsWith(string(Tcost.name_in), 'weight')) - 1)));
-    weight_slack_w_max = ctrl.add_par('weight_slack_w_max', ...
-                                        [numel(ctrl.vars.slack_w_max), 1]);
-    weight_rate_var = ctrl.add_par('weight_rate_var', [1, 1]);
-    r_last = ctrl.add_par('r_last', [size(ctrl.vars.r, 1), 1]);
-    % TODO should the slack weights on domain positivity be learnable?
+    % grab the names of the slack variables
+    slacknames = fieldnames(ctrl.vars)';
+    slacknames = string(slacknames(startsWith(slacknames, 'slack')));
 
-    % compute the actual symbolic cost expression with opti vars and pars
+    % create required parameters
+    ctrl.add_par('v_free_tracking', [1, 1]); 
+    ctrl.add_par('weight_V', size(Vcost.mx_in( ...
+                find(startsWith(string(Vcost.name_in), 'weight')) - 1)));
+    ctrl.add_par('weight_L', size(Lcost.mx_in( ...
+                find(startsWith(string(Lcost.name_in), 'weight')) - 1)));
+    ctrl.add_par('weight_T', size(Tcost.mx_in( ...
+                find(startsWith(string(Tcost.name_in), 'weight')) - 1)));
+    ctrl.add_par('weight_rate_var', [1, 1]);
+
+    % create slack weights
+    for n = slacknames
+        ctrl.add_par(['weight_', char(n)], [numel(ctrl.vars.(n)), 1]);
+    end
+    ctrl.add_par('r_last', [size(ctrl.vars.r, 1), 1]);
+
     % initial, stage and terminal learnable costs
     cost = Vcost(ctrl.vars.w(:, 1), ...
                  ctrl.vars.rho(:, 1), ...
                  ctrl.vars.v(:, 1), ...
-                 weight_V, ...
+                 ctrl.pars.weight_V, ...
                  normalization.w, ...
                  normalization.rho, ...
                  normalization.v);
@@ -176,8 +185,8 @@ for name = ["Q", "V"]
         cost = cost + Lcost(ctrl.vars.rho(:, k), ...
                             ctrl.vars.v(:, k), ...
                             ctrl.pars.rho_crit, ...
-                            v_free_tracking, ... % ctrl.pars.v_free
-                            weight_L, ...
+                            ctrl.pars.v_free_tracking, ... % ctrl.pars.v_free
+                            ctrl.pars.weight_L, ...
                             normalization.rho, ...
                             normalization.v);
     end
@@ -185,17 +194,20 @@ for name = ["Q", "V"]
     cost = cost + Tcost(ctrl.vars.rho(:, end), ...
                         ctrl.vars.v(:, end), ...
                         ctrl.pars.rho_crit, ...
-                        v_free_tracking, ...
-                        weight_T, ...
+                        ctrl.pars.v_free_tracking, ...
+                        ctrl.pars.weight_T, ...
                         normalization.rho, ...
                         normalization.v);
-    % max queue slack cost
-    ws = reshape(weight_slack_w_max, size(ctrl.vars.slack_w_max));
-    cost = cost + trace(ws' * ctrl.vars.slack_w_max); 
+    % max queue slack cost and domain slack cost
+    for n = slacknames
+        cost = cost ... % could use also trace
+                + ctrl.pars.(['weight_', char(n)])' * ctrl.vars.(n)(:);
+    end
     % traffic-related cost
     cost = cost ...
-        + sum(TTS(ctrl.vars.w, ctrl.vars.rho)) ...          % TTS
-        + weight_rate_var * Rate_var(r_last, ctrl.vars.r);  % terminal rate variability
+        + sum(TTS(ctrl.vars.w, ctrl.vars.rho)) ...  % TTS
+        + ctrl.pars.weight_rate_var * ...           % terminal rate variability
+                                Rate_var(ctrl.pars.r_last, ctrl.vars.r);  
 
     % assign cost to opti
     ctrl.minimize(cost);
@@ -203,6 +215,7 @@ for name = ["Q", "V"]
     % save to struct
     mpc.(name) = ctrl;
 end
+clear ctrl
 
 % Q approximator has additional constraint on first action
 mpc.Q.add_par('r0', [size(mpc.Q.vars.r, 1), 1]);
@@ -224,20 +237,29 @@ r_prev = ones(n_ramps, 1);              % previous rate
 
 % initial learnable Q/V function approx. weights and their bounds
 args = cell(0, 3);
+args(end + 1, :) = {'rho_crit', {rho_crit}, [10, 200]};
 if ~approx_Veq
     args(end + 1, :) = {'v_free', {v_free}, [30, 300]};
 else
     args(end + 1, :) = {'pars_Veq_approx', ...
         {pars_Veq_approx}, [-1e2, 0; 1e-2, 2 * v_free; 1e-2, 2 * v_free]};
 end
-args(end + 1, :) = {'rho_crit', {rho_crit}, [10, 200]};
 args(end + 1, :) = {'v_free_tracking', {v_free}, [30, 300]};
-args(end + 1, :) = {'weight_V', {ones(size(weight_V))}, [-inf, inf]};
-args(end + 1, :) = {'weight_L', {ones(size(weight_L))}, [0, inf]};
-args(end + 1, :) = {'weight_T', {ones(size(weight_T))}, [0, inf]};
+args(end + 1, :) = {'weight_V', ...
+                        {ones(size(mpc.V.pars.weight_V))}, [-inf, inf]};
+args(end + 1, :) = {'weight_L', ...
+                        {ones(size(mpc.V.pars.weight_L))}, [0, inf]};
+args(end + 1, :) = {'weight_T', ...
+                        {ones(size(mpc.V.pars.weight_T))}, [0, inf]};
 args(end + 1, :) = {'weight_rate_var', {rate_var_penalty}, [1e-3, 1e3]};
-args(end + 1, :) = {'weight_slack_w_max', ...
-       {ones(size(weight_slack_w_max)) * con_violation_penalty}, [0, inf]};
+for n = slacknames
+    penalty = con_violation_penalty;
+    if ~endsWith(n, 'w_max')
+        penalty = penalty^2;
+    end
+    n_ = ['weight_', char(n)];
+    args(end+1,:) = {n_, {ones(size(mpc.V.pars.(n_)))*penalty}, [0, inf]};
+end
 rl = struct;
 rl.pars = cell2struct(args(:, 2), args(:, 1));
 rl.bounds = cell2struct(args(:, 3), args(:, 1));
@@ -254,13 +276,6 @@ for n = string(fieldnames(mpc)')
     deriv.(n).d2L = simplify(hessian(Lagr, deriv.(n).rl_pars));
 end
 
-% preallocate containers for miscellaneous quantities
-slacks = struct;
-slacks.w_max = cell(1, episodes);
-td_error = cell(1, episodes);
-td_error_perc = cell(1, episodes);  % td error as a percentage of the Q function
-exec_times = nan(1, episodes);
-
 % preallocate containers for traffic data (don't use struct(var, cells))
 origins.queue = cell(1, episodes);
 origins.flow = cell(1, episodes);
@@ -270,13 +285,24 @@ links.flow = cell(1, episodes);
 links.density = cell(1, episodes);
 links.speed = cell(1, episodes);
 
+% preallocate containers for miscellaneous quantities
+slacks = struct;
+for n = slacknames
+    slacks.(n) = cell(1, episodes);
+end
+td_error = cell(1, episodes);
+td_error_perc = cell(1, episodes);  % td error as a percentage of the Q function
+exec_times = nan(1, episodes);
+
 % initialize mpc last solutions to steady-state
 last_sol = struct( ...
     'w', repmat(w, 1, M * Np + 1), ...
     'rho', repmat(rho, 1, M * Np + 1), ...
     'v', repmat(v, 1, M * Np + 1), ...
-    'slack_w_max', ones(size(mpc.V.vars.slack_w_max)) * eps^2, ...
     'r', ones(size(mpc.V.vars.r)));
+for n = slacknames
+    last_sol.(n) = ones(size(mpc.V.vars.(n))) * eps^2;
+end
 
 % initialize mpc solvers
 switch method
@@ -323,7 +349,9 @@ for ep = start_ep:episodes
     links.flow{ep} = nan(size(mpc.V.vars.v, 1), K);
     links.density{ep} = nan(size(mpc.V.vars.rho, 1), K);
     links.speed{ep} = nan(size(mpc.V.vars.v, 1), K);
-    slacks.w_max{ep} = nan(numel(mpc.V.vars.slack_w_max), ceil(K / M));
+    for n = slacknames
+        slacks.(n){ep} = nan(numel(mpc.V.vars.(n)), ceil(K / M));
+    end
     td_error{ep} = nan(1, ceil(K / M));
     td_error_perc{ep} = nan(1, ceil(K / M));
 
@@ -373,6 +401,7 @@ for ep = start_ep:episodes
 
             % save to memory if successful, or log error 
             if ep > 1 || k_mpc > 1
+                % TODO: remove this message
                 msg = sprintf('dL_V=%.4e, dL_Q=%.4e ', ...
                     sum(abs(infoV.get_value(jacobian(mpc.V.lagrangian, mpc.V.x)))), ...
                     sum(abs(infoQ.get_value(jacobian(mpc.Q.lagrangian, mpc.Q.x)))));
@@ -397,7 +426,7 @@ for ep = start_ep:episodes
                                     'b', td_err * dQ, 'dQ', dQ));
 
                     util.info(toc(start_tot_time), ep, ...
-                                    toc(start_ep_time), t(k), k, K);
+                                    toc(start_ep_time), t(k), k, K, msg);
                 else
                     nb_fail = nb_fail + 1;
 %                     msg = '';
@@ -415,7 +444,11 @@ for ep = start_ep:episodes
 
             % get optimal a_k from V(s_k)
             r = last_sol.r(:, 1);
-            slacks.w_max{ep}(:, k_mpc) = last_sol.slack_w_max(:);
+
+            % save slack variables
+            for n = slacknames
+                slacks.(n){ep}(:, k_mpc) = last_sol.(n)(:);
+            end
 
             % save for next transition
             r_prev_prev = r_prev;
@@ -540,11 +573,10 @@ rl.pars = structfun(@(x) cell2mat(x), rl.pars, 'UniformOutput', false);
 clear ans args cost ctrl D d d_cong deriv dtd_err d1 d2 dQ d2Q dynamics ...
       exp ep_Jtot ep_TTS f filter_num filter_den H i infoQ infoV Is k ...
       Lagr last_sol load_checkpoint log_filename methods mpc msg n ...
-      nb_fail name pars ph_J ph_TTS q q_o r r_first r_last r_prev ...
+      nb_fail name pars penalty ph_J ph_TTS q q_o r r_first r_last r_prev ...
       rcondA replaymem rho rho_next rho_prev save_freq start_ep_time ...
-      start_ep start_tot_time td_err sz v v_free_tracking v_next v_prev ...
-      w w_next w_prev weight_L weight_rate_var weight_T weight_V ...
-      weight_L ws
+      start_ep start_tot_time td_err sz v v_next v_prev ...
+      w w_next w_prev
 delete checkpoint.mat
 save(strcat(runname, '_data.mat'));
 
