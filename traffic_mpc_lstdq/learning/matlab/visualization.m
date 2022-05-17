@@ -53,6 +53,7 @@ if plot_summary
         'explor. perturbation mag.', perturb_mag; 
         'max queues', mat2str(max_queue); 
         'epsilon', eps; 
+        'soft domain constraints', soft_domain_constraints;
         'method', method;
     
         % RL details
