@@ -32,13 +32,14 @@ K = Tfin / T;                   % simulation steps per episode (integer)
 t = (0:(K - 1)) * T;            % time vector (h) (only first episode)
 
 % model parameters
-control_origin_ramp = false;    % toggle this to control origin ramp
-simple_rho_down = false;         % removes the max/min from the density downstream computations
+approx = struct;                % structure containing approximations
+approx.control_origin_ramp = false; % toggle this to control origin ramp
+approx.simple_rho_down = false;     % removes the max/min from the density downstream computations
 
 % network size
 n_origins = 2;
 n_links = 3;
-n_ramps = 1 + control_origin_ramp;                   
+n_ramps = 1 + approx.control_origin_ramp;                   
 
 % segments
 L = 1;                          % length of links (km)
@@ -47,7 +48,7 @@ lanes = 2;                      % lanes per link (adim)
 % origins O1 and O2 
 C = [3500, 2000];               % on-ramp capacity (veh/h/lane)
 max_queue = [150, 50];          % maximum queue (veh) - for constraint
-if ~control_origin_ramp
+if ~approx.control_origin_ramp
     max_queue(1) = inf;
 end
 
@@ -88,7 +89,7 @@ D = filtfilt(...
 
 %% MPC-based RL
 % parameters (constant)
-approx_Veq = true;                  % whether to use an approximation of Veq
+approx.Veq = true;                  % whether to use an approximation of Veq
 max_in_and_out = [false, false];    % whether to apply max to inputs and outputs of dynamics
 %
 Np = 4;                             % prediction horizon - \approx 3*L/(M*T*v_avg)
@@ -130,8 +131,8 @@ save_freq = 2;                      % checkpoint saving frequency
 % create a symbolic casadi function for the dynamics (both true and nominal)
 n_dist = size(D, 1);
 args = {n_links, n_origins, n_ramps, n_dist, T, L, lanes, C, rho_max, ...
-    tau, delta, eta, kappa, max_in_and_out, eps, simple_rho_down};
-if approx_Veq
+    tau, delta, eta, kappa, max_in_and_out, eps, approx.simple_rho_down};
+if approx.Veq
     [Veq_approx, pars_Veq_approx] = ...
                 metanet.get_Veq_approx(v_free, a, rho_crit, rho_max, eps);
     args{end + 1} = Veq_approx;
@@ -240,7 +241,7 @@ r_prev = ones(n_ramps, 1);              % previous rate
 % initial learnable Q/V function approx. weights and their bounds
 args = cell(0, 3);
 args(end + 1, :) = {'rho_crit', {rho_crit}, [10, 200]};
-if ~approx_Veq
+if ~approx.Veq
     args(end + 1, :) = {'v_free', {v_free}, [30, 300]};
 else
     args(end + 1, :) = {'pars_Veq_approx', ...
@@ -371,7 +372,7 @@ for ep = start_ep:episodes
                     'd', D(:, K*(ep-1) + k-M:K*(ep-1) + k-M + M*Np-1), ...
                     'w0', w_prev, 'rho0', rho_prev, 'v0', v_prev, ...
                     'r_last', r_prev_prev, 'r0', r_prev); % a(k-2) and a(k-1)
-                if ~approx_Veq
+                if ~approx.Veq
                     pars.a = a;
                 end
                 for n = fieldnames(rl.pars)'
@@ -393,7 +394,7 @@ for ep = start_ep:episodes
                 'd', D(:, K*(ep-1) + k:K*(ep-1) + k + M*Np-1), ...
                 'w0', w, 'rho0', rho, 'v0', v, ...
                 'r_last', r, 'perturbation', pert);
-            if ~approx_Veq
+            if ~approx.Veq
                 pars.a = a;
             end
             for n = fieldnames(rl.pars)'
