@@ -33,13 +33,15 @@ t = (0:(K - 1)) * T;            % time vector (h) (only first episode)
 
 % model parameters
 approx = struct;                % structure containing approximations
-approx.control_origin_ramp = false; % toggle this to control origin ramp
-approx.simple_rho_down = false;     % removes the max/min from the density downstream computations
+approx.origin_as_ramp = false;  % origin is regarded as a ramp
+approx.control_origin = false;  % toggle this to control origin ramp
+approx.simple_rho_down = true;  % removes the max/min from the density downstream computations
+assert(approx.origin_as_ramp || ~approx.control_origin)
 
 % network size
-n_origins = 2;
+n_origins = 1 + approx.origin_as_ramp;
 n_links = 3;
-n_ramps = 1 + approx.control_origin_ramp;                   
+n_ramps = 1 + approx.control_origin;                   
 
 % segments
 L = 1;                          % length of links (km)
@@ -48,8 +50,12 @@ lanes = 2;                      % lanes per link (adim)
 % origins O1 and O2 
 C = [3500, 2000];               % on-ramp capacity (veh/h/lane)
 max_queue = [150, 50];          % maximum queue (veh) - for constraint
-if ~approx.control_origin_ramp
+if ~approx.control_origin
     max_queue(1) = inf;
+end
+if ~approx.origin_as_ramp
+    C = C(2);
+    max_queue = max_queue(2);
 end
 
 % model parameters
@@ -131,7 +137,8 @@ save_freq = 2;                      % checkpoint saving frequency
 % create a symbolic casadi function for the dynamics (both true and nominal)
 n_dist = size(D, 1);
 args = {n_links, n_origins, n_ramps, n_dist, T, L, lanes, C, rho_max, ...
-    tau, delta, eta, kappa, max_in_and_out, eps, approx.simple_rho_down};
+    tau, delta, eta, kappa, max_in_and_out, eps, ...
+    approx.origin_as_ramp, approx.control_origin, approx.simple_rho_down};
 if approx.Veq
     [Veq_approx, pars_Veq_approx] = ...
                 metanet.get_Veq_approx(v_free, a, rho_crit, rho_max, eps);
@@ -234,9 +241,11 @@ mpc.V.minimize(mpc.V.f + mpc.V.pars.perturbation' * mpc.V.vars.r(:, 1));
 % initial conditions
 r = ones(n_ramps, 1);                   % ramp metering rate
 r_prev = ones(n_ramps, 1);              % previous rate
-[w, rho, v] = util.steady_state( ...    % queue, density, speed at steady-state
-    dynamics.real.f, [0; 0], [5; 5; 18], [100; 198; 90], r, D(:, 1), ...
-    true_pars.rho_crit, true_pars.a, true_pars.v_free);
+[w, rho, v] = util.steady_state(dynamics.real.f, ...
+    zeros(n_origins, 1), 10 * ones(n_links, 1), 100 * ones(n_links, 1), ...
+    r, D(:, 1), true_pars.rho_crit, true_pars.a, true_pars.v_free);
+
+
 
 % initial learnable Q/V function approx. weights and their bounds
 args = cell(0, 3);

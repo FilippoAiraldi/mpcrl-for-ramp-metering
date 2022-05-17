@@ -140,10 +140,16 @@ if plot_traffic
     hlegend(3) = legend('\rho_{L1}', '\rho_{L2}', '\rho_{L3}');
     ylabel('density (veh/km/lane)')
       
-    ax(4) = nexttile(4); 
-    plot(t_tot(1:step:end), origins_tot.flow(:, 1:step:end)')
-    hlegend(7) = legend('q_{O1}', 'q_{O2}');
-    ylabel('origin flow (veh/h)')
+    ax(4) = nexttile(4); hold on
+    if size(origins_tot.flow, 1) > 1
+        plot(t_tot(1:step:end), origins_tot.flow(:, 1:step:end)')
+        hlegend(7) = legend('q_{O1}', 'q_{O2}');
+    else
+        ax(4).ColorOrderIndex = 2;
+        plot(t_tot(1:step:end), origins_tot.flow(1:step:end))
+        hlegend(7) = legend('q_{O2}');
+    end
+    ylabel('origin flow (veh/h)'); hold off
 
     ax(5) = nexttile(5); hold on
     ax(5).ColorOrderIndex = 3;
@@ -158,12 +164,18 @@ if plot_traffic
     % ax(6).YLim(2) = 4000;
 
     ax(7) = nexttile(7); hold on
-    plot(t_tot(1:step:end), origins_tot.queue(:, 1:step:end)')
+    if size(origins_tot.queue, 1) > 1
+        plot(t_tot(1:step:end), origins_tot.queue(:, 1:step:end)')
+        legendStrings = {'\omega_{O1}', '\omega_{O2}', 'max \omega'};
+    else
+        ax(7).ColorOrderIndex = 2;
+        plot(t_tot(1:step:end), origins_tot.queue(1:step:end))
+        legendStrings = {'\omega_{O2}', 'max \omega'};
+    end
     arrayfun(@(q) plot([t_tot(1), t_tot(end)], [q, q], '-.k'), ...
                                         max_queue(isfinite(max_queue)));
-    hold off
-    hlegend(6) = legend('\omega_{O1}', '\omega_{O2}', 'max \omega');
-    ylabel('queue length (veh)')
+    hlegend(6) = legend(legendStrings{:});
+    ylabel('queue length (veh)'); hold off
     
     ax(8) = nexttile(8); hold on,
     if size(origins_tot.rate, 1) == 1
