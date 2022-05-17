@@ -31,10 +31,13 @@ T = 10 / 3600;                  % simulation step size (h)
 K = Tfin / T;                   % simulation steps per episode (integer)
 t = (0:(K - 1)) * T;            % time vector (h) (only first episode)
 
+% model parameters
+control_origin_ramp = false;    % toggle this to control origin ramp
+simple_rho_down = false;         % removes the max/min from the density downstream computations
+
 % network size
 n_origins = 2;
 n_links = 3;
-control_origin_ramp = false;    % toggle this to control origin ramp
 n_ramps = 1 + control_origin_ramp;                   
 
 % segments
@@ -127,7 +130,7 @@ save_freq = 2;                      % checkpoint saving frequency
 % create a symbolic casadi function for the dynamics (both true and nominal)
 n_dist = size(D, 1);
 args = {n_links, n_origins, n_ramps, n_dist, T, L, lanes, C, rho_max, ...
-    tau, delta, eta, kappa, max_in_and_out, eps};
+    tau, delta, eta, kappa, max_in_and_out, eps, simple_rho_down};
 if approx_Veq
     [Veq_approx, pars_Veq_approx] = ...
                 metanet.get_Veq_approx(v_free, a, rho_crit, rho_max, eps);
@@ -223,8 +226,7 @@ mpc.Q.add_con('r0_blocked', mpc.Q.vars.r(:, 1) - mpc.Q.pars.r0, 0, 0);
 
 % V approximator has perturbation to enhance exploration
 mpc.V.add_par('perturbation', size(mpc.V.vars.r(:, 1)));
-mpc.V.minimize( ...
-    mpc.V.f + mpc.V.pars.perturbation' * mpc.V.vars.r(:, 1));
+mpc.V.minimize(mpc.V.f + mpc.V.pars.perturbation' * mpc.V.vars.r(:, 1));
 
 
 %% Simulation
