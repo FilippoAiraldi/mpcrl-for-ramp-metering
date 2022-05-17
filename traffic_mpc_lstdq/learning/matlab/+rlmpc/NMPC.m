@@ -259,10 +259,14 @@ classdef NMPC < handle
                 end
             else
                 % create solver
-                nlp = struct('x', obj.x, 'p', obj.p, ...
-                                                'g', obj.g, 'f', obj.f);
+                if isfield(opts, 'ipopt')
+                    solver_type = 'ipopt';
+                else
+                    solver_type = 'sqpmethod';
+                end
+                nlp = struct('x',obj.x, 'p',obj.p, 'g', obj.g, 'f', obj.f);
                 obj.solver = casadi.nlpsol( ...
-                    ['solver_', obj.name], 'ipopt', nlp, opts);
+                    ['solver_', obj.name], solver_type, nlp, opts);
             end
             obj.opts = opts;
         end
@@ -317,8 +321,7 @@ classdef NMPC < handle
             end
 
             % order pars and vars according to the order of creation
-            vals2 = vals;
-            vals = orderfields(vals2, obj.vars);
+            vals = orderfields(vals, obj.vars);
             pars = orderfields(pars, obj.pars);
 
             % decide which algorithm to use
@@ -348,6 +351,7 @@ classdef NMPC < handle
             % call SQP solver 
             if multistart == 1
                 x0 = obj.subsevalf(obj.x, obj.vars, vals);
+                x0 = max(lbx_, min(ubx_, x0));
                 sol = rlmpc.solveSQP(name_, p_, x0, lbx_, ubx_, opts_);
             else
                 sols = cell(1, multistart);
@@ -356,6 +360,7 @@ classdef NMPC < handle
                     x0 = cellfun(@(n) vals_i.(n)(:), varnames, ...
                                                 'UniformOutput', false);
                     x0 = vertcat(x0{:});
+                    x0 = max(lbx_, min(ubx_, x0));
                     sols{i} = rlmpc.solveSQP(name_, p_, ...
                                                     x0, lbx_, ubx_, opts_);
                 end
@@ -375,9 +380,9 @@ classdef NMPC < handle
             end
 
             % put multiplier in a unique vector
-            assert(all(sol.lambda.ineqnonlin >= 0, 'all') && ...
-                all(sol.lambda.lower >= 0, 'all') && ...
-                all(sol.lambda.upper >= 0, 'all'), 'invalid multipliers')
+%             assert(all(sol.lambda.ineqnonlin >= 0, 'all') && ...
+%                 all(sol.lambda.lower >= 0, 'all') && ...
+%                 all(sol.lambda.upper >= 0, 'all'), 'invalid multipliers')
             lam_g_ = nan(obj.ng, 1);
             lam_g_(obj.Ig_eq) = sol.lambda.eqnonlin;
             lam_g_(obj.Ig_ineq) = sol.lambda.ineqnonlin;
@@ -413,6 +418,7 @@ classdef NMPC < handle
             % call SQP solver 
             if multistart == 1
                 x0 = obj.subsevalf(obj.x, obj.vars, vals);
+                x0 = max(lbx_, min(ubx_, x0));
                 sol = slvr('x0', x0, 'p', p_, 'lbx', lbx_, ...
                           'ubx', ubx_, 'lbg', lbg_, 'ubg', ubg_); 
                 status = slvr.stats.return_status;
@@ -425,6 +431,7 @@ classdef NMPC < handle
                     x0 = cellfun(@(n) vals_i.(n)(:), varnames, ...
                                                 'UniformOutput', false);
                     x0 = vertcat(x0{:});
+                    x0 = max(lbx_, min(ubx_, x0));
                     sol = slvr('x0', x0, 'p', p_, 'lbx', lbx_, ...
                                    'ubx', ubx_, 'lbg', lbg_, 'ubg', ubg_); %#ok<PFBNS> 
                     sol.f = full(sol.f);
