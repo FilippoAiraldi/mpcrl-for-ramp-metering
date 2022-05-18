@@ -25,7 +25,7 @@ warning('remove msg on dLagr')
 
 %% Model
 % simulation
-episodes = 1;                  % number of episodes to repeat
+episodes = 50;                  % number of episodes to repeat
 Tfin = 2;                       % simulation time per episode (h)
 T = 10 / 3600;                  % simulation step size (h)
 K = Tfin / T;                   % simulation steps per episode (integer)
@@ -33,10 +33,16 @@ t = (0:(K - 1)) * T;            % time vector (h) (only first episode)
 
 % model parameters
 approx = struct;                % structure containing approximations
-approx.origin_as_ramp = false;  % origin is regarded as a ramp
-approx.control_origin = false;  % toggle this to control origin ramp
-approx.simple_rho_down = true;  % removes the max/min from the density downstream computations
+approx.origin_as_ramp = true;   % origin is regarded as a ramp if true; otherwise, as a pure flow with no queue
+approx.control_origin = false;   % toggle this to control the origin ramp
+approx.simple_rho_down = false;  % removes the max/min from the density downstream computations
+approx.flow_as_control_action = false; % if true, the control action is the ramp flows; otherwise, metering rate is used
 assert(approx.origin_as_ramp || ~approx.control_origin)
+if approx.origin_as_ramp && approx.flow_as_control_action ...
+                                                && ~approx.control_origin
+    warning(['with this combo, the origin has a min function. Would ' ...
+        'suggest to model the origin as a ramp and control it'])
+end
 
 % network size
 n_origins = 1 + approx.origin_as_ramp;
@@ -95,7 +101,7 @@ D = filtfilt(...
 
 %% MPC-based RL
 % parameters (constant)
-approx.Veq = true;                  % whether to use an approximation of Veq
+approx.Veq = false;                 % whether to use an approximation of Veq
 max_in_and_out = [false, false];    % whether to apply max to inputs and outputs of dynamics
 %
 Np = 4;                             % prediction horizon - \approx 3*L/(M*T*v_avg)
@@ -103,8 +109,8 @@ Nc = 3;                             % control horizon
 M  = 6;                             % horizon spacing factor
 eps = 0;                            % nonnegative constraint precision
 opts.ipopt = struct('expand', 1, 'print_time', 0, 'ipopt', ...
-                struct('print_level', 0, 'max_iter', 2e3, 'tol', 1e-7, ...
-                       'barrier_tol_factor', 1e-3));
+                struct('print_level', 0, 'max_iter', 3e3, 'tol', 1e-8, ...
+                       'barrier_tol_factor', 10));
 opts.sqpmethod = struct('expand', 1, 'qpsol', 'qrqp', 'verbose', 0, ...
                         'print_header', 0, 'print_iteration', 0, ...
                         'print_status', 0, 'print_time', 0, ...
@@ -119,11 +125,18 @@ opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
                             'SpecifyObjectiveGradient', true, ...
                             'SpecifyConstraintGradient', true);
 perturb_mag = 0;                    % magnitude of exploratory perturbation
-rate_var_penalty = 0.4;             % penalty weight for rate variability
+if ~approx.flow_as_control_action
+    rate_var_penalty = 0.4;         % penalty weight for rate variability
+else
+    rate_var_penalty = 4e-4;
+end
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
 method = methods{1};                % solver method for MPC
-multistart = 10;                    % multistarting NMPC solver
-soft_domain_constraints = true;     % whether to use soft constraints on positivity of states  % TODO: not working
+multistart = 4 * 2;                 % multistarting NMPC solver
+soft_domain_constraints = true;     % whether to use soft constraints on positivity of states (either this, or max on output)
+if ~soft_domain_constraints && ~max_in_and_out(2)
+    warning('Dynamics can be negative and hard constraints unfeasible')
+end
 %
 discount = 1;                       % rl discount factor
 lr = 1e-4;                          % rl learning rate
@@ -138,7 +151,8 @@ save_freq = 2;                      % checkpoint saving frequency
 n_dist = size(D, 1);
 args = {n_links, n_origins, n_ramps, n_dist, T, L, lanes, C, rho_max, ...
     tau, delta, eta, kappa, max_in_and_out, eps, ...
-    approx.origin_as_ramp, approx.control_origin, approx.simple_rho_down};
+    approx.origin_as_ramp, approx.control_origin, ...
+    approx.simple_rho_down, approx.flow_as_control_action};
 if approx.Veq
     [Veq_approx, pars_Veq_approx] = ...
                 metanet.get_Veq_approx(v_free, a, rho_crit, rho_max, eps);
@@ -162,7 +176,8 @@ mpc = struct;
 for name = ["Q", "V"]
     % instantiate an MPC
     ctrl = rlmpc.NMPC(name, Np, Nc, M, dynamics.nominal, max_queue, ...
-                                            soft_domain_constraints, eps);
+                           soft_domain_constraints, eps, ...
+                           approx.flow_as_control_action, rho_max, C, T);
 
     % grab the names of the slack variables
     slacknames = fieldnames(ctrl.vars)';
@@ -239,8 +254,13 @@ mpc.V.minimize(mpc.V.f + mpc.V.pars.perturbation' * mpc.V.vars.r(:, 1));
 
 %% Simulation
 % initial conditions
-r = ones(n_ramps, 1);                   % ramp metering rate
-r_prev = ones(n_ramps, 1);              % previous rate
+if ~approx.flow_as_control_action
+    r = ones(n_ramps, 1);                       % ramp metering rate
+    r_prev = r;                                 % previous rate
+else
+    r = ones(n_ramps, 1) * max(D(:, 1)) * 1.05; % flow rate
+    r_prev = r;                                 % previous rate    
+end
 [w, rho, v] = util.steady_state(dynamics.real.f, ...
     zeros(n_origins, 1), 10 * ones(n_links, 1), 100 * ones(n_links, 1), ...
     r, D(:, 1), true_pars.rho_crit, true_pars.a, true_pars.v_free);
@@ -311,7 +331,7 @@ last_sol = struct( ...
     'w', repmat(w, 1, M * Np + 1), ...
     'rho', repmat(rho, 1, M * Np + 1), ...
     'v', repmat(v, 1, M * Np + 1), ...
-    'r', ones(size(mpc.V.vars.r)));
+    'r', repmat(r, 1, Nc));
 for n = slacknames
     last_sol.(n) = ones(size(mpc.V.vars.(n))) * eps^2;
 end

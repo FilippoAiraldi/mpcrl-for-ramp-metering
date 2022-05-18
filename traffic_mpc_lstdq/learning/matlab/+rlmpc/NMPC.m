@@ -38,7 +38,8 @@ classdef NMPC < handle
 
     
     methods (Access = public)
-        function obj = NMPC(name, Np, Nc, M, dyn, max_queue, soft_con, eps)
+        function obj = NMPC(name, Np, Nc, M, dyn, max_queue, soft_con, ...
+                                    eps, flow_as_control, rho_max, C, T)
             % NMPC. Builds an instance of an NMPC with the corresponding
             % horizons and dynamics.
             arguments
@@ -48,18 +49,22 @@ classdef NMPC < handle
                 max_queue (:, 1) double = []
                 soft_con (1, 1) logical = false
                 eps (1, 1) double {mustBeNonnegative} = 0
+                flow_as_control (1, 1) logical = false
+                rho_max (1, 1) double = 0   % only needed if flow_as_control=true
+                C (:, 1) double = 0         % only needed if flow_as_control=true
+                T (1, 1) double = 0         % only needed if flow_as_control=true
             end
             obj.name = name;
 
             % create variables
             if ~soft_con
-                lb = eps;
+                bnd = eps;
             else
-                lb = -inf;
+                bnd = -inf;
             end
-            w = obj.add_var('w', [dyn.states.w.size(1), M * Np + 1], lb);
-            rho = obj.add_var('rho', [dyn.states.v.size(1), M*Np + 1], lb);
-            v = obj.add_var('v', [dyn.states.v.size(1), M * Np + 1], lb);
+            w = obj.add_var('w', [dyn.states.w.size(1), M * Np + 1], bnd);
+            rho = obj.add_var('rho', [dyn.states.v.size(1), M*Np+1], bnd);
+            v = obj.add_var('v', [dyn.states.v.size(1), M * Np + 1], bnd);
             if soft_con
                 slack_w = obj.add_var('slack_w', size(w), eps^2);
                 slack_rho = obj.add_var('slack_rho', size(rho), eps^2);
@@ -70,7 +75,14 @@ classdef NMPC < handle
                 slack_w_max = obj.add_var('slack_w_max', ...
                             [sum(isfinite(max_queue)), M * Np + 1], eps^2);
             end
-            r = obj.add_var('r', [dyn.input.r.size(1), Nc], 0.2, 1);    
+            
+            % based on what is the control action, bounds differ
+            if ~flow_as_control
+                bnd = {0.2, 1}; % metering rate is between [0.2, 1]
+            else
+                bnd = {2e2}; % this fixed lb might cause infeasibility when too congested
+            end
+            r = obj.add_var('r', [dyn.input.r.size(1), Nc], bnd{:});
 
 			% create parameters
             d = obj.add_par('d', [dyn.dist.d.size(1), M * Np]);
@@ -108,8 +120,41 @@ classdef NMPC < handle
             obj.add_con('rho_init', rho(:, 1) - rho0, 0, 0)
             obj.add_con('v_init', v(:, 1) - v0, 0, 0)
 
-            % constraints on state evolution
+            % expand constraint to match size of states
             r_exp = [repelem(r, 1, M), repelem(r(:, end), 1, M * (Np-Nc))];
+            
+            % if flow is control action, add constraints to its value
+            % mimicking the min term in the dynamics
+            if flow_as_control
+                assert(rho_max > 0 && T > 0 && all(C > 0))
+                if isequal([size(r, 1), size(w, 1)], [1, 1]) % origin is not a ramp, and is not controlled
+                    I = {1, 2, 1};
+                elseif isequal([size(r, 1), size(w, 1)], [1, 2]) % origin is a ramp, but is not controlled
+                    I = {1, 2, 2};
+                else % [2, 2] % origin is a ramp, and is not controlled
+                    I = {1:2, 1:2, 1:2};
+                end
+                obj.add_con('flow_control_min1', ...
+                    r_exp(I{1}, :) - d(I{2}, :) - w(I{3}, 1:end-1) / T, ...
+                    -inf, 0)
+
+                if isequal([size(r, 1), length(C)], [1, 1]) % origin is not a ramp, and is not controlled
+                    I = {1, 1, 3};
+                elseif isequal([size(r, 1), length(C)], [1, 2]) % origin is a ramp, but is not controlled
+                    I = {1, 2, 3};
+                else % [2, 2] % origin is a ramp, and is not controlled
+                    I = {1:2, 1:2, [1, 3]};
+                end 
+                obj.add_con('flow_control_min2', ...
+                    (rho_max - obj.pars.rho_crit) * r_exp(I{1}, :) - ...
+                             C(I{2}) .* (rho_max - rho(I{3}, 1:end-1)), ...
+                    -inf, 0);
+            end
+            % q >= 0, this goes into the lbx
+            % q <= d + w/T
+            % q <= C (rho_max - rho) / (rho_max - rho_crit)
+
+            % constraints on state evolution
             for k = 1:M * Np
                 [~, w_next, ~, rho_next, v_next] = dyn.f(...
                     w(:, k), ...

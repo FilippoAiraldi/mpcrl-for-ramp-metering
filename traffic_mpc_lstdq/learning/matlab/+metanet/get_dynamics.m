@@ -3,7 +3,7 @@ function dyn = get_dynamics( ...
                 T, L, lanes, C, rho_max, tau, delta, eta, kappa, ...
                 max_in_and_out, eps, ...
                 origin_as_ramp, control_origin, ...
-                simplified_rho_down, Veq_approx)
+                simplified_rho_down, flow_as_control_action, Veq_approx)
     % GET_DYNAMICS. Creates a structure containing the real and nominal 
     % dynamics (casadi.Function and its variables) representing the 
     % underlying dynamics of the 3-link traffic network
@@ -19,6 +19,7 @@ function dyn = get_dynamics( ...
         origin_as_ramp (1, 1) logical = false
         control_origin (1, 1) logical = false
         simplified_rho_down (1, 1) logical = false
+        flow_as_control_action (1, 1) logical = false
         Veq_approx (1, 1) casadi.Function = casadi.Function
     end
     assert(numel(C) == n_origins, 'origins capacities and number mismatch')
@@ -63,7 +64,8 @@ function dyn = get_dynamics( ...
             T, L, lanes, C, rho_max, ...
             rho_crit, a, v_free, ...
             tau, delta, eta, kappa, eps_, ...
-            origin_as_ramp, control_origin, simplified_rho_down, Veq);
+            origin_as_ramp, control_origin, simplified_rho_down, ...
+            flow_as_control_action, Veq);
         if name == "real" || max_in_and_out(2) % real dynamics should not ouput negatives
             q_o = max(eps_, q_o);
             w_o_next = max(eps_, w_o_next);
@@ -117,7 +119,8 @@ function [q_o, w_o_next, q, rho_next, v_next] = f( ...
             rho_crit, a, v_free, ...
             tau, delta, eta, kappa, ...
             eps, origin_as_ramp, control_origin, ...
-            simplified_rho_down, Veq_approx)
+            simplified_rho_down, ...
+            flow_as_control_action, Veq_approx)
     % Computes the actual dynamical equations. It can work both with
     % symbolical variables and numerical variables
 
@@ -127,19 +130,30 @@ function [q_o, w_o_next, q, rho_next, v_next] = f( ...
 
     %%% ORIGIN
     if origin_as_ramp
-        % if the origin is not controlled, then its ramp rate is full at 1
+        % if the origin is not controlled, then its ramp rate is full
         if ~control_origin
             r = [1; r];
+            if flow_as_control_action
+                r(1) = min(d(1) + w(1) / T, C(1) * ...
+                        min(1, (rho_max - rho(1)) / (rho_max - rho_crit)));
+            end
         end
 
-        % compute flow at mainstream origin O1
-        q_O1 = min(d(1) + w(1) / T, C(1) * ...                                  % = demand
-               min(r(1), (rho_max - rho(1)) / (rho_max - rho_crit)));
-    
-        % compute flow at onramp origin O2 (NOTE: this formulation uses 2 mins,
-        % whereas the min of 3-element vector uses 3 mins)
-        q_O2 = min(d(2) + w(2) / T, C(2) * ...
-            min(r(2), (rho_max - rho(ramped_link)) / (rho_max - rho_crit)));
+        if flow_as_control_action
+            % the flow of the ramp is the control itself
+            q_O1 = r(1);
+            q_O2 = r(2);
+        else
+            % compute flow at mainstream origin O1
+            q_O1 = r(1) * min(d(1) + w(1) / T, C(1) * ...
+                     min(1, (rho_max - rho(1)) / (rho_max - rho_crit)));
+
+            % compute flow at onramp origin O2 (NOTE: this formulation uses 2 mins,
+            % whereas the min of 3-element vector uses 3 mins)
+            q_O2 = r(2) * min(d(2) + w(2) / T, C(2) * ...
+                    min(1, ...
+                     (rho_max - rho(ramped_link)) / (rho_max - rho_crit)));
+        end
     
         % step queue at origins O1 and O2
         q_o = [q_O1; q_O2];
@@ -148,10 +162,16 @@ function [q_o, w_o_next, q, rho_next, v_next] = f( ...
         % origin flow is just the demand
         q_O1 = d(1);
     
-        % compute flow at onramp origin O2 (NOTE: this formulation uses 2 mins,
-        % whereas the min of 3-element vector uses 3 mins)
-        q_O2 = min(d(2) + w(1) / T, C * ...
-            min(r, (rho_max - rho(ramped_link)) / (rho_max - rho_crit)));
+        if flow_as_control_action
+            % the flow of the ramp is the control itself
+            q_O2 = r;
+        else
+            % compute flow at onramp origin O2 (NOTE: this formulation uses 2 mins,
+            % whereas the min of 3-element vector uses 3 mins)
+            q_O2 = min(d(2) + w(1) / T, C * ...
+                    min(r, ...
+                     (rho_max - rho(ramped_link)) / (rho_max - rho_crit)));
+        end
     
         % step queue at origins O1 and O2
         q_o = q_O2;
