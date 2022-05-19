@@ -14,14 +14,21 @@ function L = get_rl_cost(n_links, n_origins, TTS, ...
     % create symbols
     w = casadi.SX.sym('w', n_origins, 1);
     rho = casadi.SX.sym('rho', n_links, 1);
+    v = casadi.SX.sym('v', n_links, 1);
     
-    % compute cost
-    L = TTS(w, rho);
+    % compute RL stage cost as instantaneous TTS + constraint violation 
+    % (both max queue and positivity)
+    L = TTS(w, rho) + con_violation^2 * ( ...
+        sum(max(0, -w), 1) + sum(max(0, -rho), 1) + sum(max(0, -v), 1));
     for i = 1:n_origins
         if isfinite(max_queue(i))
             L = L + con_violation * max(0, w(i, :) - max_queue(i));
         end
     end
     assert(isequal(size(L), [1, 1]));
-    L = casadi.Function('rl_cost', {w, rho}, {L}, {'w', 'rho'}, {'L'});
+    
+    % assemble as a function
+    L = casadi.Function('rl_cost', ...
+        {w, rho, v}, {L}, ...
+        {'w', 'rho', 'v'}, {'L'});
 end

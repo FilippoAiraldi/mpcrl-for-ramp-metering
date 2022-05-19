@@ -440,7 +440,7 @@ for ep = start_ep:episodes
 
                 if infoV.success && infoQ.success
                     % compute td error
-                    td_err = full(Lrl(w_prev, rho_prev)) ...
+                    td_err = full(Lrl(w_prev, rho_prev, v_prev)) ...
                                         + discount * infoV.f  - infoQ.f;
                     td_error{ep}(k_mpc) = td_err;
                     td_error_perc{ep}(k_mpc) = td_err / infoQ.f;
@@ -569,7 +569,8 @@ for ep = start_ep:episodes
     end
 
     % log intermediate results
-    ep_Jtot = full(sum(Lrl(origins.queue{ep}, links.density{ep})));
+    ep_Jtot = full(sum( ...
+            Lrl(origins.queue{ep}, links.density{ep}, links.speed{ep})));
     ep_TTS = full(sum(TTS(origins.queue{ep}, links.density{ep})));
     util.info(toc(start_tot_time), ep, exec_times(ep), t(end), K, K, ...
         sprintf('episode %i: Jtot=%.3f, TTS=%.3f, fails=%i(%.1f%%)', ...
