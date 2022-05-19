@@ -36,7 +36,7 @@ approx = struct;                % structure containing approximations
 approx.origin_as_ramp = true;   % origin is regarded as a ramp if true; otherwise, as a pure flow with no queue
 approx.control_origin = false;   % toggle this to control the origin ramp
 approx.simple_rho_down = false;  % removes the max/min from the density downstream computations
-approx.flow_as_control_action = false; % if true, the control action is the ramp flows; otherwise, metering rate is used
+approx.flow_as_control_action = true; % if true, the control action is the ramp flows; otherwise, metering rate is used
 assert(approx.origin_as_ramp || ~approx.control_origin)
 if approx.origin_as_ramp && approx.flow_as_control_action ...
                                                 && ~approx.control_origin
@@ -192,10 +192,9 @@ for name = ["Q", "V"]
     ctrl.add_par('weight_T', size(Tcost.mx_in( ...
                 find(startsWith(string(Tcost.name_in), 'weight')) - 1)));
     ctrl.add_par('weight_rate_var', [1, 1]);
-
-    % create slack weights
-    for n = slacknames
-        ctrl.add_par(['weight_', char(n)], [numel(ctrl.vars.(n)), 1]);
+    if isfield(ctrl.vars, 'slack_w_max')
+        ctrl.add_par('weight_slack_w_max', ...
+                                    [numel(ctrl.vars.slack_w_max), 1]);
     end
     ctrl.add_par('r_last', [size(ctrl.vars.r, 1), 1]);
 
@@ -226,8 +225,12 @@ for name = ["Q", "V"]
                         normalization.v);
     % max queue slack cost and domain slack cost
     for n = slacknames
-        cost = cost ... % could use also trace
-                + ctrl.pars.(['weight_', char(n)])' * ctrl.vars.(n)(:);
+        if endsWith(n, 'w_max')
+            cost = cost ... % could use also trace
+                + ctrl.pars.weight_slack_w_max' * ctrl.vars.slack_w_max(:);
+        else
+            cost = cost + sum(con_violation_penalty^2 * ctrl.vars.(n)(:));
+        end
     end
     % traffic-related cost
     cost = cost ...
@@ -284,13 +287,10 @@ args(end + 1, :) = {'weight_L', ...
 args(end + 1, :) = {'weight_T', ...
                         {ones(size(mpc.V.pars.weight_T))}, [0, inf]};
 args(end + 1, :) = {'weight_rate_var', {rate_var_penalty}, [1e-3, 1e3]};
-for n = slacknames
-    penalty = con_violation_penalty;
-    if ~endsWith(n, 'w_max')
-        penalty = penalty^2;
-    end
-    n_ = ['weight_', char(n)];
-    args(end+1,:) = {n_, {ones(size(mpc.V.pars.(n_)))*penalty}, [0, inf]};
+if isfield(mpc.V.vars, 'slack_w_max')
+    args(end+1,:) = {'weight_slack_w_max', ...
+        {ones(size(mpc.V.pars.weight_slack_w_max)) * ...
+                                        con_violation_penalty}, [0, inf]};
 end
 rl = struct;
 rl.pars = cell2struct(args(:, 2), args(:, 1));
