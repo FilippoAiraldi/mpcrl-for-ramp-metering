@@ -558,7 +558,7 @@ classdef NMPC < handle
 
         function vals = perturb_vals(vals, mag)
             % perturb initial conditions by some magnitude
-            b = (mag - 1) / 10;
+            b = (mag - 1) / 20;
             vals.w = vals.w + randn(size(vals.w)) * b;
             vals.rho = vals.rho + randn(size(vals.v)) * b;
             vals.v = vals.v + randn(size(vals.v)) * b;

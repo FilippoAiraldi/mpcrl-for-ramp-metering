@@ -1,0 +1,735 @@
+# Fields: [Realtime_tot|Episode_n|Realtime_episode] - [Sim_time|Sim_iter|Sim_perc] - Message
+[00:00:13|1|00:00:13] - [01:59:50|720|100.0%] - checkpoint saved
+[00:00:13|1|00:00:13] - [01:59:50|720|100.0%] - episode 1: Jtot=35182.222, TTS=440.318, fails=0(0.0%)
+[00:00:17|2|00:00:02] - [00:29:50|180|25.0%] - RL update 1 with 149 samples: rho_crit=25.795; v_free=145.86; v_free_tracking=119.34; weight_V=[0.9 0.9 1.1 1.1 0.9 0.9 0.9 0.9]; weight_L=[0.9 1.1 0.9 0.9 1.1 0.9]; weight_T=[1.1 1.1 1.1 1.1 1.1 0.9]; weight_rate_var=0.14; weight_slack_w_max=[11 11 11 11 9 9 9 11 9 11 11 9 9 11 9 11 9 9 11 9 11 11 9 11 11]; 
+[00:00:22|2|00:00:07] - [00:59:50|360|50.0%] - RL update 2 with 179 samples: rho_crit=28.3745; v_free=160.446; v_free_tracking=107.406; weight_V=[1 1 1.21 0.99 0.8 0.8 1 1]; weight_L=[0.8 1.21 0.8 0.8 0.99 1]; weight_T=[0.99 0.99 0.99 1.21 0.99 1]; weight_rate_var=0.24; weight_slack_w_max=[12.1 12.1 12.1 12.1 8.1 9.9 9.9 12.1 8.1 9.9 12.1 8.1 8.1 9.9 9.9 12.1 8.1 8.1 9.9 9.9 9.9 12.1 9.9 9.9 12.1]; 
+[00:00:24|2|00:00:10] - [01:29:50|540|75.0%] - RL update 3 with 209 samples: rho_crit=31.2119; v_free=144.401; v_free_tracking=96.6654; weight_V=[1.1 1.1 1.331 0.89 0.9 0.7 1.1 1.1]; weight_L=[0.7 1.331 0.9 0.9 1.09 1.1]; weight_T=[0.89 1.09 1.09 1.089 1.09 0.9]; weight_rate_var=0.34; weight_slack_w_max=[10.89 10.89 10.89 13.31 8.91 10.89 8.91 13.31 7.29 10.89 10.89 7.29 7.29 8.91 10.89 10.89 7.29 7.29 8.91 8.91 8.91 10.89 10.89 8.91 13.31]; 
+[00:00:27|2|00:00:13] - [01:59:50|720|100.0%] - RL update 4 with 239 samples: rho_crit=34.3331; v_free=158.842; v_free_tracking=106.332; weight_V=[0.99 1.21 1.1979 0.79 1 0.6 0.99 1.21]; weight_L=[0.6 1.4641 1 1 1.199 0.99]; weight_T=[0.99 1.199 1.199 1.1979 0.981 0.8]; weight_rate_var=0.44; weight_slack_w_max=[9.801 11.979 9.801 11.979 9.801 11.979 9.801 14.641 6.561 9.801 9.801 6.561 6.561 8.019 9.801 9.801 6.561 6.561 9.801 8.019 8.019 11.979 9.801 8.019 14.641]; 
+[00:00:27|2|00:00:13] - [01:59:50|720|100.0%] - episode 2: Jtot=23302.716, TTS=443.231, fails=0(0.0%)
+[00:00:48|3|00:00:02] - [00:29:50|180|25.0%] - RL update 5 with 269 samples: rho_crit=37.7665; v_free=174.726; v_free_tracking=95.6987; weight_V=[1.09 1.331 1.31769 0.69 1.1 0.7 1.09 1.331]; weight_L=[0.5 1.61051 0.9 1.1 1.0791 0.89]; weight_T=[0.89 1.0791 1.3189 1.31769 1.081 0.9]; weight_rate_var=0.54; weight_slack_w_max=[10.7811 10.7811 8.8209 10.7811 8.8209 13.1769 8.8209 13.1769 5.9049 8.8209 8.8209 7.2171 5.9049 8.8209 8.8209 10.7811 5.9049 7.2171 10.7811 7.2171 7.2171 10.7811 10.7811 7.2171 13.1769]; 
+[00:00:51|3|00:00:05] - [00:59:50|360|50.0%] - RL update 6 with 299 samples: rho_crit=41.5431; v_free=192.198; v_free_tracking=86.1289; weight_V=[0.981 1.4641 1.18592 0.59 1.21 0.6 1.199 1.4641]; weight_L=[0.4 1.44946 1 1.21 1.18701 0.79]; weight_T=[0.79 0.97119 1.18701 1.44946 0.9729 1]; weight_rate_var=0.64; weight_slack_w_max=[9.70299 9.70299 9.70299 11.8592 7.93881 14.4946 7.93881 11.8592 6.49539 7.93881 9.70299 6.49539 5.31441 9.70299 7.93881 9.70299 6.49539 7.93881 11.8592 6.49539 7.93881 9.70299 9.70299 6.49539 11.8592]; 
+[00:00:54|3|00:00:08] - [01:29:50|540|75.0%] - RL update 7 with 329 samples: rho_crit=45.6974; v_free=211.418; v_free_tracking=94.7418; weight_V=[0.881 1.61051 1.06733 0.49 1.331 0.5 1.3189 1.61051]; weight_L=[0.5 1.5944 1.1 1.089 1.30571 0.69]; weight_T=[0.69 1.07119 1.30571 1.5944 1.0729 1.1]; weight_rate_var=0.74; weight_slack_w_max=[8.73269 8.73269 8.73269 13.0451 7.14493 13.0451 8.73269 13.0451 5.84585 8.73269 8.73269 7.14493 4.78297 8.73269 8.73269 8.73269 5.84585 7.14493 13.0451 7.14493 7.14493 8.73269 8.73269 7.14493 10.6733]; 
+[00:00:57|3|00:00:11] - [01:59:50|720|100.0%] - RL update 8 with 359 samples: rho_crit=50.2672; v_free=190.276; v_free_tracking=85.2676; weight_V=[0.981 1.44946 0.960596 0.39 1.4641 0.4 1.45079 1.77156]; weight_L=[0.4 1.75385 0.99 0.9801 1.17514 0.79]; weight_T=[0.79 0.964071 1.43628 1.43496 1.18019 0.99]; weight_rate_var=0.84; weight_slack_w_max=[7.85942 9.60596 9.60596 14.3496 6.43044 11.7406 7.85942 11.7406 5.26127 7.85942 7.85942 6.43044 4.30467 7.85942 7.85942 7.85942 5.26127 6.43044 11.7406 7.85942 7.85942 9.60596 9.60596 7.85942 9.60596]; 
+[00:00:57|3|00:00:11] - [01:59:50|720|100.0%] - checkpoint saved
+[00:00:57|3|00:00:11] - [01:59:50|720|100.0%] - episode 3: Jtot=1063693.239, TTS=699.645, fails=0(0.0%)
+[00:01:00|4|00:00:02] - [00:29:50|180|25.0%] - RL update 9 with 389 samples: rho_crit=55.2939; v_free=209.304; v_free_tracking=76.7408; weight_V=[1.081 1.30451 0.860596 0.49 1.61051 0.5 1.30571 1.5944]; weight_L=[0.5 1.57846 0.89 0.8801 1.29265 0.69]; weight_T=[0.89 1.06407 1.29265 1.29147 1.06217 0.89]; weight_rate_var=0.94; weight_slack_w_max=[7.07348 8.64536 10.5666 15.7846 5.78739 10.5666 7.07348 10.5666 4.73514 8.64536 7.07348 7.07348 3.8742 8.64536 8.64536 7.07348 5.78739 7.07348 12.9147 8.64536 8.64536 8.64536 8.64536 7.07348 10.5666]; 
+[00:01:03|4|00:00:05] - [00:59:50|360|50.0%] - RL update 10 with 419 samples: rho_crit=60.8233; v_free=230.234; v_free_tracking=69.0667; weight_V=[1.1891 1.17406 0.760596 0.39 1.77156 0.6 1.43628 1.43496]; weight_L=[0.4 1.42061 0.79 0.9801 1.16339 0.59]; weight_T=[0.79 0.957664 1.42192 1.16232 0.955954 0.79]; weight_rate_var=1.04; weight_slack_w_max=[7.78083 9.5099 11.6232 17.3631 5.20865 9.5099 6.36613 9.5099 4.26163 7.78083 6.36613 7.78083 3.48678 7.78083 9.5099 7.78083 5.20865 6.36613 11.6232 7.78083 9.5099 7.78083 7.78083 6.36613 9.5099]; 
+[00:01:05|4|00:00:07] - [01:29:50|540|75.0%] - RL update 11 with 449 samples: rho_crit=66.9056; v_free=253.258; v_free_tracking=75.9734; weight_V=[1.30801 1.05666 0.660596 0.49 1.5944 0.7 1.29265 1.29147]; weight_L=[0.3 1.27855 0.69 1.0801 1.04705 0.69]; weight_T=[0.89 0.857664 1.27973 1.04609 1.05595 0.69]; weight_rate_var=1.144; weight_slack_w_max=[8.55891 8.55891 12.7855 19.0994 4.68779 10.4609 5.72952 10.4609 3.83546 8.55891 7.00274 8.55891 3.13811 8.55891 10.4609 8.55891 4.68779 7.00274 12.7855 7.00274 8.55891 7.00274 7.00274 5.72952 8.55891]; 
+[00:01:08|4|00:00:10] - [01:59:50|720|100.0%] - RL update 12 with 479 samples: rho_crit=73.5961; v_free=227.932; v_free_tracking=68.3761; weight_V=[1.43881 1.16232 0.760596 0.59 1.43496 0.8 1.16339 1.16232]; weight_L=[0.2 1.1507 0.59 0.97209 0.942345 0.79]; weight_T=[0.99 0.757664 1.4077 1.1507 1.16155 0.59]; weight_rate_var=1.2584; weight_slack_w_max=[7.70302 7.70302 14.0641 21.0093 4.21901 11.507 6.30247 11.507 4.21901 9.4148 6.30247 7.70302 2.8243 7.70302 9.4148 7.70302 5.15657 7.70302 14.0641 6.30247 9.4148 6.30247 7.70302 5.15657 9.4148]; 
+[00:01:08|4|00:00:10] - [01:59:50|720|100.0%] - episode 4: Jtot=1589279.884, TTS=794.136, fails=0(0.0%)
+[00:01:10|5|00:00:02] - [00:29:50|180|25.0%] - RL update 13 with 509 samples: rho_crit=80.9558; v_free=250.725; v_free_tracking=75.2137; weight_V=[1.58269 1.04609 0.660596 0.69 1.29147 0.9 1.04705 1.04609]; weight_L=[0.3 1.26577 0.69 0.87209 1.04234 0.69]; weight_T=[0.89 0.857664 1.26693 1.03563 1.04539 0.49]; weight_rate_var=1.38424; weight_slack_w_max=[8.47332 6.93272 12.6577 18.9084 3.79711 12.6577 5.67222 10.3563 3.79711 8.47332 5.67222 6.93272 2.54187 8.47332 8.47332 6.93272 5.67222 6.93272 15.4705 5.67222 10.3563 5.67222 8.47332 4.64091 10.3563]; 
+[00:01:13|5|00:00:05] - [00:59:50|360|50.0%] - RL update 14 with 539 samples: rho_crit=89.0513; v_free=275.798; v_free_tracking=67.6923; weight_V=[1.74096 0.94148 0.760596 0.59 1.16232 0.8 1.15175 1.1507]; weight_L=[0.4 1.13919 0.59 0.97209 1.14658 0.59]; weight_T=[0.79 0.757664 1.39362 1.13919 1.14993 0.39]; weight_rate_var=1.52266; weight_slack_w_max=[7.62599 7.62599 11.3919 17.0175 4.17682 13.9234 6.23945 11.3919 4.17682 7.62599 5.105 6.23945 2.28768 9.32065 9.32065 6.23945 5.105 6.23945 13.9234 5.105 9.32065 5.105 7.62599 5.105 9.32065]; 
+[00:01:16|5|00:00:08] - [01:29:50|540|75.0%] - RL update 15 with 569 samples: rho_crit=97.9565; v_free=300; v_free_tracking=74.4615; weight_V=[1.56687 0.84148 0.860596 0.69 1.04609 0.7 1.26693 1.26577]; weight_L=[0.5 1.25311 0.69 0.87209 1.03192 0.69]; weight_T=[0.69 0.657664 1.53299 1.25311 1.26493 0.49]; weight_rate_var=1.67493; weight_slack_w_max=[8.38859 6.86339 10.2527 18.7193 3.75914 12.5311 6.86339 12.5311 4.5945 6.86339 4.5945 5.6155 2.05891 8.38859 8.38859 5.6155 4.5945 6.86339 12.5311 4.5945 10.2527 4.5945 6.86339 4.5945 8.38859]; 
+[00:01:19|5|00:00:10] - [01:59:50|720|100.0%] - RL update 16 with 599 samples: rho_crit=107.752; v_free=300; v_free_tracking=81.9077; weight_V=[1.41018 0.74148 0.960596 0.79 0.94148 0.6 1.14024 1.39234]; weight_L=[0.6 1.1278 0.79 0.77209 0.928729 0.79]; weight_T=[0.59 0.557664 1.68628 1.37842 1.39142 0.59]; weight_rate_var=1.84242; weight_slack_w_max=[9.22745 6.17705 9.22745 20.5912 3.38322 11.278 7.54973 13.7842 5.05395 6.17705 4.13505 5.05395 1.85302 9.22745 7.54973 6.17705 4.13505 7.54973 11.278 4.13505 9.22745 4.13505 6.17705 4.13505 7.54973]; 
+[00:01:19|5|00:00:10] - [01:59:50|720|100.0%] - checkpoint saved
+[00:01:19|5|00:00:10] - [01:59:50|720|100.0%] - episode 5: Jtot=635634.977, TTS=635.105, fails=0(0.0%)
+[00:01:21|6|00:00:02] - [00:29:50|180|25.0%] - RL update 17 with 629 samples: rho_crit=118.527; v_free=300; v_free_tracking=90.0985; weight_V=[1.26916 0.84148 0.860596 0.89 0.84148 0.5 1.02621 1.53158]; weight_L=[0.7 1.24058 0.89 0.87209 0.828729 0.89]; weight_T=[0.69 0.457664 1.85491 1.51626 1.53056 0.69]; weight_rate_var=2.02667; weight_slack_w_max=[10.1502 5.55935 8.3047 18.5321 3.0449 10.1502 6.79476 15.1626 4.54856 5.55935 3.72155 4.54856 1.66772 8.3047 6.79476 5.55935 3.72155 6.79476 10.1502 3.72155 8.3047 4.54856 6.79476 4.54856 6.79476]; 
+[00:01:24|6|00:00:05] - [00:59:50|360|50.0%] - RL update 18 with 659 samples: rho_crit=130.38; v_free=270; v_free_tracking=99.1083; weight_V=[1.39608 0.94148 0.760596 0.99 0.74148 0.4 0.923592 1.68474]; weight_L=[0.6 1.11652 0.79 0.77209 0.928729 0.79]; weight_T=[0.79 0.557664 1.66942 1.36464 1.68362 0.79]; weight_rate_var=2.22933; weight_slack_w_max=[11.1652 5.00341 7.47423 16.6789 2.74041 9.13517 7.47423 16.6789 5.00341 5.00341 4.0937 5.00341 1.83449 9.13517 7.47423 5.00341 3.34939 7.47423 11.1652 4.0937 9.13517 4.0937 6.11528 4.0937 7.47423]; 
+[00:01:27|6|00:00:07] - [01:29:50|540|75.0%] - RL update 19 with 689 samples: rho_crit=143.418; v_free=243; v_free_tracking=89.1975; weight_V=[1.25647 1.04148 0.660596 1.09 0.64148 0.3 1.02359 1.85321]; weight_L=[0.5 1.22817 0.69 0.67209 1.02873 0.89]; weight_T=[0.69 0.657664 1.50248 1.5011 1.51526 0.89]; weight_rate_var=2.45227; weight_slack_w_max=[10.0487 4.50307 6.72681 15.011 3.01445 8.22166 8.22166 15.011 5.50375 5.50375 4.50307 4.50307 1.65104 10.0487 6.72681 5.50375 3.68433 6.72681 10.0487 4.50307 8.22166 3.68433 6.72681 3.68433 6.72681]; 
+[00:01:29|6|00:00:10] - [01:59:50|720|100.0%] - RL update 20 with 719 samples: rho_crit=157.76; v_free=218.7; v_free_tracking=80.2777; weight_V=[1.13082 0.937332 0.760596 0.981 0.54148 0.4 0.921233 2.03853]; weight_L=[0.6 1.10536 0.79 0.57209 1.1316 0.99]; weight_T=[0.59 0.757664 1.35223 1.65121 1.66678 0.99]; weight_rate_var=2.69749; weight_slack_w_max=[11.0536 4.95338 6.05413 16.5121 2.71301 7.39949 7.39949 13.5099 4.95338 4.95338 4.05276 4.05276 1.48594 11.0536 6.05413 4.95338 4.05276 6.05413 11.0536 4.95338 9.04382 3.3159 6.05413 3.3159 6.05413]; 
+[00:01:29|6|00:00:10] - [01:59:50|720|100.0%] - episode 6: Jtot=2052591.683, TTS=895.287, fails=0(0.0%)
+[00:01:32|7|00:00:02] - [00:29:50|180|25.0%] - RL update 21 with 720 samples: rho_crit=173.536; v_free=196.83; v_free_tracking=88.3055; weight_V=[1.01774 0.837332 0.860596 0.881 0.44148 0.5 0.821233 1.83468]; weight_L=[0.7 0.99482 0.89 0.47209 1.01844 1.09]; weight_T=[0.49 0.857664 1.48745 1.48609 1.83346 0.89]; weight_rate_var=2.96724; weight_slack_w_max=[9.9482 5.44872 5.44872 18.1633 2.44171 6.65954 8.13944 14.8609 4.45804 5.44872 3.64749 3.64749 1.33734 12.1589 5.44872 5.44872 3.64749 5.44872 9.9482 5.44872 9.9482 2.98431 6.65954 2.98431 5.44872]; 
+[00:01:35|7|00:00:05] - [00:59:50|360|50.0%] - RL update 22 with 720 samples: rho_crit=190.889; v_free=216.513; v_free_tracking=97.1361; weight_V=[1.11951 0.937332 0.960596 0.981 0.54148 0.4 0.721233 1.65121]; weight_L=[0.6 0.89482 0.99 0.57209 1.12029 0.981]; weight_T=[0.39 0.957664 1.33871 1.33748 2.01681 0.79]; weight_rate_var=3.26397; weight_slack_w_max=[8.95338 4.90384 5.99359 16.347 2.19754 7.32549 7.32549 13.3748 4.90384 4.90384 3.28274 3.28274 1.20361 13.3748 5.99359 4.90384 3.28274 4.90384 10.943 4.90384 10.943 2.68588 7.32549 3.28274 4.90384]; 
+CasADi - 2022-05-23 17:40:33 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 296 (row 151, col 75).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:33 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:33 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:33 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 281 (row 143, col 72).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:33 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:33 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:35|7|00:00:05] - [01:00:00|361|50.1%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:33 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:33 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:33 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:33 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:33 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:33 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:35|7|00:00:05] - [01:01:00|367|51.0%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 251 (row 127, col 66).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:35|7|00:00:05] - [01:02:00|373|51.8%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:35|7|00:00:05] - [01:03:00|379|52.6%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:35|7|00:00:05] - [01:04:00|385|53.5%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:35|7|00:00:05] - [01:05:00|391|54.3%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:35|7|00:00:05] - [01:06:00|397|55.1%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:35|7|00:00:05] - [01:07:00|403|56.0%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:35|7|00:00:05] - [01:08:00|409|56.8%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:36|7|00:00:05] - [01:09:00|415|57.6%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:36|7|00:00:05] - [01:10:00|421|58.5%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 281 (row 143, col 72).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:36|7|00:00:05] - [01:11:00|427|59.3%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 251 (row 127, col 66).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:36|7|00:00:05] - [01:12:00|433|60.1%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:36|7|00:00:06] - [01:13:00|439|61.0%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:36|7|00:00:06] - [01:14:00|445|61.8%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 281 (row 143, col 72).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 266 (row 135, col 69).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:36|7|00:00:06] - [01:15:00|451|62.6%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:34 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:36|7|00:00:06] - [01:16:00|457|63.5%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:36|7|00:00:06] - [01:17:00|463|64.3%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:36|7|00:00:06] - [01:18:00|469|65.1%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 266 (row 135, col 69).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:36|7|00:00:06] - [01:19:00|475|66.0%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 191 (row 95, col 54).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 191 (row 95, col 54).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:36|7|00:00:06] - [01:20:00|481|66.8%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:36|7|00:00:06] - [01:21:00|487|67.6%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 191 (row 95, col 54).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:37|7|00:00:06] - [01:22:00|493|68.5%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 281 (row 143, col 72).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 266 (row 135, col 69).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:37|7|00:00:06] - [01:23:00|499|69.3%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:37|7|00:00:06] - [01:24:00|505|70.1%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 191 (row 95, col 54).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:37|7|00:00:07] - [01:25:00|511|71.0%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:37|7|00:00:07] - [01:26:00|517|71.8%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 191 (row 95, col 54).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:37|7|00:00:07] - [01:27:00|523|72.6%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 266 (row 135, col 69).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 296 (row 151, col 75).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:35 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:37|7|00:00:07] - [01:28:00|529|73.5%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 296 (row 151, col 75).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 251 (row 127, col 66).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:37|7|00:00:07] - [01:29:00|535|74.3%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+[00:01:37|7|00:00:07] - [01:29:50|540|75.0%] - RL update 23 with 720 samples: rho_crit=200; v_free=194.862; v_free_tracking=87.4225; weight_V=[1.00756 0.837332 0.860596 0.881 0.44148 0.5 0.621233 1.81633]; weight_L=[0.7 0.99482 0.89 0.47209 1.23231 1.081]; weight_T=[0.29 0.857664 1.47258 1.47123 1.81513 0.89]; weight_rate_var=3.59036; weight_slack_w_max=[9.84872 5.39423 6.59295 17.9817 1.97778 8.05804 6.59295 14.7123 5.39423 4.41346 3.61101 2.95446 1.08325 12.0373 5.39423 5.39423 2.95446 4.41346 9.84872 5.39423 12.0373 2.41729 8.05804 2.95446 5.39423]; 
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 281 (row 143, col 72).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 191 (row 95, col 54).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:37|7|00:00:07] - [01:30:00|541|75.1%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:37|7|00:00:07] - [01:31:00|547|76.0%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:37|7|00:00:07] - [01:32:00|553|76.8%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 371 (row 191, col 90).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:37|7|00:00:07] - [01:33:00|559|77.6%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:38|7|00:00:07] - [01:34:00|565|78.5%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 191 (row 95, col 54).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:38|7|00:00:07] - [01:35:00|571|79.3%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 251 (row 127, col 66).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:36 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:48 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:50|7|00:00:20] - [01:36:00|577|80.1%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:48 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 251 (row 127, col 66).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:48 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:48 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:50|7|00:00:20] - [01:37:00|583|81.0%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:50|7|00:00:20] - [01:38:00|589|81.8%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 191 (row 95, col 54).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:50|7|00:00:20] - [01:39:00|595|82.6%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 281 (row 143, col 72).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 266 (row 135, col 69).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:50|7|00:00:20] - [01:40:00|601|83.5%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 191 (row 95, col 54).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:50|7|00:00:20] - [01:41:00|607|84.3%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 191 (row 95, col 54).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:50|7|00:00:20] - [01:42:00|613|85.1%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 251 (row 127, col 66).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:51|7|00:00:20] - [01:43:00|619|86.0%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:51|7|00:00:20] - [01:44:00|625|86.8%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 251 (row 127, col 66).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:51|7|00:00:20] - [01:45:00|631|87.6%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 296 (row 151, col 75).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 296 (row 151, col 75).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:51|7|00:00:21] - [01:46:00|637|88.5%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:51|7|00:00:21] - [01:47:00|643|89.3%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 191 (row 95, col 54).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:51|7|00:00:21] - [01:48:00|649|90.1%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 281 (row 143, col 72).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 236 (row 119, col 63).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:49 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:51|7|00:00:21] - [01:49:00|655|91.0%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:50 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 221 (row 111, col 60).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:50 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:50 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:50 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:50 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:50 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:51|7|00:00:21] - [01:50:00|661|91.8%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:50 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:50 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:50 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:50 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 311 (row 159, col 78).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:50 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:50 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:51|7|00:00:21] - [01:51:00|667|92.6%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+CasADi - 2022-05-23 17:40:50 WARNING("solver_Q:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 206 (row 103, col 57).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:50 WARNING("solver_Q:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:50 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+CasADi - 2022-05-23 17:40:50 WARNING("solver_V:nlp_jac_g failed: NaN detected for output jac_g_x, at nonzero index 251 (row 127, col 66).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:50 WARNING("solver_V:nlp_grad failed: NaN detected for output grad_gamma_p, at (row 82, col 1).") [.../casadi/core/oracle_function.cpp:265]
+CasADi - 2022-05-23 17:40:50 WARNING("Failed to calculate multipliers") [.../casadi/core/nlpsol.cpp:621]
+[00:01:51|7|00:00:21] - [01:52:00|673|93.5%] - V: Invalid_Number_Detected. Q: Invalid_Number_Detected.
+{Operation terminated by user during <a href="matlab:matlab.internal.language.introspective.errorDocCallback('casadi.Function/paren', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/+casadi/Function.m', 1773)" style="font-weight:bold">casadi.Function/paren</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/+casadi/Function.m',1773,0)">line 1773</a>)
+
+
+In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('casadi.Function/subsref', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/+casadi/Function.m', 1751)" style="font-weight:bold">casadi.Function/subsref</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/+casadi/Function.m',1751,0)">line 1751</a>)
+        [varargout{1:nargout}]= paren(self, s.subs{:});
+
+In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('main', '/home/fairaldi/PhD/source/traffic_mpc_lstdq/learning/matlab/main.m', 482)" style="font-weight:bold">main</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/source/traffic_mpc_lstdq/learning/matlab/main.m',482,0)">line 482</a>)
+        [q_o, w_next, q, rho_next, v_next] = dynamics.real.f(...
+} 
+save nan_detected
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+[Warning: Serializing SWIG objects not supported.] 
+[> In <a href="matlab:matlab.internal.language.introspective.errorDocCallback('SwigRef/saveobj', '/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m', 16)" style="font-weight:bold">SwigRef/saveobj</a> (<a href="matlab: opentoline('/home/fairaldi/PhD/MATLAB/casadi-3.5.5/SwigRef.m',16,0)">line 16</a>)] 
+diary off

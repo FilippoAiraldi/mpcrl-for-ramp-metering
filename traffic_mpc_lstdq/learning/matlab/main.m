@@ -98,7 +98,7 @@ D = filtfilt(...
 %% MPC-based RL
 % parameters (constant)
 approx.Veq = false;                 % whether to use an approximation of Veq
-max_in_and_out = [false, false];    % whether to apply max to inputs and outputs of dynamics
+max_in_and_out = [false, true];    % whether to apply max to inputs and outputs of dynamics
 %
 Np = 4;                             % prediction horizon - \approx 3*L/(M*T*v_avg)
 Nc = 3;                             % control horizon
@@ -128,8 +128,8 @@ else
 end
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
 method = methods{1};                % solver method for MPC
-multistart = 4 * 3;                 % multistarting NMPC solver
-soft_domain_constraints = true;     % whether to use soft constraints on positivity of states (either this, or max on output)
+multistart = 1; %4 * 3;                 % multistarting NMPC solver
+soft_domain_constraints = false;     % whether to use soft constraints on positivity of states (either this, or max on output)
 if ~soft_domain_constraints && ~max_in_and_out(2)
     warning('Dynamics can be negative and hard constraints unfeasible')
 end
