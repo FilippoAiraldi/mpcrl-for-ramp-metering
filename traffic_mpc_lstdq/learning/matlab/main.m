@@ -128,7 +128,7 @@ else
 end
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
 method = methods{1};                % solver method for MPC
-multistart = 4 * 2;                 % multistarting NMPC solver
+multistart = 4 * 3;                 % multistarting NMPC solver
 soft_domain_constraints = true;     % whether to use soft constraints on positivity of states (either this, or max on output)
 if ~soft_domain_constraints && ~max_in_and_out(2)
     warning('Dynamics can be negative and hard constraints unfeasible')
@@ -445,8 +445,8 @@ for ep = start_ep:episodes
                                     'A', td_err * d2Q - dQ * dQ', ...
                                     'b', td_err * dQ, 'dQ', dQ));
 
-                    util.info(toc(start_tot_time), ep, ...
-                                    toc(start_ep_time), t(k), k, K, msg);
+                    % util.info(toc(start_tot_time), ep, ...
+                    %                     toc(start_ep_time), t(k), k, K);
                 else
                     nb_fail = nb_fail + 1;
                     msg = '';
@@ -500,36 +500,16 @@ for ep = start_ep:episodes
         % perform RL updates
         if mod(k, rl_update_freq) == 0 && ep > 1
             % sample batch 
-            [sample, Is] = replaymem.sample(rl_mem_sample, rl_mem_last);
+            sample = replaymem.sample(rl_mem_sample, rl_mem_last);
             
             % compute hessian and update direction
-            A = sample.A + 1e-6 * eye(size(sample.A));
-            rcondA = rcond(A);
-            if rcondA > 1e-6
-                % 2nd order update
-                f = lr * (sample.A \ sample.b);
-            else
-                warning(['when falling back, might need to ' ...
-                    'recalibrate learning rate'])
-                msg = sprintf('RL fallback - rcond(A)=%i', rcondA);
-                dQ = cell2mat(replaymem.data.dQ(Is));
-                A = dQ * dQ' + 1e-6 * eye(size(dQ, 1));
-                rcondA = rcond(A);
-                if rcond(A) > 1e-6
-                    % 2nd order approx update (Gauss-Netwon)
-                    f = -lr * (A \ sample.b); 
-                else
-                    % 1st order update
-                    msg = sprintf(' %s, rcond(JQ''JQ)=%f)', msg, rcondA);
-                    f = -lr * sample.b / sample.n; 
-                end
-                util.info(toc(start_tot_time), ep, toc(start_ep_time), ...
-                    t(k), k, K, msg);
-            end
+            % [~, ~, E] = util.mchol(sample.A);
+            % f = lr * ((sample.A + E) \ sample.b);
+            [L, D] = util.modchol_ldlt(sample.A);
+            f = lr * ((L * D * L') \ sample.b);
             H = eye(length(f));
             
             % perform constrained update
-            % TODO
             rl.pars = rlmpc.rl_constrained_update( ...
                                                 rl.pars, rl.bounds, H, f);
 
