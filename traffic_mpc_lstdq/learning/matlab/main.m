@@ -124,7 +124,7 @@ perturb_mag = 1;                    % magnitude of exploratory perturbation
 if ~approx.flow_as_control_action
     rate_var_penalty = 0.4;         % penalty weight for rate variability
 else
-    rate_var_penalty = 4e-4;
+    rate_var_penalty = 0.04;
 end
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
 method = methods{1};                % solver method for MPC
@@ -135,11 +135,11 @@ if ~soft_domain_constraints && ~max_in_and_out(2)
 end
 %
 discount = 1;                       % rl discount factor
-lr = 1e-4;                          % rl learning rate
+lr = 1e-7;                          % rl learning rate
 con_violation_penalty = 10;         % penalty for constraint violations
-rl_update_freq = round(K / 5);      % when rl should update
-rl_mem_cap = rl_update_freq * 5;    % RL experience replay capacity
-rl_mem_sample = rl_update_freq * 2; % RL experience replay sampling size
+rl_update_freq = round(K / 4);      % when rl should update
+rl_mem_cap = rl_update_freq * 8;    % RL experience replay capacity
+rl_mem_sample = rl_update_freq * 4; % RL experience replay sampling size
 rl_mem_last = 0.5;                  % percentage of last experiences to include in sample
 save_freq = 2;                      % checkpoint saving frequency
 
@@ -503,10 +503,7 @@ for ep = start_ep:episodes
             sample = replaymem.sample(rl_mem_sample, rl_mem_last);
             
             % compute hessian and update direction
-            % [~, ~, E] = util.mchol(sample.A);
-            % f = lr * ((sample.A + E) \ sample.b);
-            [L, D] = util.modchol_ldlt(sample.A);
-            f = lr * ((L * D * L') \ sample.b);
+            f = lr * (rlmpc.modify_hessian(sample.A) \ sample.b);
             H = eye(length(f));
             
             % perform constrained update

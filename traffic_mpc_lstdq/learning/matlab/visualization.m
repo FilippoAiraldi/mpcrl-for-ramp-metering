@@ -258,7 +258,8 @@ if plot_learning
     
     ax(1) = nexttile(1, [1, 2]);
     performance = arrayfun(@(ep) ...
-        full(sum(Lrl(origins.queue{ep}, links.density{ep}))), 1:ep_tot);
+        full(sum(Lrl(origins.queue{ep}, links.density{ep}, ...
+                                            links.speed{ep}))), 1:ep_tot);
     performance_only_tts = arrayfun(@(ep) ...
         full(sum(TTS(origins.queue{ep}, links.density{ep}))), 1:ep_tot);
     yyaxis left
@@ -289,7 +290,8 @@ if plot_learning
     end
     
     ax_ = nexttile(5);
-    L_tot = full(Lrl(origins_tot.queue, links_tot.density));
+    L_tot = full(Lrl(origins_tot.queue, links_tot.density, ...
+                                                        links_tot.speed));
     do_plot(t_tot(1:step:end), L_tot(:, 1:step:end))
     plot_episodes_separators(ax_, [], ep_tot, Tfin)
     xlabel('time (h)'), ylabel('L')
