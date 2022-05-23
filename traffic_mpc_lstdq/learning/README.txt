@@ -78,6 +78,13 @@ LEARNING
 
 
 
+################# 6th meeting #################
+Numerical Optimization. Algorithm 3.2 (pag. 48) describes generally the 2nd order method we would like to use
+
+
+
+
+
 ## NOTES
 1. do not use solutions where casadi has not converged to optimal
 

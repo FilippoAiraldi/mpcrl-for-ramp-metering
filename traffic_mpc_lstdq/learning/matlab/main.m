@@ -6,10 +6,6 @@ load_checkpoint = false;
 
 
 
-warning('remove msg on dLagr')
-
-
-
 % TO TRY
 % bring modifications from 4th meeting
 
@@ -433,11 +429,6 @@ for ep = start_ep:episodes
 
             % save to memory if successful, or log error 
             if ep > 1 || k_mpc > 1
-                % TODO: remove this message
-                msg = sprintf('dL_V=%.4e, dL_Q=%.4e ', ...
-                    sum(abs(infoV.get_value(jacobian(mpc.V.lagrangian, mpc.V.x)))), ...
-                    sum(abs(infoQ.get_value(jacobian(mpc.Q.lagrangian, mpc.Q.x)))));
-
                 if infoV.success && infoQ.success
                     % compute td error
                     td_err = full(Lrl(w_prev, rho_prev, v_prev)) ...
@@ -448,20 +439,17 @@ for ep = start_ep:episodes
                     % compute numerical gradients w.r.t. params
                     dQ = infoQ.get_value(deriv.Q.dL);
                     d2Q = infoQ.get_value(deriv.Q.d2L);
-                    % dV = info_V.sol.value(deriv.V.dL);
-                    % dtd_err = discount * dV - dQ;
-                    dtd_err = -dQ;
 
                     % store in memory
                     replaymem.add(struct( ...
-                                    'A', td_err * d2Q + dQ * dtd_err', ...
+                                    'A', td_err * d2Q - dQ * dQ', ...
                                     'b', td_err * dQ, 'dQ', dQ));
 
                     util.info(toc(start_tot_time), ep, ...
                                     toc(start_ep_time), t(k), k, K, msg);
                 else
                     nb_fail = nb_fail + 1;
-%                     msg = '';
+                    msg = '';
                     if ~infoV.success
                         msg = append(msg, sprintf('V: %s. ', infoV.msg));
                         
