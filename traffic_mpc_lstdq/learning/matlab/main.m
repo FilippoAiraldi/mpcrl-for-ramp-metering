@@ -502,13 +502,11 @@ for ep = start_ep:episodes
             % sample batch 
             sample = replaymem.sample(rl_mem_sample, rl_mem_last);
             
-            % compute hessian and update direction
-            f = lr * (rlmpc.modify_hessian(sample.A) \ sample.b);
-            H = eye(length(f));
+            % compute hessian and descent direction
+            f = lr * rlmpc.modify_hessian(sample.A) \ sample.b;
             
             % perform constrained update
-            rl.pars = rlmpc.rl_constrained_update( ...
-                                                rl.pars, rl.bounds, H, f);
+            rl.pars = rlmpc.rl_constrained_update(rl.pars, rl.bounds, f);
 
             % log update result
             msg = sprintf('RL update %i with %i samples: ', ...
