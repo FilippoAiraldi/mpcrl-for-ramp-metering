@@ -120,7 +120,7 @@ opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
                             'ScaleProblem', true, ...
                             'SpecifyObjectiveGradient', true, ...
                             'SpecifyConstraintGradient', true);
-perturb_mag = 0;                    % magnitude of exploratory perturbation
+perturb_mag = 1;                    % magnitude of exploratory perturbation
 if ~approx.flow_as_control_action
     rate_var_penalty = 0.4;         % penalty weight for rate variability
 else
@@ -408,7 +408,7 @@ for ep = start_ep:episodes
             end
 
             % choose if to apply perturbation
-            if rand < 0.5 * exp(-(ep - 1) / 5)
+            if rand < 0.1 * exp(-(ep - 1) / 5)
                 pert = perturb_mag * exp(-(ep - 1) / 5) * randn;
             else
                 pert = 0;
