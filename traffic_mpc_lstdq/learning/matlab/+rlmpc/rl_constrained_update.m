@@ -1,11 +1,10 @@
-function [pars, deltas] = rl_constrained_update(pars, bnd, H, f, max_delta)
+function [pars, deltas] = rl_constrained_update(pars, bnd, f, max_delta)
     % RL_CONSTRAINED_UPDATE. Performs the update of the learnable
     % parameters via a Linear Constrained Quadratic Programming problem,
     % ensuring that the parameter bounds are not compromised
     arguments
         pars (1, 1) struct
         bnd (1, 1) struct
-        H (:, :) double
         f (:, 1) double
         max_delta (1, 1) double = 1/10
     end
@@ -25,6 +24,7 @@ function [pars, deltas] = rl_constrained_update(pars, bnd, H, f, max_delta)
     ub = struct2array(ub)';
 
     % solve constrained lcqp
+    H = eye(length(f));
     [deltas, ~, exitflag] = quadprog(H, f, [], [], [], [], lb, ub, -f, ...
         optimoptions('quadprog', 'Display', 'off', ...
             'Algorithm', 'active-set'));
