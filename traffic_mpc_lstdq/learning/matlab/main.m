@@ -408,8 +408,10 @@ for ep = start_ep:episodes
             end
 
             % choose if to apply perturbation
-            if rand < 0.1 * exp(-(ep - 1) / 5)
-                pert = perturb_mag * exp(-(ep - 1) / 5) * randn;
+            if rand < 0.1 * exp(-((ep - 1)) * k / 3e3)
+                pert = perturb_mag * exp(-((ep - 1)) * k / 3e3) * randn;
+                util.info(toc(start_tot_time), ep, toc(start_ep_time), ...
+                    t(k), k, K, sprintf('random perturbation of %d',pert));
             else
                 pert = 0;
             end
