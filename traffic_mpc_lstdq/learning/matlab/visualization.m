@@ -191,7 +191,7 @@ if plot_traffic
     linkaxes(ax, 'x')
     for i = 1:length(ax)
         xlabel(ax(i), 'time (h)')
-        plot_episodes_separators(ax(i), hlegend(i), ep_tot, Tfin)
+        % plot_episodes_separators(ax(i), hlegend(i), ep_tot, Tfin)
         ax(i).YLim(1) = 0;
         ax(i).XLim(2) = t_tot(end);
     end
@@ -237,7 +237,7 @@ if plot_slacks
     linkaxes(ax, 'x')
     for i = 1:length(ax)
         xlabel(ax(i), 'time (h)')
-        plot_episodes_separators(ax(i), hlegend(i), ep_tot, Tfin)
+        % plot_episodes_separators(ax(i), hlegend(i), ep_tot, Tfin)
         % ax(i).YLim(1) = 0;
         ax(i).XLim(2) = t_tot(end);
     end
@@ -293,7 +293,7 @@ if plot_learning
     L_tot = full(Lrl(origins_tot.queue, links_tot.density, ...
                                                         links_tot.speed));
     do_plot(t_tot(1:step:end), L_tot(:, 1:step:end))
-    plot_episodes_separators(ax_, [], ep_tot, Tfin)
+    % plot_episodes_separators(ax_, [], ep_tot, Tfin)
     xlabel('time (h)'), ylabel('L')
     ax_.XLim(2) = t_tot(end);
     
@@ -358,26 +358,25 @@ if plot_learning
 end
 
 
-
-%% local functions
-function plot_episodes_separators(ax, hlegend, episodes, Tfin)
-    if episodes <= 1
-        return
-    end
-
-    if ~isempty(hlegend) && ...
-                        isa(hlegend, 'matlab.graphics.illustration.Legend')
-        n_data = length(hlegend.String);
-    end
-
-    line(ax, repmat((1:episodes - 1) * Tfin, 2, 1), ax.YLim, ...
-        'Color', '#686a70', 'LineStyle', ':', 'LineWidth', 0.75)
-    % hold(ax(i), 'on')
-    % plot(ax(i), (1:episodes) * Tfin, [0, ax(i).YLim(2)], ':k', 'LineWidth', 0.25)
-    % hold(ax(i), 'off')
-
-    if ~isempty(hlegend) && ...
-                        isa(hlegend, 'matlab.graphics.illustration.Legend')
-        hlegend.String = hlegend.String(1:n_data);
-    end
-end
+% %% local functions
+% function plot_episodes_separators(ax, hlegend, episodes, Tfin)
+%     if episodes <= 1
+%         return
+%     end
+% 
+%     if ~isempty(hlegend) && ...
+%                         isa(hlegend, 'matlab.graphics.illustration.Legend')
+%         n_data = length(hlegend.String);
+%     end
+% 
+%     line(ax, repmat((1:episodes - 1) * Tfin, 2, 1), ax.YLim, ...
+%         'Color', '#686a70', 'LineStyle', ':', 'LineWidth', 0.75)
+%     % hold(ax(i), 'on')
+%     % plot(ax(i), (1:episodes) * Tfin, [0, ax(i).YLim(2)], ':k', 'LineWidth', 0.25)
+%     % hold(ax(i), 'off')
+% 
+%     if ~isempty(hlegend) && ...
+%                         isa(hlegend, 'matlab.graphics.illustration.Legend')
+%         hlegend.String = hlegend.String(1:n_data);
+%     end
+% end
