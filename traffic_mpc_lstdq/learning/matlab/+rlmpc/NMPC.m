@@ -244,10 +244,6 @@ classdef NMPC < handle
                 ub (:, :) double
             end
             dims = size(g);
-            if ~isvector(g)
-                warning('first time using matrices, check everything')
-            end
-
             expansion = dims ./ size(lb);
             lb = repmat(lb, expansion(1), expansion(2));
             expansion = dims ./ size(ub);
@@ -478,7 +474,7 @@ classdef NMPC < handle
                 sol = slvr('x0', x0, 'p', p_, 'lbx', lbx_, ...
                           'ubx', ubx_, 'lbg', lbg_, 'ubg', ubg_); 
                 status = slvr.stats.return_status;
-                success = strcmp(status, 'Solve_Succeeded');
+                success = obj.is_nlp_ok(status);
             else
                 sols = cell(1, multistart);
                 statuses = cell(1, multistart);
@@ -497,11 +493,11 @@ classdef NMPC < handle
 
                 % find best among all solutions
                 sol = sols{1};
-                success = strcmp(statuses{1}, 'Solve_Succeeded');
+                success = obj.is_nlp_ok(statuses{1});
                 i_opt = 1; 
                 for i = 2:multistart
                     sol_i = sols{i};
-                    success_i = strcmp(statuses{i}, 'Solve_Succeeded');
+                    success_i = obj.is_nlp_ok(statuses{i});
                     if (~success && success_i) || ...               % pick first that is feasible
                        ((success == success_i) && sol_i.f < sol.f)  % if both (in)feasible, compare f 
                                                             
@@ -596,6 +592,11 @@ classdef NMPC < handle
             if nargin < 4 || eval
                 y = full(evalf(y));
             end
+        end
+
+        function ok = is_nlp_ok(status)
+            ok = any(strcmp(status, ...
+                    {'Solve_Succeeded', 'Solved_To_Acceptable_Level'}));
         end
     end
 end
