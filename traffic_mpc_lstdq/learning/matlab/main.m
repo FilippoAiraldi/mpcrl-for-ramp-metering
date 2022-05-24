@@ -98,7 +98,7 @@ D = filtfilt(...
 %% MPC-based RL
 % parameters (constant)
 approx.Veq = false;                 % whether to use an approximation of Veq
-max_in_and_out = [false, true];    % whether to apply max to inputs and outputs of dynamics
+max_in_and_out = [false, false];    % whether to apply max to inputs and outputs of dynamics
 %
 Np = 4;                             % prediction horizon - \approx 3*L/(M*T*v_avg)
 Nc = 3;                             % control horizon
@@ -120,7 +120,7 @@ opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
                             'ScaleProblem', true, ...
                             'SpecifyObjectiveGradient', true, ...
                             'SpecifyConstraintGradient', true);
-perturb_mag = 1;                    % magnitude of exploratory perturbation
+perturb_mag = 1e-3;                 % magnitude of exploratory perturbation
 if ~approx.flow_as_control_action
     rate_var_penalty = 0.4;         % penalty weight for rate variability
 else
@@ -128,14 +128,14 @@ else
 end
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
 method = methods{1};                % solver method for MPC
-multistart = 1; %4 * 3;                 % multistarting NMPC solver
-soft_domain_constraints = false;     % whether to use soft constraints on positivity of states (either this, or max on output)
+multistart = 4 * 3;                 % multistarting NMPC solver
+soft_domain_constraints = true;     % whether to use soft constraints on positivity of states (either this, or max on output)
 if ~soft_domain_constraints && ~max_in_and_out(2)
     warning('Dynamics can be negative and hard constraints unfeasible')
 end
 %
 discount = 1;                       % rl discount factor
-lr = 1e-7;                          % rl learning rate
+lr = 1e-5;                          % rl learning rate
 con_violation_penalty = 10;         % penalty for constraint violations
 rl_update_freq = round(K / 5);      % when rl should update
 rl_mem_cap = 2 * K;                 % RL experience replay capacity
@@ -408,8 +408,8 @@ for ep = start_ep:episodes
             end
 
             % choose if to apply perturbation
-            if rand < 0.1 * exp(-((ep - 1)) * k / 3e3)
-                pert = perturb_mag * exp(-((ep - 1)) * k / 3e3) * randn;
+            if rand < 0.1 * exp(-(ep - 1) * k / 3e3)
+                pert = perturb_mag * exp(-(ep - 1) * k / 3e3) * randn;
                 util.info(toc(start_tot_time), ep, toc(start_ep_time), ...
                     t(k), k, K, sprintf('random perturbation of %d',pert));
             else
@@ -430,7 +430,7 @@ for ep = start_ep:episodes
             [last_sol, infoV] = mpc.V.solve(pars,last_sol,true,multistart);
 
             % save to memory if successful, or log error 
-            if ep > 1 || k_mpc > 1
+            if ep > 1 || k_mpc > 5 % skip the first td errors to let them settle
                 if infoV.success && infoQ.success
                     % compute td error
                     td_err = full(Lrl(w_prev, rho_prev, v_prev)) ...
@@ -505,7 +505,8 @@ for ep = start_ep:episodes
             sample = replaymem.sample(rl_mem_sample, rl_mem_last);
             
             % compute hessian and descent direction
-            f = lr * rlmpc.modify_hessian(sample.A) \ sample.b;
+%             f = lr * rlmpc.modify_hessian(sample.A) \ sample.b;
+            f = -lr * sample.b / sample.n; 
             
             % perform constrained update
             rl.pars = rlmpc.rl_constrained_update(rl.pars, rl.bounds, f);
