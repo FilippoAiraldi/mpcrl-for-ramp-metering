@@ -80,9 +80,17 @@ classdef NMPC < handle
             if ~flow_as_control
                 bnd = {0.2, 1}; % metering rate is between [0.2, 1]
             else
-                bnd = {2e2}; % this fixed lb might cause infeasibility when too congested
+                if isequal([size(dyn.input.r, 1), length(C)], [1, 1]) % origin is not a ramp, and is not controlled
+                    bnd = {2e2, C(1)};
+                elseif isequal([size(dyn.input.r, 1), length(C)], [1, 2]) % origin is a ramp, but is not controlled
+                    bnd = {2e2, C(2)};
+                else % [2, 2] % origin is a ramp, and is controlled
+                    bnd = {2e2, C};
+                end 
+                % this fixed lb might cause infeasibility when too congested
+                
             end
-            r = obj.add_var('r', [dyn.input.r.size(1), Nc], bnd{:});
+            r = obj.add_var('r', [size(dyn.input.r, 1), Nc], bnd{:});
 
 			% create parameters
             d = obj.add_par('d', [dyn.dist.d.size(1), M * Np]);
@@ -142,7 +150,7 @@ classdef NMPC < handle
                     I = {1, 1, 3};
                 elseif isequal([size(r, 1), length(C)], [1, 2]) % origin is a ramp, but is not controlled
                     I = {1, 2, 3};
-                else % [2, 2] % origin is a ramp, and is not controlled
+                else % [2, 2] % origin is a ramp, and is controlled
                     I = {1:2, 1:2, [1, 3]};
                 end 
                 obj.add_con('flow_control_min2', ...
@@ -150,9 +158,6 @@ classdef NMPC < handle
                              C(I{2}) .* (rho_max - rho(I{3}, 1:end-1)), ...
                     -inf, 0);
             end
-            % q >= 0, this goes into the lbx
-            % q <= d + w/T
-            % q <= C (rho_max - rho) / (rho_max - rho_crit)
 
             % constraints on state evolution
             for k = 1:M * Np
@@ -186,6 +191,7 @@ classdef NMPC < handle
             end
             assert(~any(strcmp(fieldnames(obj.pars), name), 'all'), ...
                 'parameter name already in use')
+            
             par = casadi.SX.sym(name, dims);
             obj.p = vertcat(obj.p, par(:));
             obj.pars.(name) = par;
@@ -203,15 +209,16 @@ classdef NMPC < handle
             end
             assert(~any(strcmp(fieldnames(obj.pars), name), 'all'), ...
                 'variable name already in use')
-            if isscalar(lb)
-                lb = lb * ones(dims);
-            end
-            if isscalar(ub)
-                ub = ub * ones(dims);
-            end
+
+            expansion = dims ./ size(lb);
+            lb = repmat(lb, expansion(1), expansion(2));
+            expansion = dims ./ size(ub);
+            ub = repmat(ub, expansion(1), expansion(2));
+
             assert(isequal(size(lb), dims) && isequal(size(ub), dims), ...
                 'dimensions are incompatible')
             assert(all(lb <= ub, 'all'), 'invalid bounds');
+
             var = casadi.SX.sym(name, dims);
             obj.x = vertcat(obj.x, var(:));
             obj.lbx = vertcat(obj.lbx, lb(:));
@@ -237,15 +244,19 @@ classdef NMPC < handle
                 ub (:, :) double
             end
             dims = size(g);
-            if isscalar(lb)
-                lb = lb * ones(dims);
+            if ~isvector(g)
+                warning('first time using matrices, check everything')
             end
-            if isscalar(ub)
-                ub = ub * ones(dims);
-            end
+
+            expansion = dims ./ size(lb);
+            lb = repmat(lb, expansion(1), expansion(2));
+            expansion = dims ./ size(ub);
+            ub = repmat(ub, expansion(1), expansion(2));
+
             assert(isequal(size(lb), dims) && isequal(size(ub), dims), ...
                 'dimensions are incompatible')
             assert(all(lb <= ub, 'all'), 'invalid bounds');
+
             obj.g = vertcat(obj.g, g(:));
             obj.lbg = vertcat(obj.lbg, lb(:));
             obj.ubg = vertcat(obj.ubg, ub(:));
@@ -258,7 +269,7 @@ classdef NMPC < handle
                 % inequality
                 obj.Ig_ineq = vertcat(obj.Ig_ineq , (ng - L + 1:ng)');
             else
-                error('cannot categorized mixed constraints')
+                error('cannot categorize mixed constraints')
             end
 
             % create also the multiplier associated to the constraint
