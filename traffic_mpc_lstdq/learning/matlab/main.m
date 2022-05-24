@@ -137,10 +137,10 @@ end
 discount = 1;                       % rl discount factor
 lr = 1e-7;                          % rl learning rate
 con_violation_penalty = 10;         % penalty for constraint violations
-rl_update_freq = round(K / 4);      % when rl should update
-rl_mem_cap = rl_update_freq * 8;    % RL experience replay capacity
+rl_update_freq = round(K / 5);      % when rl should update
+rl_mem_cap = 2 * K;                 % RL experience replay capacity
 rl_mem_sample = rl_update_freq * 4; % RL experience replay sampling size
-rl_mem_last = 0.5;                  % percentage of last experiences to include in sample
+rl_mem_last = 0.25;                 % percentage of last experiences to include in sample
 save_freq = 2;                      % checkpoint saving frequency
 
 % create a symbolic casadi function for the dynamics (both true and nominal)
