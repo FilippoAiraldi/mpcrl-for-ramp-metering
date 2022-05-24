@@ -268,7 +268,7 @@ end
 
 % initial learnable Q/V function approx. weights and their bounds
 args = cell(0, 3);
-args(end + 1, :) = {'rho_crit', {rho_crit}, [10, 200]};
+args(end + 1, :) = {'rho_crit', {rho_crit}, [10, rho_max * 0.9]};
 if ~approx.Veq
     args(end + 1, :) = {'v_free', {v_free}, [30, 300]};
 else
