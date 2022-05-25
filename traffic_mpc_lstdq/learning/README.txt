@@ -85,6 +85,8 @@ Numerical Optimization. Algorithm 3.2 (pag. 48) describes generally the 2nd orde
 
 ################# 7th meeting #################
 - always know the optimal TTS when everything is known to the MPC
+	- baseline with perfect information (pars equal to true_pars, and no learnable cost weights)
+	- baseline with no learning
 - normalize perturbation first action, so that I can specify a single weight good for both ramp and flow control 
 - try lower constraint violation penalty, so that TTS matters more
 - add control rate variation to RL stage cost

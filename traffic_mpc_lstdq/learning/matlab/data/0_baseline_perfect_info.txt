@@ -1,0 +1,56 @@
+# Fields: [Realtime_tot|Episode_n|Realtime_episode] - [Sim_time|Sim_iter|Sim_perc] - Message
+
+******************************************************************************
+This program contains Ipopt, a library for large-scale nonlinear optimization.
+ Ipopt is released as open source code under the Eclipse Public License (EPL).
+         For more information visit http://projects.coin-or.org/Ipopt
+******************************************************************************
+
+[00:00:26|1|00:00:26] - [01:59:50|720|100.0%] - checkpoint saved
+[00:00:26|1|00:00:26] - [01:59:50|720|100.0%] - episode 1: Jtot=16644.001, TTS=440.166, fails=0(0.0%)
+[00:00:53|2|00:00:25] - [01:59:50|720|100.0%] - episode 2: Jtot=13614.176, TTS=447.500, fails=0(0.0%)
+[00:01:22|3|00:00:28] - [01:59:50|720|100.0%] - checkpoint saved
+[00:01:22|3|00:00:28] - [01:59:50|720|100.0%] - episode 3: Jtot=3739.147, TTS=447.997, fails=0(0.0%)
+[00:01:51|4|00:00:29] - [01:59:50|720|100.0%] - episode 4: Jtot=898.415, TTS=435.759, fails=0(0.0%)
+[00:02:17|5|00:00:25] - [01:59:50|720|100.0%] - checkpoint saved
+[00:02:17|5|00:00:25] - [01:59:50|720|100.0%] - episode 5: Jtot=8428.379, TTS=440.013, fails=0(0.0%)
+[00:02:45|6|00:00:28] - [01:59:50|720|100.0%] - episode 6: Jtot=2040.913, TTS=446.720, fails=0(0.0%)
+[00:03:15|7|00:00:28] - [01:59:50|720|100.0%] - checkpoint saved
+[00:03:15|7|00:00:28] - [01:59:50|720|100.0%] - episode 7: Jtot=860.772, TTS=436.797, fails=0(0.0%)
+[00:03:40|8|00:00:25] - [01:59:50|720|100.0%] - episode 8: Jtot=7358.245, TTS=431.346, fails=0(0.0%)
+[00:04:06|9|00:00:25] - [01:59:50|720|100.0%] - checkpoint saved
+[00:04:06|9|00:00:25] - [01:59:50|720|100.0%] - episode 9: Jtot=11740.334, TTS=438.806, fails=0(0.0%)
+<a href="matlab: opentoline('C:\Users\fairaldi\OneDrive - Delft University of Technology\PhD\source\traffic_mpc_lstdq\learning\matlab\main.m',406,1)">406 </a>            if ~approx.Veq
+true_pars
+
+true_pars = 
+
+  <a href="matlab:helpPopup struct" style="font-weight:bold">struct</a> with fields:
+
+           a: 1.8670
+      v_free: 102
+    rho_crit: 33.5000
+
+a
+
+a =
+
+    1.8670
+
+rl.pars
+
+ans = 
+
+  <a href="matlab:helpPopup struct" style="font-weight:bold">struct</a> with fields:
+
+              rho_crit: {[33.5000]}
+                v_free: {[102]}
+       v_free_tracking: {[102]}
+              weight_V: {[8×1 double]}
+              weight_L: {[6×1 double]}
+              weight_T: {[6×1 double]}
+       weight_rate_var: {[0.0400]}
+    weight_slack_w_max: {[25×1 double]}
+
+dbcont
+[00:04:59|10|00:00:52] - [01:59:50|720|100.0%] - episode 10: Jtot=11057.313, TTS=437.524, fails=0(0.0%)
