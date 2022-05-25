@@ -24,10 +24,10 @@ function [pars, deltas] = rl_constrained_update(pars, bnd, f, max_delta)
     ub = struct2array(ub)';
 
     % solve constrained lcqp
-    H = eye(length(f));
+    H = speye(length(f));
     [deltas, ~, exitflag] = quadprog(H, f, [], [], [], [], lb, ub, -f, ...
         optimoptions('quadprog', 'Display', 'off', ...
-            'Algorithm', 'active-set'));
+                                    'Algorithm', 'interior-point-convex'));
     assert(exitflag >= 1, 'quadprog failed (exit flag %i)', exitflag)
 
     % compute next paramters
