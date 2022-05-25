@@ -5,8 +5,8 @@
 %% plotting variables
 % if no variables, load from file
 if isempty(who())
-%     load data\20220407_094808_data.mat
-    load checkpoint.mat
+    load data\2_linear.mat
+%     load checkpoint.mat
 
     % if loading a checkpoint, fill missing variables
     if ~exist('exec_time_tot','var')
@@ -186,7 +186,12 @@ if plot_traffic
         stairs(t_tot(1:step:end), origins_tot.rate(:, 1:step:end)')
         hlegend(8) = legend('r_{O1}', 'r_{O2}');
     end
-    ylabel('metering rate'), hold off;
+    if ~approx.flow_as_control_action 
+        ylabel('ramp metering rate'), 
+    else
+        ylabel('ramp flow (veh/h)'), 
+    end
+    hold off;
     
     linkaxes(ax, 'x')
     for i = 1:length(ax)
