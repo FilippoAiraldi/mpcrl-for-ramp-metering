@@ -372,6 +372,9 @@ classdef NMPC < handle
                                 pars, vals, obj.M, obj.Np, obj.dynamics.f);
             end
 
+            % help with feasibility issues
+            vals = obj.impose_feasibility(vals);
+
             % order pars and vars according to the order of creation
             vals = orderfields(vals, obj.vars);
             pars = orderfields(pars, obj.pars);
@@ -570,6 +573,20 @@ classdef NMPC < handle
             vals.rho = vals.rho + randn(size(vals.v)) * b;
             vals.v = vals.v + randn(size(vals.v)) * b;
             vals.r = vals.r + randn(size(vals.r)) * b / 2;
+        end
+
+        function vals = impose_feasibility(vals)
+            % for some variables, make sure they are nonnegative
+            vals.w = max(0, vals.w);
+            vals.rho = max(0, vals.rho);
+            vals.v = max(0, vals.v);
+
+            % any slack should start at zero
+            for n = fieldnames(vals)'
+                if startsWith(n{1}, 'slack')
+                    vals.(n{1}) = zeros(size(vals.(n{1})));
+                end
+            end
         end
     
         function y = subsevalf(expr, old, new, eval)
