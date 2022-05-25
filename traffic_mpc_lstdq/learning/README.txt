@@ -83,6 +83,18 @@ Numerical Optimization. Algorithm 3.2 (pag. 48) describes generally the 2nd orde
 
 
 
+################# 7th meeting #################
+- always know the optimal TTS when everything is known to the MPC
+- normalize perturbation first action, so that I can specify a single weight good for both ramp and flow control 
+- try lower constraint violation penalty, so that TTS matters more
+- add control rate variation to RL stage cost
+- try lower update frequencies
+- try Gauss-Newton hessian approximation (still positive semidefinite modification)
+- backtracking
+	- cannot be done on the whole batch, just do it for the worst TD error
+	- the function is not really f. It is: f + v * sum(0, g), since our backtrack search is on a constrained box. The derivative is: df + v * dg * (sign() + 1), where v is larger than the inf norm of the multipliers of the original problem (for example, double of the last solution)
+
+
 
 
 ## NOTES
