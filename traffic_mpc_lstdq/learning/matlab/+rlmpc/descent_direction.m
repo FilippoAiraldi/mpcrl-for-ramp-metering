@@ -1,25 +1,31 @@
-function Gm = modify_hessian(G, version)
-    % MODIFY_HESSIAN Modifies the Hessian in a such a way to make it
-    % positive definite, in case it is not.
-
+function p = descent_direction(g, H, version)
+    % DESCENT_DIRECTION Computes the gradient descent direction from the
+    % linear system 
+    %                       H p = -g
+    % where H is the hessian, p the descent direction and g the gradient. 
     arguments
-        G (:, :) double
-        version (1, 1) double {mustBeInteger, mustBeInRange(version, 0, 2)}
+        g (:, 1) double
+        H (:, :) double = []
+        version (1, 1) double ...
+            {mustBeInteger, mustBeInRange(version, 0, 3)} = 0
     end
-
+    assert(~isempty(H) || version ~= 0, 'hessian is required')
     switch version
         case 0
-            % cholesky with added multiple identities
-            L = chol_multiple_identities(G, 1e-3);
-            Gm = L * L';
+            % first order descent (no hessian information)
+            p = -g;
         case 1
-            % modified cholesky factorization 1
-            [L, D] = mchol(G);
-            Gm = L * D * L';
+            % cholesky with added multiple identities
+            L = chol_multiple_identities(H, 1e-3);
+            p = L' \ (L \ -g);  
         case 2
+            % modified cholesky factorization 1
+            [L, D] = mchol(H);
+            p = (D * L') \ (L \ -g); 
+        case 3
             % modified cholesky factorization 2
-            [L, D] = modchol_ldlt(G);
-            Gm = L * D * L';
+            [L, D] = modchol_ldlt(H);
+            p = (D * L') \ (L \ -g); 
         otherwise
             error('invalid hessian modification version')
     end
@@ -36,7 +42,7 @@ function L = chol_multiple_identities(G, beta)
         tau = -g_min + beta;
     end
 
-    for i = 1:1000
+    for i = 1:1e3
         try
             L = chol(G + tau * eye(n));
             return
@@ -154,4 +160,3 @@ function [L, DMC, P, D] = modchol_ldlt(A,delta)
     end
     if nargout >= 3, P = eye(n); P = P(p,:); end
 end
-

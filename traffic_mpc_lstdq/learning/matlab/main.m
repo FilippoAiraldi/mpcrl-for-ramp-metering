@@ -5,20 +5,6 @@ runname = datestr(datetime, 'yyyymmdd_HHMMSS');
 load_checkpoint = false;
 
 
-
-% TO TRY
-% bring modifications from 4th meeting
-
-% THINGS TO TRY AFTER SUCCESS
-% remove max(0, x) on inputs
-% remove eps -> 0
-
-% SCENARIOS
-% 20220427_210530 / params 1.3,1.3,0.7; opts 3e3,5e-7: not bad but in one iteration has 6e4 of costs 
-%                 / params 1.3,1.3,0.6; opts 3e3,1e-7:
-
-
-
 %% Model
 % simulation
 episodes = 50;                  % number of episodes to repeat
@@ -68,13 +54,10 @@ rho_max = 180;                  % maximum capacity (veh/km/lane)
 delta = 0.0122;                 % merging phenomenum parameter
 
 % known (wrong) and true (unknown) model parameters
-% a = 2.111;                      % model parameter (adim)
-% v_free = 130;                   % free flow speed (km/h)
-% rho_crit = 27;                  % critical capacity (veh/km/lane)
 true_pars = struct('a', 1.867, 'v_free', 102, 'rho_crit', 33.5);
-a = true_pars.a * 1.3;
-v_free = true_pars.v_free * 1.3;
-rho_crit = true_pars.rho_crit * 0.7;
+a = true_pars.a * 1.3;                  % model parameter (adim)
+v_free = true_pars.v_free * 1.3;        % free flow speed (km/h)
+rho_crit = true_pars.rho_crit * 0.7;    % critical capacity (veh/km/lane)
 
 
 
@@ -128,18 +111,19 @@ else
 end
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
 method = methods{1};                % solver method for MPC
-multistart = 4 * 3;                 % multistarting NMPC solver
-soft_domain_constraints = true;     % whether to use soft constraints on positivity of states (either this, or max on output)
+multistart = 1; % 4 * 3;            % multistarting NMPC solver
+soft_domain_constraints = true;    % whether to use soft constraints on positivity of states (either this, or max on output)
 if ~soft_domain_constraints && ~max_in_and_out(2)
     warning('Dynamics can be negative and hard constraints unfeasible')
 end
 %
 discount = 1;                       % rl discount factor
 lr = 1e-5;                          % rl learning rate
+grad_desc_version = 1;              % type of gradient descent/hessian modification
 con_violation_penalty = 10;         % penalty for constraint violations
-rl_update_freq = round(K / 5);      % when rl should update
-rl_mem_cap = 2 * K;                 % RL experience replay capacity
-rl_mem_sample = rl_update_freq * 4; % RL experience replay sampling size
+rl_update_freq = K / 5;             % when rl should update
+rl_mem_cap = 1000;                  % RL experience replay capacity
+rl_mem_sample = 500;                % RL experience replay sampling size
 rl_mem_last = 0.25;                 % percentage of last experiences to include in sample
 save_freq = 2;                      % checkpoint saving frequency
 
@@ -347,7 +331,7 @@ mpc.Q.init_solver(args);
 mpc.V.init_solver(args);
 
 % create replay memory
-replaymem = rlmpc.ReplayMem(rl_mem_cap, 'sum', 'A', 'b', 'dQ');
+replaymem = rlmpc.ReplayMem(rl_mem_cap, 'mean', 'A', 'b');
 
 % load checkpoint
 if load_checkpoint
@@ -410,8 +394,6 @@ for ep = start_ep:episodes
             % choose if to apply perturbation
             if rand < 0.1 * exp(-(ep - 1) * k / 3e3)
                 pert = perturb_mag * exp(-(ep - 1) * k / 3e3) * randn;
-                util.info(toc(start_tot_time), ep, toc(start_ep_time), ...
-                    t(k), k, K, sprintf('random perturbation of %d',pert));
             else
                 pert = 0;
             end
@@ -442,10 +424,10 @@ for ep = start_ep:episodes
                     dQ = infoQ.get_value(deriv.Q.dL);
                     d2Q = infoQ.get_value(deriv.Q.d2L);
 
-                    % store in memory
+                    % store in memory (for the Gauss-Newton, A is just -dQdQ')
                     replaymem.add(struct( ...
                                     'A', td_err * d2Q - dQ * dQ', ...
-                                    'b', td_err * dQ, 'dQ', dQ));
+                                    'b', td_err * dQ));
 
                     % util.info(toc(start_tot_time), ep, ...
                     %                     toc(start_ep_time), t(k), k, K);
@@ -504,12 +486,17 @@ for ep = start_ep:episodes
             % sample batch 
             sample = replaymem.sample(rl_mem_sample, rl_mem_last);
             
-            % compute hessian and descent direction
-%             f = lr * rlmpc.modify_hessian(sample.A) \ sample.b;
-            f = -lr * sample.b / sample.n; 
-            
+            % compute descent direction (b is already the descent direction
+            % (i.e., minus the gradient) and A is the (approx.) hessian)
+            p = rlmpc.descent_direction(-sample.b, sample.A, ...
+                                                        grad_desc_version);
+
+            % lr backtracking (TODO)
+            lr_bt = lr;
+            p = lr_bt * p;
+
             % perform constrained update
-            rl.pars = rlmpc.rl_constrained_update(rl.pars, rl.bounds, f);
+            rl.pars = rlmpc.constr_update(rl.pars, rl.bounds, p);
 
             % log update result
             msg = sprintf('RL update %i with %i samples: ', ...

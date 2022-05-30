@@ -1,11 +1,11 @@
-function [pars, deltas] = rl_constrained_update(pars, bnd, f, max_delta)
-    % RL_CONSTRAINED_UPDATE. Performs the update of the learnable
+function [pars, deltas] = constr_update(pars, bnd, p, max_delta)
+    % CONSTR_UPDATE. Performs the update of the learnable
     % parameters via a Linear Constrained Quadratic Programming problem,
     % ensuring that the parameter bounds are not compromised
     arguments
         pars (1, 1) struct
         bnd (1, 1) struct
-        f (:, 1) double
+        p (:, 1) double
         max_delta (1, 1) double = 1/10
     end
 
@@ -14,7 +14,7 @@ function [pars, deltas] = rl_constrained_update(pars, bnd, f, max_delta)
     ub = struct;
     for name = fieldnames(pars)'
         rel_delta = abs(pars.(name{1}){end} * max_delta);
-        rel_delta = max(rel_delta, 1e-1);
+        rel_delta = max(rel_delta, 1e-1); % avoids parameters close to 0 not growing
         lb.(name{1}) = max(...
             bnd.(name{1})(:, 1) - pars.(name{1}){end}, -rel_delta)';
         ub.(name{1}) = min(...
@@ -24,8 +24,8 @@ function [pars, deltas] = rl_constrained_update(pars, bnd, f, max_delta)
     ub = struct2array(ub)';
 
     % solve constrained lcqp
-    H = speye(length(f));
-    [deltas, ~, exitflag] = quadprog(H, f, [], [], [], [], lb, ub, -f, ...
+    H = eye(length(p));
+    [deltas, ~, exitflag] = quadprog(H, -p, [], [], [], [], lb, ub, p, ...
         optimoptions('quadprog', 'Display', 'off', ...
                                     'Algorithm', 'interior-point-convex'));
     assert(exitflag >= 1, 'quadprog failed (exit flag %i)', exitflag)
