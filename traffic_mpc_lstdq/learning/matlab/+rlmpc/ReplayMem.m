@@ -68,12 +68,9 @@ classdef ReplayMem < handle
             obj.length = 0;
         end
 
-        function add(obj, exp)
+        function add(obj, varargin)
             % ADD. Adds the given experience item to the buffer.
-            arguments
-                obj (1, 1) rlmpc.ReplayMem
-                exp (1, 1) struct
-            end
+            exp = struct(varargin{:});
             if obj.length < obj.capacity
                 % append to last position
                 obj.length = obj.length + 1;
