@@ -119,7 +119,7 @@ end
 %
 discount = 1;                       % rl discount factor
 lr = 1e-5;                          % rl learning rate
-grad_desc_version = 1;              % type of gradient descent/hessian modification
+grad_desc_version = 0;              % type of gradient descent/hessian modification
 con_violation_penalty = 10;         % penalty for constraint violations
 rl_update_freq = K / 5;             % when rl should update
 rl_mem_cap = 1000;                  % RL experience replay capacity
@@ -331,7 +331,7 @@ mpc.Q.init_solver(args);
 mpc.V.init_solver(args);
 
 % create replay memory
-replaymem = rlmpc.ReplayMem(rl_mem_cap, 'mean', 'A', 'b');
+replaymem = rlmpc.ReplayMem(rl_mem_cap, 'none', 'td_err', 'dQ', 'd2Q');
 
 % load checkpoint
 if load_checkpoint
@@ -424,10 +424,8 @@ for ep = start_ep:episodes
                     dQ = infoQ.get_value(deriv.Q.dL);
                     d2Q = infoQ.get_value(deriv.Q.d2L);
 
-                    % store in memory (for the Gauss-Newton, A is just -dQdQ')
-                    replaymem.add(struct( ...
-                                    'A', td_err * d2Q - dQ * dQ', ...
-                                    'b', td_err * dQ));
+                    % store in memory
+                    replaymem.add('td_err', td_err, 'dQ', dQ, 'd2Q', d2Q);
 
                     % util.info(toc(start_tot_time), ep, ...
                     %                     toc(start_ep_time), t(k), k, K);
@@ -486,13 +484,14 @@ for ep = start_ep:episodes
             % sample batch 
             sample = replaymem.sample(rl_mem_sample, rl_mem_last);
             
-            % compute descent direction (b is already the descent direction
-            % (i.e., minus the gradient) and A is the (approx.) hessian)
-            p = rlmpc.descent_direction(-sample.b, sample.A, ...
-                                                        grad_desc_version);
+            % compute descent direction (for the Gauss-Newton just -dQdQ')
+            g = -sample.dQ * sample.td_err;
+            H = -sample.dQ * sample.dQ' + ...
+                sum(sample.d2Q .* reshape(sample.td_err, 1,1,sample.n), 3);
+            p = rlmpc.descent_direction(g, H, grad_desc_version);
 
             % lr backtracking (TODO)
-            lr_bt = lr;
+            lr_bt = lr / sample.n;
             p = lr_bt * p;
 
             % perform constrained update
