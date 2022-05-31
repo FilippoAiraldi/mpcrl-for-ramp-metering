@@ -7,11 +7,11 @@ load_checkpoint = false;
 
 %% Model
 % simulation
-episodes = 50;                  % number of episodes to repeat
-Tfin = 2;                       % simulation time per episode (h)
-T = 10 / 3600;                  % simulation step size (h)
-K = Tfin / T;                   % simulation steps per episode (integer)
-t = (0:(K - 1)) * T;            % time vector (h) (only first episode)
+episodes = 50;                          % number of episodes to repeat
+Tfin = 2;                               % simulation time per episode (h)
+T = 10 / 3600;                          % simulation step size (h)
+K = Tfin / T;                           % simulation steps per episode
+t = (0:(K - 1)) * T;                    % time vector (h)
 
 % model parameters
 approx = struct;                        % structure containing approximations
@@ -32,12 +32,12 @@ n_links = 3;
 n_ramps = 1 + approx.control_origin;                   
 
 % segments
-L = 1;                          % length of links (km)
-lanes = 2;                      % lanes per link (adim)
+L = 1;                                  % length of links (km)
+lanes = 2;                              % lanes per link (adim)
 
 % origins O1 and O2 
-C = [3500, 2000];               % on-ramp capacity (veh/h/lane)
-max_queue = [150, 50];          % maximum queue (veh) - for constraint
+C = [3500, 2000];                       % on-ramp capacity (veh/h/lane)
+max_queue = [150, 50];                  % maximum queue (veh) constraint
 if ~approx.control_origin
     max_queue(1) = inf;
 end
@@ -47,11 +47,11 @@ if ~approx.origin_as_ramp
 end
 
 % model parameters
-tau = 18 / 3600;                % model parameter (s)
-kappa = 40;                     % model parameter (veh/km/lane)
-eta = 60;                       % model parameter (km^2/lane)
-rho_max = 180;                  % maximum capacity (veh/km/lane)
-delta = 0.0122;                 % merging phenomenum parameter
+tau = 18 / 3600;                        % model parameter (s)
+kappa = 40;                             % model parameter (veh/km/lane)
+eta = 60;                               % model parameter (km^2/lane)
+rho_max = 180;                          % maximum capacity (veh/km/lane)
+delta = 0.0122;                         % merging phenomenum parameter
 
 % known (wrong) and true (unknown) model parameters
 true_pars = struct('a', 1.867, 'v_free', 102, 'rho_crit', 33.5);
@@ -80,13 +80,13 @@ D = filtfilt(...
 
 %% MPC-based RL
 % parameters (constant)
-approx.Veq = false;                 % whether to use an approximation of Veq
-max_in_and_out = [false, false];    % whether to apply max to inputs and outputs of dynamics
+approx.Veq = false;                     % whether to use an approximation of Veq
+max_in_and_out = [false, false];        % whether to apply max to inputs and outputs of dynamics
 %
-Np = 4;                             % prediction horizon - \approx 3*L/(M*T*v_avg)
-Nc = 3;                             % control horizon
-M  = 6;                             % horizon spacing factor
-eps = 0;                            % nonnegative constraint precision
+Np = 4;                                 % prediction horizon - \approx 3*L/(M*T*v_avg)
+Nc = 3;                                 % control horizon
+M  = 6;                                 % horizon spacing factor
+eps = 0;                                % nonnegative constraint precision
 opts.ipopt = struct('expand', 1, 'print_time', 0, 'ipopt', ...
                 struct('print_level', 0, 'max_iter', 3e3, 'tol', 1e-8, ...
                        'barrier_tol_factor', 10));
@@ -103,29 +103,29 @@ opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
                             'ScaleProblem', true, ...
                             'SpecifyObjectiveGradient', true, ...
                             'SpecifyConstraintGradient', true);
-perturb_mag = 1;                    % magnitude of exploratory perturbation
+perturb_mag = 1;                        % magnitude of exploratory perturbation
 if ~approx.flow_as_control_action
-    rate_var_penalty = 0.4;         % penalty weight for rate variability
+    rate_var_penalty = 0.4;             % penalty weight for rate variability
 else
     rate_var_penalty = 0.04;
 end
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
-method = methods{1};                % solver method for MPC
-multistart = 1; % 4 * 3;            % multistarting NMPC solver
-soft_domain_constraints = true;     % whether to use soft constraints on positivity of states (either this, or max on output)
+method = methods{1};                    % solver method for MPC
+multistart = 1; % 4 * 3;                % multistarting NMPC solver
+soft_domain_constraints = true;         % whether to use soft constraints on positivity of states (either this, or max on output)
 if ~soft_domain_constraints && ~max_in_and_out(2)
     warning('Dynamics can be negative and hard constraints unfeasible')
 end
 %
-discount = 1;                       % rl discount factor
-lr = 1e-5;                          % rl learning rate
-grad_desc_version = 0;              % type of gradient descent/hessian modification
-con_violation_penalty = 10;         % penalty for constraint violations
-rl_update_freq = K / 5;             % when rl should update
-rl_mem_cap = 1000;                  % RL experience replay capacity
-rl_mem_sample = 500;                % RL experience replay sampling size
-rl_mem_last = 0.25;                 % percentage of last experiences to include in sample
-save_freq = 2;                      % checkpoint saving frequency
+discount = 1;                           % rl discount factor
+lr = 1e-5;                              % rl learning rate
+grad_desc_version = 0;                  % type of gradient descent/hessian modification
+con_violation_penalty = 10;             % penalty for constraint violations
+rl_update_freq = K / 5;                 % when rl should update
+rl_mem_cap = 1000;                      % RL experience replay capacity
+rl_mem_sample = 500;                    % RL experience replay sampling size
+rl_mem_last = 0.25;                     % percentage of last experiences to include in sample
+save_freq = 2;                          % checkpoint saving frequency
 
 % create a symbolic casadi function for the dynamics (both true and nominal)
 n_dist = size(D, 1);
