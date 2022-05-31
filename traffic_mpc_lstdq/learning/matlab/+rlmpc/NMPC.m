@@ -33,6 +33,8 @@ classdef NMPC < handle
         opts (1, 1)
         %
         dynamics (1, 1) struct
+        % 
+        r_bnd (:, 2) = {}
     end
 
 
@@ -78,19 +80,18 @@ classdef NMPC < handle
             
             % based on what is the control action, bounds differ
             if ~flow_as_control
-                bnd = {0.2, 1}; % metering rate is between [0.2, 1]
+                obj.r_bnd = {0.2, 1}; % metering rate is between [0.2, 1]
             else
                 if isequal([size(dyn.input.r, 1), length(C)], [1, 1]) % origin is not a ramp, and is not controlled
-                    bnd = {2e2, C(1)};
+                    obj.r_bnd = {2e2, C(1)};
                 elseif isequal([size(dyn.input.r, 1), length(C)], [1, 2]) % origin is a ramp, but is not controlled
-                    bnd = {2e2, C(2)};
+                    obj.r_bnd = {2e2, C(2)};
                 else % [2, 2] % origin is a ramp, and is controlled
-                    bnd = {2e2, C};
+                    obj.r_bnd = {2e2, C};
                 end 
                 % this fixed lb might cause infeasibility when too congested
-                
             end
-            r = obj.add_var('r', [size(dyn.input.r, 1), Nc], bnd{:});
+            r = obj.add_var('r', [size(dyn.input.r, 1), Nc], obj.r_bnd{:});
 
 			% create parameters
             d = obj.add_par('d', [dyn.dist.d.size(1), M * Np]);

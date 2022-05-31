@@ -14,11 +14,11 @@ K = Tfin / T;                   % simulation steps per episode (integer)
 t = (0:(K - 1)) * T;            % time vector (h) (only first episode)
 
 % model parameters
-approx = struct;                % structure containing approximations
-approx.origin_as_ramp = true;   % origin is regarded as a ramp if true; otherwise, as a pure flow with no queue
-approx.control_origin = false;   % toggle this to control the origin ramp
-approx.simple_rho_down = false;  % removes the max/min from the density downstream computations
-approx.flow_as_control_action = true; % if true, the control action is the ramp flows; otherwise, metering rate is used
+approx = struct;                        % structure containing approximations
+approx.origin_as_ramp = true;           % origin is regarded as a ramp if true; otherwise, as a pure flow with no queue
+approx.control_origin = false;          % toggle this to control the origin ramp
+approx.simple_rho_down = false;         % removes the max/min from the density downstream computations
+approx.flow_as_control_action = true;   % if true, the control action is the ramp flows; otherwise, metering rate is used
 assert(approx.origin_as_ramp || ~approx.control_origin)
 if approx.origin_as_ramp && approx.flow_as_control_action ...
                                                 && ~approx.control_origin
@@ -103,7 +103,7 @@ opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
                             'ScaleProblem', true, ...
                             'SpecifyObjectiveGradient', true, ...
                             'SpecifyConstraintGradient', true);
-perturb_mag = 1e-3;                 % magnitude of exploratory perturbation
+perturb_mag = 1;                    % magnitude of exploratory perturbation
 if ~approx.flow_as_control_action
     rate_var_penalty = 0.4;         % penalty weight for rate variability
 else
@@ -112,7 +112,7 @@ end
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
 method = methods{1};                % solver method for MPC
 multistart = 1; % 4 * 3;            % multistarting NMPC solver
-soft_domain_constraints = true;    % whether to use soft constraints on positivity of states (either this, or max on output)
+soft_domain_constraints = true;     % whether to use soft constraints on positivity of states (either this, or max on output)
 if ~soft_domain_constraints && ~max_in_and_out(2)
     warning('Dynamics can be negative and hard constraints unfeasible')
 end
@@ -147,9 +147,6 @@ dynamics = metanet.get_dynamics(args{:});
                                                 'affine', 'diag', 'diag');    
 Lrl = rlmpc.get_rl_cost(n_links, n_origins, TTS, ...
                                         max_queue, con_violation_penalty);
-normalization.w = max(max_queue(isfinite(max_queue)));   % normalization constants
-normalization.rho = rho_max;
-normalization.v = v_free; 
 
 % build mpc-based value function approximators
 mpc = struct;
@@ -158,6 +155,12 @@ for name = ["Q", "V"]
     ctrl = rlmpc.NMPC(name, Np, Nc, M, dynamics.nominal, max_queue, ...
                            soft_domain_constraints, eps, ...
                            approx.flow_as_control_action, rho_max, C, T);
+    
+    % normalization constants
+    normalization.w = max(max_queue(isfinite(max_queue)));   
+    normalization.rho = rho_max;
+    normalization.v = v_free; 
+    normalization.r = ctrl.r_bnd{2};
 
     % grab the names of the slack variables
     slacknames = fieldnames(ctrl.vars)';
@@ -221,18 +224,23 @@ for name = ["Q", "V"]
     % assign cost to opti
     ctrl.minimize(cost);
 
+    % case-specific modification
+    if strcmp(name, "Q")
+        % Q approximator has additional constraint on first action
+        ctrl.add_par('r0', [size(ctrl.vars.r, 1), 1]);
+        ctrl.add_con('r0_blocked', ctrl.vars.r(:, 1) - ctrl.pars.r0, 0, 0);        
+    elseif strcmp(name, "V")
+        % V approximator has perturbation to enhance exploration
+        ctrl.add_par('perturbation', size(ctrl.vars.r(:, 1)));
+        ctrl.minimize(ctrl.f + ctrl.pars.perturbation' * ...
+                                    ctrl.vars.r(:, 1) ./ normalization.r);
+    end
+
     % save to struct
     mpc.(name) = ctrl;
 end
 clear ctrl
 
-% Q approximator has additional constraint on first action
-mpc.Q.add_par('r0', [size(mpc.Q.vars.r, 1), 1]);
-mpc.Q.add_con('r0_blocked', mpc.Q.vars.r(:, 1) - mpc.Q.pars.r0, 0, 0);
-
-% V approximator has perturbation to enhance exploration
-mpc.V.add_par('perturbation', size(mpc.V.vars.r(:, 1)));
-mpc.V.minimize(mpc.V.f + mpc.V.pars.perturbation' * mpc.V.vars.r(:, 1));
 
 
 %% Simulation
@@ -392,8 +400,8 @@ for ep = start_ep:episodes
             end
 
             % choose if to apply perturbation
-            if rand < 0.1 * exp(-(ep - 1) * k / 3e3)
-                pert = perturb_mag * exp(-(ep - 1) * k / 3e3) * randn;
+            if rand < 0.1 * exp(-(ep - 1) / 5)
+                pert = perturb_mag * exp(-(ep - 1) / 5) * randn;
             else
                 pert = 0;
             end
