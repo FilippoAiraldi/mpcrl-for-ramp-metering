@@ -26,6 +26,7 @@ if approx.origin_as_ramp && approx.flow_as_control_action ...
     warning(['with this combo, the origin has a min function. Would ' ...
         'suggest to model the origin as a ramp and control it'])
 end
+demand_type = 'random';
 
 % network size
 n_origins = 1 + approx.origin_as_ramp;
@@ -63,19 +64,11 @@ rho_crit = true_pars.rho_crit * 0.7;    % critical capacity (veh/km/lane)
 
 
 %% Disturbances
-d1 = util.create_profile(t, [0, .35, 1, 1.35], [1000, 3000, 3000, 1000]);
-d2 = util.create_profile(t, [.15, .35, .6, .8], [500, 1500, 1500, 500]);
-d_cong = util.create_profile(t, [0.5, .7, 1, 1.2], [20, 60, 60, 20]);
+D = util.get_demand_profiles(t, episodes + 1, demand_type); % +1 to avoid out-of-bound access
 
-% add noise
-D = repmat([d1; d2; d_cong], 1, episodes + 1); % +1 to avoid out-of-bound access
-[filter_num, filter_den] = butter(3, 0.2);
-D = filtfilt(...
-    filter_num, filter_den, (D + randn(size(D)) .* [75; 75; 1.5])')';
-
-% plot((0:length(D) - 1) * T, (D .* [1; 1; 50])'),
-% legend('O1', 'O2', 'cong_{\times50}'), xlabel('time (h)'), ylabel('demand (h)')
-% ylim([0, 4000])
+plot((0:length(D) - 1) * T, (D .* [1; 1; 50])'),
+legend('O1', 'O2', 'cong_{\times50}'), xlabel('time (h)'), ylabel('demand (h)')
+ylim([0, 4000])
 
 
 

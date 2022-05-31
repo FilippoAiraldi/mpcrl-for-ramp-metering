@@ -84,9 +84,6 @@ Numerical Optimization. Algorithm 3.2 (pag. 48) describes generally the 2nd orde
 
 
 ################# 7th meeting #################
-- always know the optimal TTS when everything is known to the MPC
-	- (V) baseline with perfect information (pars equal to true_pars, and no learnable cost weights) 
-	- (V) baseline with no learning
 - (V) normalize perturbation first action, so that I can specify a single weight good for both ramp and flow control 
 - rate variability
 	- (V) try lower constraint violation penalty, so that TTS matters more
@@ -97,8 +94,10 @@ Numerical Optimization. Algorithm 3.2 (pag. 48) describes generally the 2nd orde
 	- (V) cannot be done on the whole batch, just do it for the worst TD error
 	- (V) the function is not really f. It is: f + v * sum(0, g), since our backtrack search is on a constrained box. The derivative is: df + v * dg * (sign() + 1), where v is larger than the inf norm of the multipliers of the original problem (for example, double of the last solution)
 - baseline
-	- do a lot of multistart for the perfect information MPC, we have to be sure it is the best we can get
 	- create a demand where the slope and height are randomly selected
+	- do a lot of multistart for the perfect information MPC, we have to be sure it is the best we can get
+	- baseline with perfect information (pars equal to true_pars, and no learnable cost weights) 
+	- baseline with no learning
 
 
 
