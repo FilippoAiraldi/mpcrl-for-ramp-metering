@@ -1,4 +1,4 @@
-function [pars, deltas] = constr_update(pars, bnd, p, max_delta)
+function [pars, deltas, lam_inf] = constr_update(pars, bnd, p, max_delta)
     % CONSTR_UPDATE. Performs the update of the learnable
     % parameters via a Linear Constrained Quadratic Programming problem,
     % ensuring that the parameter bounds are not compromised
@@ -25,8 +25,8 @@ function [pars, deltas] = constr_update(pars, bnd, p, max_delta)
 
     % solve constrained lcqp
     H = eye(length(p));
-    [deltas, ~, exitflag] = quadprog(H, -p, [], [], [], [], lb, ub, p, ...
-        optimoptions('quadprog', 'Display', 'off', ...
+    [deltas, ~, exitflag, ~, lambda] = quadprog(H, -p, [], [], [], [], ...
+        lb, ub, p, optimoptions('quadprog', 'Display', 'off', ...
                                     'Algorithm', 'interior-point-convex'));
     assert(exitflag >= 1, 'quadprog failed (exit flag %i)', exitflag)
 
@@ -38,4 +38,7 @@ function [pars, deltas] = constr_update(pars, bnd, p, max_delta)
         pars.(par){end + 1} = pars.(par){end} + deltas(i:i+sz-1);
         i = i + sz;
     end
+
+    % compute infinity norm of multipliers
+    lam_inf = norm([lambda.upper; lambda.lower], 'inf');
 end

@@ -82,7 +82,7 @@ D = filtfilt(...
 %% MPC-based RL
 % parameters (constant)
 approx.Veq = false;                     % whether to use an approximation of Veq
-max_in_and_out = [false, false];        % whether to apply max to inputs and outputs of dynamics
+max_in_and_out = [false, true];         % whether to apply max to inputs and outputs of dynamics
 %
 Np = 4;                                 % prediction horizon - \approx 3*L/(M*T*v_avg)
 Nc = 3;                                 % control horizon
@@ -113,7 +113,7 @@ end
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
 method = methods{1};                    % solver method for MPC
 multistart = 1; % 4 * 3;                % multistarting NMPC solver
-soft_domain_constraints = true;         % whether to use soft constraints on positivity of states (either this, or max on output)
+soft_domain_constraints = false;        % whether to use soft constraints on positivity of states (either this, or max on output)
 if ~soft_domain_constraints && ~max_in_and_out(2)
     warning('Dynamics can be negative and hard constraints unfeasible')
 end
@@ -319,6 +319,9 @@ for n = slacknames
     last_sol.(n) = ones(size(mpc.V.vars.(n))) * eps^2;
 end
 
+% initialize constrained QP RL update maximum lagrangian multiplier
+lam_inf = 15;
+
 % initialize mpc solvers
 switch method
     case 'ipopt'
@@ -334,7 +337,8 @@ mpc.Q.init_solver(args);
 mpc.V.init_solver(args);
 
 % create replay memory
-replaymem = rlmpc.ReplayMem(rl_mem_cap, 'none', 'td_err', 'dQ', 'd2Q');
+replaymem = rlmpc.ReplayMem(rl_mem_cap, 'none', 'td_err', 'dQ', 'd2Q', ...
+                                'target', 'solQ', 'parsQ', 'last_solQ');
 
 % load checkpoint
 if load_checkpoint
@@ -392,6 +396,8 @@ for ep = start_ep:episodes
                 end
                 [last_sol, infoQ] = mpc.Q.solve(pars, last_sol, true, ...
                                                             multistart);
+                parsQ = pars;           % to be saved for backtracking
+                last_solQ = last_sol;   % to be saved for backtracking
             end
 
             % choose if to apply perturbation
@@ -418,9 +424,10 @@ for ep = start_ep:episodes
             if ep > 1 || k_mpc > 5 % skip the first td errors to let them settle
                 if infoV.success && infoQ.success
                     % compute td error
-                    td_err = full(Lrl(w_prev, rho_prev, v_prev, r_prev, ...
+                    target = full(Lrl(w_prev, rho_prev, v_prev, r_prev, ...
                                                           r_prev_prev)) ...
-                                        + discount * infoV.f  - infoQ.f;
+                                + discount * infoV.f;
+                    td_err = target - infoQ.f;
                     td_error{ep}(k_mpc) = td_err;
                     td_error_perc{ep}(k_mpc) = td_err / infoQ.f;
 
@@ -429,7 +436,9 @@ for ep = start_ep:episodes
                     d2Q = infoQ.get_value(deriv.Q.d2L);
 
                     % store in memory
-                    replaymem.add('td_err', td_err, 'dQ', dQ, 'd2Q', d2Q);
+                    replaymem.add('td_err', td_err, 'dQ', dQ, ...
+                        'd2Q', d2Q, 'target', target, 'solQ', infoQ.f, ...
+                        'parsQ', parsQ, 'last_solQ', last_solQ);
 
                     % util.info(toc(start_tot_time), ep, ...
                     %                     toc(start_ep_time), t(k), k, K);
@@ -494,16 +503,19 @@ for ep = start_ep:episodes
                 sum(sample.d2Q .* reshape(sample.td_err, 1,1,sample.n), 3);
             p = rlmpc.descent_direction(g, H, grad_desc_version);
 
-            % lr backtracking (TODO)
-            lr_bt = lr / sample.n;
-            p = lr_bt * p;
+            % lr backtracking
+            lr = rlmpc.constr_backtracking(mpc.Q, deriv.Q, p, sample, ...
+                                                            rl, lam_inf);
+            % lr_ = lr / sample.n;
+            p = lr * p;
 
-            % perform constrained update
-            rl.pars = rlmpc.constr_update(rl.pars, rl.bounds, p);
+            % perform constrained update and save its maximum multiplier
+            [rl.pars, ~, lam] = rlmpc.constr_update(rl.pars, rl.bounds, p);
+            lam_inf = max(lam_inf, lam);
 
             % log update result
-            msg = sprintf('RL update %i with %i samples: ', ...
-                length(rl.pars.rho_crit) - 1, sample.n);
+            msg = sprintf('RL update %i with %i samples and lr %1.3e: ', ...
+                length(rl.pars.rho_crit) - 1, sample.n, lr);
             for name = fieldnames(rl.pars)'
                 msg = append(msg, name{1}, '=', ...
                             mat2str(rl.pars.(name{1}){end}(:)', 6), '; ');
