@@ -236,7 +236,7 @@ if plot_slacks
                                                     'UniformOutput', false);
             hlegend(i) = legend(n{:});
         end
-        ylabel(['slack ', strrep(names{i}, '_', ' ')]), 
+        ylabel(strrep(names{i}, '_', ' ')), 
     end
 
     linkaxes(ax, 'x')
@@ -268,11 +268,11 @@ if plot_learning
     performance_only_tts = arrayfun(@(ep) ...
         full(sum(TTS(origins.queue{ep}, links.density{ep}))), 1:ep_tot);
     yyaxis left
-    do_plot(linspace(0, ep_tot, length(performance)), performance)
+    do_plot(linspace(0, ep_tot, length(performance)), performance, '-o')
     ylabel('J(\pi)')
     yyaxis right
     do_plot(linspace(0, ep_tot, ...
-        length(performance_only_tts)), performance_only_tts)
+        length(performance_only_tts)), performance_only_tts, '-o')
     ylabel('TTS(\pi)')
     
     ax(2) = nexttile(3, [1, 2]);
