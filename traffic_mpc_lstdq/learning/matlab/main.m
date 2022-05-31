@@ -107,7 +107,7 @@ perturb_mag = 1;                        % magnitude of exploratory perturbation
 if ~approx.flow_as_control_action
     rate_var_penalty = 0.4;             % penalty weight for rate variability
 else
-    rate_var_penalty = 0.04;
+    rate_var_penalty = 4e-2;
 end
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
 method = methods{1};                    % solver method for MPC
@@ -140,13 +140,13 @@ if approx.Veq
 end
 dynamics = metanet.get_dynamics(args{:});
 
-% cost terms (learnable MPC, metanet and RL)
+% cost terms
 [TTS, Rate_var] = metanet.get_mpc_costs(n_links, n_origins, n_ramps, ...
                                                         Nc, T, L, lanes);
 [Vcost, Lcost, Tcost] = rlmpc.get_mpc_costs(n_links, n_origins, ...
                                                 'affine', 'diag', 'diag');    
-Lrl = rlmpc.get_rl_cost(n_links, n_origins, TTS, ...
-                                        max_queue, con_violation_penalty);
+Lrl = rlmpc.get_rl_cost(n_links, n_origins, n_ramps, TTS, Rate_var, ...
+                    max_queue, rate_var_penalty, con_violation_penalty);
 
 % build mpc-based value function approximators
 mpc = struct;
@@ -208,8 +208,9 @@ for name = ["Q", "V"]
                         normalization.v);
     % max queue slack cost and domain slack cost
     for n = slacknames
+        % w_max slacks are punished less because the weight is learnable
         if endsWith(n, 'w_max')
-            cost = cost ... % could use also trace
+            cost = cost ... 
                 + ctrl.pars.weight_slack_w_max' * ctrl.vars.slack_w_max(:);
         else
             cost = cost + sum(con_violation_penalty^2 * ctrl.vars.(n)(:));
@@ -416,7 +417,8 @@ for ep = start_ep:episodes
             if ep > 1 || k_mpc > 5 % skip the first td errors to let them settle
                 if infoV.success && infoQ.success
                     % compute td error
-                    td_err = full(Lrl(w_prev, rho_prev, v_prev)) ...
+                    td_err = full(Lrl(w_prev, rho_prev, v_prev, r_prev, ...
+                                                          r_prev_prev)) ...
                                         + discount * infoV.f  - infoQ.f;
                     td_error{ep}(k_mpc) = td_err;
                     td_error_perc{ep}(k_mpc) = td_err / infoQ.f;
@@ -522,8 +524,13 @@ for ep = start_ep:episodes
     end
 
     % log intermediate results
-    ep_Jtot = full(sum( ...
-            Lrl(origins.queue{ep}, links.density{ep}, links.speed{ep})));
+    if ep == 1
+        rate_prev = [origins.rate{ep}(1), origins.rate{ep}(1:end-1)];
+    else
+        rate_prev = [origins.rate{ep-1}(end), origins.rate{ep}(1:end-1)];
+    end
+    ep_Jtot = full(sum(Lrl(origins.queue{ep}, links.density{ep}, ...
+                           links.speed{ep}, origins.rate{ep}, rate_prev)));
     ep_TTS = full(sum(TTS(origins.queue{ep}, links.density{ep})));
     util.info(toc(start_tot_time), ep, exec_times(ep), t(end), K, K, ...
         sprintf('episode %i: Jtot=%.3f, TTS=%.3f, fails=%i(%.1f%%)', ...
