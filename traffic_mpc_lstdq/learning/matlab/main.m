@@ -103,7 +103,7 @@ opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
                             'ScaleProblem', true, ...
                             'SpecifyObjectiveGradient', true, ...
                             'SpecifyConstraintGradient', true);
-perturb_mag = 1;                        % magnitude of exploratory perturbation
+perturb_mag = 10;                       % magnitude of exploratory perturbation
 if ~approx.flow_as_control_action
     rate_var_penalty = 0.4;             % penalty weight for rate variability
 else
@@ -120,7 +120,7 @@ end
 discount = 1;                           % rl discount factor
 lr = 1e-5;                              % rl learning rate
 grad_desc_version = 0;                  % type of gradient descent/hessian modification
-con_violation_penalty = 10;             % penalty for constraint violations
+con_violation_penalty = 5;              % penalty for constraint violations
 rl_update_freq = K / 5;                 % when rl should update
 rl_mem_cap = 1000;                      % RL experience replay capacity
 rl_mem_sample = 500;                    % RL experience replay sampling size
