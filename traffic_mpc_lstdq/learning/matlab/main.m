@@ -245,18 +245,11 @@ clear ctrl
 
 %% Simulation
 % initial conditions
-if ~approx.flow_as_control_action
-    r = ones(n_ramps, 1);                       % ramp metering rate
-    r_prev = r;                                 % previous rate
-else
-    r = ones(n_ramps, 1) * max(D(:, 1)) * 1.05; % flow rate
-    r_prev = r;                                 % previous rate    
-end
+r = mpc.V.r_bnd{2};                     % metering rate/flow
+r_prev = r;                             % previous rate 
 [w, rho, v] = util.steady_state(dynamics.real.f, ...
     zeros(n_origins, 1), 10 * ones(n_links, 1), 100 * ones(n_links, 1), ...
     r, D(:, 1), true_pars.rho_crit, true_pars.a, true_pars.v_free);
-
-
 
 % initial learnable Q/V function approx. weights and their bounds
 args = cell(0, 3);
