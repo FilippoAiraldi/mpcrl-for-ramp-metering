@@ -5,6 +5,7 @@ runname = datestr(datetime, 'yyyymmdd_HHMMSS');
 load_checkpoint = false;
 
 
+
 %% Model
 % simulation
 episodes = 50;                          % number of episodes to repeat
@@ -120,7 +121,7 @@ end
 discount = 1;                           % rl discount factor
 lr = 1e-5;                              % rl learning rate
 grad_desc_version = 0;                  % type of gradient descent/hessian modification
-con_violation_penalty = 5;              % penalty for constraint violations
+con_violation_penalty = 2;              % penalty for constraint violations
 rl_update_freq = K / 5;                 % when rl should update
 rl_mem_cap = 1000;                      % RL experience replay capacity
 rl_mem_sample = 500;                    % RL experience replay sampling size
