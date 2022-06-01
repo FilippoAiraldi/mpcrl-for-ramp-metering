@@ -28,7 +28,11 @@ function [pars, deltas, lam_inf] = constr_update(pars, bnd, p, max_delta)
     [deltas, ~, exitflag, ~, lambda] = quadprog(H, -p, [], [], [], [], ...
         lb, ub, p, optimoptions('quadprog', 'Display', 'off', ...
                                     'Algorithm', 'interior-point-convex'));
-    assert(exitflag >= 1, 'quadprog failed (exit flag %i)', exitflag)
+    if exitflag == 0
+        warning('quadprog exit flat 0')
+    else
+        assert(exitflag >= 1, 'quadprog failed (exit flag %i)', exitflag)
+    end
 
     % compute next paramters
     i = 1;
