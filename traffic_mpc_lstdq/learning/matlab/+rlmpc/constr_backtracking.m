@@ -35,75 +35,79 @@ function lr = constr_backtracking(Q, derivQ, p, sample, rl, lam_inf)
                                      pars, vals, rl, lam_inf * 10);
 
     % run backtracking line search
-%     nsteps = 25;
-%     c = 0.2;
-%     rho = 1e-1;
-%     [phi0, dphi0] = eval_phi(0);
-%     dphi0 = p' * dphi0;
-%     lr = 1;
-%     for i = 1:nsteps
-%         phi = eval_phi(lr);
-%         if phi <= phi0 + c * lr * dphi0
-%             return
-%         end
-%         lr = rho * lr;
-%     end
-%     warning('Backtracking line search failed');
-%     return
-
-    % run line search algorithm
-    nsteps = 10;
-    c1 = 1e-4;
-    c2 = 0.9;
-    a_prev = 0;
-    a = 1;    
+    nsteps = 25;
+    c = 0.2;
+    rho = 1e-1;
     [phi0, dphi0] = eval_phi(0);
     dphi0 = p' * dphi0;
-    phi_prev = phi0;
+    lr = 1;
     for i = 1:nsteps
-        [phi, dphi] = eval_phi(a);
-        dphi = p' * dphi;
-
-        if phi > phi0 + c1 * a * dphi0 || (phi > phi_prev && i > 1)
-            zoom.a = [a_prev, a];
-            zoom.phi = [phi_prev, phi];
-        elseif abs(dphi) <= -c2 * dphi0
-            lr = a;
-            return
-        elseif dphi >= 0
-            zoom.a = [a, a_prev]; 
-            zoom.phi = [phi, phi_prev];
-        end
-
-        if exist('zoom', 'var')
-            for j = 1:nsteps * 5
-                a = sum(zoom.a) / 2;
-                [phi, dphi] = eval_phi(a);
-                if phi > phi0 + c1 * a * dphi0 || phi > zoom.phi(1)
-                    zoom.a(2) = a;
-                    zoom.phi(2) = phi;
-                else
-                    if abs(dphi) <= -c2 * dphi0
-                        lr = a;
-                        return
-                    elseif dphi * (zoom.a(2) - zoom.a(1)) >= 0
-                        zoom.a(2) = zoom.a(1);
-                        zoom.phi(2) = zoom.phi(1);
-                    end
-                    zoom.a(1) = a;
-                    zoom.phi(1) = phi;
-                end
+        try
+            phi = eval_phi(lr);
+            if phi <= phi0 + c * lr * dphi0
+                return
             end
-            lr = a;
-            warning('Line search zoom failed');
-            return
+        catch ME
+            warning(ME.identifier, ...
+                        'Error during evaluation of phi: %s', ME.message)
         end
-
-        a_prev = a;
-        phi_prev = phi;
-        a = 2 * a;
+        lr = rho * lr;
     end
-    error('Line search failed');
+    warning('Backtracking line search failed');
+
+%     % run line search algorithm
+%     nsteps = 10;
+%     c1 = 1e-4;
+%     c2 = 0.9;
+%     a_prev = 0;
+%     a = 1;    
+%     [phi0, dphi0] = eval_phi(0);
+%     dphi0 = p' * dphi0;
+%     phi_prev = phi0;
+%     for i = 1:nsteps
+%         [phi, dphi] = eval_phi(a);
+%         dphi = p' * dphi;
+% 
+%         if phi > phi0 + c1 * a * dphi0 || (phi > phi_prev && i > 1)
+%             zoom.a = [a_prev, a];
+%             zoom.phi = [phi_prev, phi];
+%         elseif abs(dphi) <= -c2 * dphi0
+%             lr = a;
+%             return
+%         elseif dphi >= 0
+%             zoom.a = [a, a_prev]; 
+%             zoom.phi = [phi, phi_prev];
+%         end
+% 
+%         if exist('zoom', 'var')
+%             for j = 1:nsteps * 5
+%                 a = sum(zoom.a) / 2;
+%                 [phi, dphi] = eval_phi(a);
+%                 if phi > phi0 + c1 * a * dphi0 || phi > zoom.phi(1)
+%                     zoom.a(2) = a;
+%                     zoom.phi(2) = phi;
+%                 else
+%                     if abs(dphi) <= -c2 * dphi0
+%                         lr = a;
+%                         return
+%                     elseif dphi * (zoom.a(2) - zoom.a(1)) >= 0
+%                         zoom.a(2) = zoom.a(1);
+%                         zoom.phi(2) = zoom.phi(1);
+%                     end
+%                     zoom.a(1) = a;
+%                     zoom.phi(1) = phi;
+%                 end
+%             end
+%             lr = a;
+%             warning('Line search zoom failed');
+%             return
+%         end
+% 
+%         a_prev = a;
+%         phi_prev = phi;
+%         a = 2 * a;
+%     end
+%     error('Line search failed');
 end
 
 
@@ -122,7 +126,7 @@ function [phi, dphi]  = evaluate_phi(alpha, p, target, Q, derivQ, pars, ...
     % solve the MPC problem - don't shift values as they are already the
     % solution, and don't use multistart
     [~, info] = Q.solve(pars, vals, false, 1);
-    assert(info.success, 'Line search failed')
+    assert(info.success, 'Evaluation of phi failed')
 
     % compute the value of phi and its derivative
     phi = (target - info.f)^2;

@@ -59,7 +59,7 @@ if plot_summary
         % RL details
         'RL', delimiter; 
         'discount', discount; 
-        'learning rate', lr; 
+        % 'learning rate', lr; 
         'constraint violation penalty', con_violation_penalty; 
     
         % learning outcomes

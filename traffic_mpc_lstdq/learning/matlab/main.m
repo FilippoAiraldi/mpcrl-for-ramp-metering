@@ -4,7 +4,6 @@ rng(42)
 runname = datestr(datetime, 'yyyymmdd_HHMMSS');
 load_checkpoint = false;
 
-% TEST COMMIT
 
 
 %% Model
@@ -27,7 +26,7 @@ if approx.origin_as_ramp && approx.flow_as_control_action ...
     warning(['with this combo, the origin has a min function. Would ' ...
         'suggest to model the origin as a ramp and control it'])
 end
-demand_type = 'random';
+demand_type = 'fixed';
 
 % network size
 n_origins = 1 + approx.origin_as_ramp;
@@ -106,20 +105,20 @@ else
 end
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
 method = methods{1};                    % solver method for MPC
-multistart = 4 * 3;                % multistarting NMPC solver
+multistart = 4 * 3;                     % multistarting NMPC solver
 soft_domain_constraints = false;        % whether to use soft constraints on positivity of states (either this, or max on output)
 if ~soft_domain_constraints && ~max_in_and_out(2)
     warning('Dynamics can be negative and hard constraints unfeasible')
 end
 %
 discount = 1;                           % rl discount factor
-lr = 1e-5;                              % rl learning rate
+lr = 1e-5;                              % fixed rl learning rate (no line search)
 grad_desc_version = 0;                  % type of gradient descent/hessian modification
 con_violation_penalty = 10;             % penalty for constraint violations
-rl_update_freq = K / 5;                 % when rl should update
+rl_update_freq = K / 2;                 % when rl should update
 rl_mem_cap = 1000;                      % RL experience replay capacity
 rl_mem_sample = 500;                    % RL experience replay sampling size
-rl_mem_last = 0.25;                     % percentage of last experiences to include in sample
+rl_mem_last = rl_update_freq / M;       % percentage of last experiences to include in sample
 save_freq = 2;                          % checkpoint saving frequency
 
 % create a symbolic casadi function for the dynamics (both true and nominal)
@@ -469,11 +468,11 @@ for ep = start_ep:episodes
 
         % step state (according to the true dynamics)
         [q_o, w_next, q, rho_next, v_next] = dynamics.real.f(...
-            w, rho, v, r, D(:, k), ...
+            w, rho, v, r, D(:, K*(ep-1) + k), ...
             true_pars.rho_crit, true_pars.a, true_pars.v_free);
 
         % save current state and other infos
-        origins.demand{ep}(:, k) = D(:, k);
+        origins.demand{ep}(:, k) = D(:, K*(ep-1) + k);
         origins.queue{ep}(:, k) = full(w);
         origins.flow{ep}(:, k) = full(q_o);
         origins.rate{ep}(:, k) = full(r);
@@ -498,10 +497,13 @@ for ep = start_ep:episodes
             p = rlmpc.descent_direction(g, H, grad_desc_version);
 
             % lr backtracking
-            lr = rlmpc.constr_backtracking(mpc.Q, deriv.Q, p, sample, ...
-                                                            rl, lam_inf);
-            % lr_ = lr / sample.n;
-            p = lr * p;
+            if ~exist('lr', 'var')
+                lr_ = rlmpc.constr_backtracking(mpc.Q, deriv.Q, p, ...
+                                                    sample, rl, lam_inf);
+            else
+                lr_ = lr / sample.n;
+            end
+            p = lr_ * p;
 
             % perform constrained update and save its maximum multiplier
             [rl.pars, ~, lam] = rlmpc.constr_update(rl.pars, rl.bounds, p);
@@ -509,7 +511,7 @@ for ep = start_ep:episodes
 
             % log update result
             msg = sprintf('RL update %i with %i samples and lr %1.3e: ', ...
-                length(rl.pars.rho_crit) - 1, sample.n, lr);
+                length(rl.pars.rho_crit) - 1, sample.n, lr_);
             for name = fieldnames(rl.pars)'
                 msg = append(msg, name{1}, '=', ...
                             mat2str(rl.pars.(name{1}){end}(:)', 6), '; ');
