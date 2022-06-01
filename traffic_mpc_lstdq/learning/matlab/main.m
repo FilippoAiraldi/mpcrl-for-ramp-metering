@@ -31,13 +31,13 @@ demand_type = 'fixed';
 % network size
 n_origins = 1 + approx.origin_as_ramp;
 n_links = 3;
-n_ramps = 1 + approx.control_origin;                   
+n_ramps = 1 + approx.control_origin;
 
 % segments
 L = 1;                                  % length of links (km)
 lanes = 2;                              % lanes per link (adim)
 
-% origins O1 and O2 
+% origins O1 and O2
 C = [3500, 2000];                       % on-ramp capacity (veh/h/lane)
 max_queue = [150, 50];                  % maximum queue (veh) constraint
 if ~approx.control_origin
@@ -57,9 +57,9 @@ delta = 0.0122;                         % merging phenomenum parameter
 
 % known (wrong) and true (unknown) model parameters
 true_pars = struct('a', 1.867, 'v_free', 102, 'rho_crit', 33.5);
-a = true_pars.a * 1.0;                  % model parameter (adim)
-v_free = true_pars.v_free * 1.0;        % free flow speed (km/h)
-rho_crit = true_pars.rho_crit * 1.0;    % critical capacity (veh/km/lane)
+a = true_pars.a * 1.3;                  % model parameter (adim)
+v_free = true_pars.v_free * 1.3;        % free flow speed (km/h)
+rho_crit = true_pars.rho_crit * 0.7;    % critical capacity (veh/km/lane)
 
 
 
@@ -97,7 +97,7 @@ opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
                             'ScaleProblem', true, ...
                             'SpecifyObjectiveGradient', true, ...
                             'SpecifyConstraintGradient', true);
-perturb_mag = 0;                       % magnitude of exploratory perturbation
+perturb_mag = 10;                       % magnitude of exploratory perturbation
 if ~approx.flow_as_control_action
     rate_var_penalty = 0.4;             % penalty weight for rate variability
 else
@@ -105,15 +105,15 @@ else
 end
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
 method = methods{1};                    % solver method for MPC
-multistart = 4 * 4;                     % multistarting NMPC solver
+multistart = 1; %4 * 4;                     % multistarting NMPC solver
 soft_domain_constraints = false;        % whether to use soft constraints on positivity of states (either this, or max on output)
 if ~soft_domain_constraints && ~max_in_and_out(2)
     warning('Dynamics can be negative and hard constraints unfeasible')
 end
 %
 discount = 1;                           % rl discount factor
-lr = 1e-5;                              % fixed rl learning rate (no line search)
-grad_desc_version = 0;                  % type of gradient descent/hessian modification
+% lr = 1e-5;                              % fixed rl learning rate (no line search)
+grad_desc_version = 3;                  % type of gradient descent/hessian modification
 con_violation_penalty = 10;             % penalty for constraint violations
 rl_update_freq = K / 2;                 % when rl should update
 rl_mem_cap = 1000;                      % RL experience replay capacity
@@ -138,7 +138,7 @@ dynamics = metanet.get_dynamics(args{:});
 [TTS, Rate_var] = metanet.get_mpc_costs(n_links, n_origins, n_ramps, ...
                                                         Nc, T, L, lanes);
 [Vcost, Lcost, Tcost] = rlmpc.get_mpc_costs(n_links, n_origins, ...
-                                                'affine', 'diag', 'diag');    
+                                                'affine', 'diag', 'diag');
 Lrl = rlmpc.get_rl_cost(n_links, n_origins, n_ramps, TTS, Rate_var, ...
                     max_queue, rate_var_penalty, con_violation_penalty);
 
@@ -149,11 +149,11 @@ for name = ["Q", "V"]
     ctrl = rlmpc.NMPC(name, Np, Nc, M, dynamics.nominal, max_queue, ...
                            soft_domain_constraints, eps, ...
                            approx.flow_as_control_action, rho_max, C, T);
-    
+
     % normalization constants
-    normalization.w = max(max_queue(isfinite(max_queue)));   
+    normalization.w = max(max_queue(isfinite(max_queue)));
     normalization.rho = rho_max;
-    normalization.v = v_free; 
+    normalization.v = v_free;
     normalization.r = ctrl.r_bnd{2};
 
     % grab the names of the slack variables
@@ -161,7 +161,7 @@ for name = ["Q", "V"]
     slacknames = string(slacknames(startsWith(slacknames, 'slack')));
 
     % create required parameters
-    ctrl.add_par('v_free_tracking', [1, 1]); 
+    ctrl.add_par('v_free_tracking', [1, 1]);
     ctrl.add_par('weight_V', size(Vcost.mx_in( ...
                 find(startsWith(string(Vcost.name_in), 'weight')) - 1)));
     ctrl.add_par('weight_L', size(Lcost.mx_in( ...
@@ -200,7 +200,6 @@ for name = ["Q", "V"]
                         ctrl.pars.weight_T, ...
                         normalization.rho, ...
                         normalization.v);
-    cost = 0;
     % max queue slack cost and domain slack cost
     for n = slacknames
         % w_max slacks are punished less because the weight is learnable
@@ -215,7 +214,7 @@ for name = ["Q", "V"]
     cost = cost ...
         + sum(TTS(ctrl.vars.w, ctrl.vars.rho)) ...  % TTS
         + ctrl.pars.weight_rate_var * ...           % terminal rate variability
-                                Rate_var(ctrl.pars.r_last, ctrl.vars.r);  
+                                Rate_var(ctrl.pars.r_last, ctrl.vars.r);
 
     % assign cost to opti
     ctrl.minimize(cost);
@@ -224,11 +223,11 @@ for name = ["Q", "V"]
     if strcmp(name, "Q")
         % Q approximator has additional constraint on first action
         ctrl.add_par('r0', [size(ctrl.vars.r, 1), 1]);
-        ctrl.add_con('r0_blocked', ctrl.vars.r(:, 1) - ctrl.pars.r0, 0, 0);        
+        ctrl.add_con('r0_blocked', ctrl.vars.r(:, 1) - ctrl.pars.r0, 0, 0);
     elseif strcmp(name, "V")
         % V approximator has perturbation to enhance exploration
         ctrl.add_par('perturbation', size(ctrl.vars.r(:, 1)));
-        ctrl.minimize(ctrl.f + 0 * ctrl.pars.perturbation' * ...
+        ctrl.minimize(ctrl.f + ctrl.pars.perturbation' * ...
                                     ctrl.vars.r(:, 1) ./ normalization.r);
     end
 
@@ -242,7 +241,7 @@ clear ctrl
 %% Simulation
 % initial conditions
 r = mpc.V.r_bnd{2};                     % metering rate/flow
-r_prev = r;                             % previous rate 
+r_prev = r;                             % previous rate
 [w, rho, v] = util.steady_state(dynamics.real.f, ...
     zeros(n_origins, 1), 10 * ones(n_links, 1), 100 * ones(n_links, 1), ...
     r, D(:, 1), true_pars.rho_crit, true_pars.a, true_pars.v_free);
@@ -258,11 +257,11 @@ else
 end
 args(end + 1, :) = {'v_free_tracking', {v_free}, [30, 300]};
 args(end + 1, :) = {'weight_V', ...
-                        {zeros(size(mpc.V.pars.weight_V))}, [-inf, inf]};
+                        {ones(size(mpc.V.pars.weight_V))}, [-inf, inf]};
 args(end + 1, :) = {'weight_L', ...
-                        {zeros(size(mpc.V.pars.weight_L))}, [0, inf]};
+                        {ones(size(mpc.V.pars.weight_L))}, [0, inf]};
 args(end + 1, :) = {'weight_T', ...
-                        {zeros(size(mpc.V.pars.weight_T))}, [0, inf]};
+                        {ones(size(mpc.V.pars.weight_T))}, [0, inf]};
 args(end + 1, :) = {'weight_rate_var', {rate_var_penalty}, [1e-3, 1e3]};
 if isfield(mpc.V.vars, 'slack_w_max')
     args(end+1,:) = {'weight_slack_w_max', ...
@@ -441,7 +440,7 @@ for ep = start_ep:episodes
                     msg = '';
                     if ~infoV.success
                         msg = append(msg, sprintf('V: %s. ', infoV.msg));
-                        
+
                     end
                     if ~infoQ.success
                         msg = append(msg, sprintf('Q: %s.', infoQ.msg));
@@ -485,17 +484,18 @@ for ep = start_ep:episodes
         w = full(w_next);
         rho = full(rho_next);
         v = full(v_next);
-        
+
         % perform RL updates
-        if mod(k, rl_update_freq) == 0 && ep > 1 && false
-            % sample batch 
+        if mod(k, rl_update_freq) == 0 && ep > 1
+            % sample batch
             sample = replaymem.sample(rl_mem_sample, rl_mem_last);
-            
+
             % compute descent direction (for the Gauss-Newton just -dQdQ')
             g = -sample.dQ * sample.td_err;
             H = -sample.dQ * sample.dQ' + ...
                 sum(sample.d2Q .* reshape(sample.td_err, 1,1,sample.n), 3);
             p = rlmpc.descent_direction(g, H, grad_desc_version);
+            fprintf('Symmetry diff = %.f\n', norm(H - (H + H) / 2, 'fro'))
 
             % lr backtracking
             if ~exist('lr', 'var')
