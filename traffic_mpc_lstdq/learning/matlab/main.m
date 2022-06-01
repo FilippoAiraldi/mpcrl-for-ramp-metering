@@ -57,9 +57,9 @@ delta = 0.0122;                         % merging phenomenum parameter
 
 % known (wrong) and true (unknown) model parameters
 true_pars = struct('a', 1.867, 'v_free', 102, 'rho_crit', 33.5);
-a = true_pars.a * 1.3;                  % model parameter (adim)
-v_free = true_pars.v_free * 1.3;        % free flow speed (km/h)
-rho_crit = true_pars.rho_crit * 0.7;    % critical capacity (veh/km/lane)
+a = true_pars.a * 1.0;                  % model parameter (adim)
+v_free = true_pars.v_free * 1.0;        % free flow speed (km/h)
+rho_crit = true_pars.rho_crit * 1.0;    % critical capacity (veh/km/lane)
 
 
 
@@ -97,7 +97,7 @@ opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
                             'ScaleProblem', true, ...
                             'SpecifyObjectiveGradient', true, ...
                             'SpecifyConstraintGradient', true);
-perturb_mag = 10;                       % magnitude of exploratory perturbation
+perturb_mag = 0;                       % magnitude of exploratory perturbation
 if ~approx.flow_as_control_action
     rate_var_penalty = 0.4;             % penalty weight for rate variability
 else
@@ -105,7 +105,7 @@ else
 end
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
 method = methods{1};                    % solver method for MPC
-multistart = 4 * 3;                     % multistarting NMPC solver
+multistart = 4 * 4;                     % multistarting NMPC solver
 soft_domain_constraints = false;        % whether to use soft constraints on positivity of states (either this, or max on output)
 if ~soft_domain_constraints && ~max_in_and_out(2)
     warning('Dynamics can be negative and hard constraints unfeasible')
@@ -200,6 +200,7 @@ for name = ["Q", "V"]
                         ctrl.pars.weight_T, ...
                         normalization.rho, ...
                         normalization.v);
+    cost = 0;
     % max queue slack cost and domain slack cost
     for n = slacknames
         % w_max slacks are punished less because the weight is learnable
@@ -227,7 +228,7 @@ for name = ["Q", "V"]
     elseif strcmp(name, "V")
         % V approximator has perturbation to enhance exploration
         ctrl.add_par('perturbation', size(ctrl.vars.r(:, 1)));
-        ctrl.minimize(ctrl.f + ctrl.pars.perturbation' * ...
+        ctrl.minimize(ctrl.f + 0 * ctrl.pars.perturbation' * ...
                                     ctrl.vars.r(:, 1) ./ normalization.r);
     end
 
@@ -257,11 +258,11 @@ else
 end
 args(end + 1, :) = {'v_free_tracking', {v_free}, [30, 300]};
 args(end + 1, :) = {'weight_V', ...
-                        {ones(size(mpc.V.pars.weight_V))}, [-inf, inf]};
+                        {zeros(size(mpc.V.pars.weight_V))}, [-inf, inf]};
 args(end + 1, :) = {'weight_L', ...
-                        {ones(size(mpc.V.pars.weight_L))}, [0, inf]};
+                        {zeros(size(mpc.V.pars.weight_L))}, [0, inf]};
 args(end + 1, :) = {'weight_T', ...
-                        {ones(size(mpc.V.pars.weight_T))}, [0, inf]};
+                        {zeros(size(mpc.V.pars.weight_T))}, [0, inf]};
 args(end + 1, :) = {'weight_rate_var', {rate_var_penalty}, [1e-3, 1e3]};
 if isfield(mpc.V.vars, 'slack_w_max')
     args(end+1,:) = {'weight_slack_w_max', ...
@@ -486,7 +487,7 @@ for ep = start_ep:episodes
         v = full(v_next);
         
         % perform RL updates
-        if mod(k, rl_update_freq) == 0 && ep > 1
+        if mod(k, rl_update_freq) == 0 && ep > 1 && false
             % sample batch 
             sample = replaymem.sample(rl_mem_sample, rl_mem_last);
             
