@@ -4,6 +4,7 @@ rng(42)
 runname = datestr(datetime, 'yyyymmdd_HHMMSS');
 load_checkpoint = false;
 
+% TEST COMMIT
 
 
 %% Model
