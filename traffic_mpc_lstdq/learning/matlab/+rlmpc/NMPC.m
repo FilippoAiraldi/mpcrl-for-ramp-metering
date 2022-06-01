@@ -412,7 +412,7 @@ classdef NMPC < handle
             else
                 sols = cell(1, multistart);
                 parfor i = 1:multistart % multistart / 2)
-                    vals_i = rlmpc.NMPC.perturb_vals(vals, i);
+                    vals_i = rlmpc.NMPC.perturb_vals(vals, i - 1);
                     x0 = cellfun(@(n) vals_i.(n)(:), varnames, ...
                                                 'UniformOutput', false);
                     x0 = vertcat(x0{:});
@@ -483,7 +483,7 @@ classdef NMPC < handle
                 sols = cell(1, multistart);
                 statuses = cell(1, multistart);
                 parfor i = 1:multistart % multistart / 2)
-                    vals_i = rlmpc.NMPC.perturb_vals(vals, i);
+                    vals_i = rlmpc.NMPC.perturb_vals(vals, i - 1);
                     x0 = cellfun(@(n) vals_i.(n)(:), varnames, ...
                                                 'UniformOutput', false);
                     x0 = vertcat(x0{:});
@@ -567,13 +567,12 @@ classdef NMPC < handle
             % slacks are taken care when feasibility is enforced
         end
 
-        function vals = perturb_vals(vals, mag)
+        function vals = perturb_vals(vals, std)
             % perturb initial conditions by some magnitude
-            b = (mag - 1) / 20;
-            vals.w = vals.w + randn(size(vals.w)) * b;
-            vals.rho = vals.rho + randn(size(vals.v)) * b;
-            vals.v = vals.v + randn(size(vals.v)) * b;
-            vals.r = vals.r + randn(size(vals.r)) * b / 2;
+            vals.w = vals.w + randn(size(vals.w)) * std;
+            vals.rho = vals.rho + randn(size(vals.v)) * std;
+            vals.v = vals.v + randn(size(vals.v)) * std;
+            vals.r = vals.r + randn(size(vals.r)) * std;
         end
 
         function vals = impose_feasibility(vals)
