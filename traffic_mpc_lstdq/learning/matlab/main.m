@@ -66,9 +66,9 @@ rho_crit = true_pars.rho_crit * 0.7;    % critical capacity (veh/km/lane)
 %% Disturbances
 D = util.get_demand_profiles(t, episodes + 1, demand_type); % +1 to avoid out-of-bound access
 
-plot((0:length(D) - 1) * T, (D .* [1; 1; 50])'),
-legend('O1', 'O2', 'cong_{\times50}'), xlabel('time (h)'), ylabel('demand (h)')
-ylim([0, 4000])
+% plot((0:length(D) - 1) * T, (D .* [1; 1; 50])'),
+% legend('O1', 'O2', 'cong_{\times50}'), xlabel('time (h)'), ylabel('demand (h)')
+% ylim([0, 4000])
 
 
 
@@ -105,7 +105,7 @@ else
 end
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
 method = methods{1};                    % solver method for MPC
-multistart = 1; % 4 * 3;                % multistarting NMPC solver
+multistart = 4 * 3;                % multistarting NMPC solver
 soft_domain_constraints = false;        % whether to use soft constraints on positivity of states (either this, or max on output)
 if ~soft_domain_constraints && ~max_in_and_out(2)
     warning('Dynamics can be negative and hard constraints unfeasible')
@@ -114,7 +114,7 @@ end
 discount = 1;                           % rl discount factor
 lr = 1e-5;                              % rl learning rate
 grad_desc_version = 0;                  % type of gradient descent/hessian modification
-con_violation_penalty = 2;              % penalty for constraint violations
+con_violation_penalty = 10;             % penalty for constraint violations
 rl_update_freq = K / 5;                 % when rl should update
 rl_mem_cap = 1000;                      % RL experience replay capacity
 rl_mem_sample = 500;                    % RL experience replay sampling size
