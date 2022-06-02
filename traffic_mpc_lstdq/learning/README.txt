@@ -94,9 +94,9 @@ Numerical Optimization. Algorithm 3.2 (pag. 48) describes generally the 2nd orde
 	- (V) cannot be done on the whole batch, just do it for the worst TD error
 	- (V) the function is not really f. It is: f + v * sum(0, g), since our backtrack search is on a constrained box. The derivative is: df + v * dg * (sign() + 1), where v is larger than the inf norm of the multipliers of the original problem (for example, double of the last solution)
 - baseline
-	- create a demand where the slope and height are randomly selected
-	- do a lot of multistart for the perfect information MPC, we have to be sure it is the best we can get
-	- baseline with perfect information (pars equal to true_pars, and no learnable cost weights) 
+	- (V) create a demand where the slope and height are randomly selected
+	- (V) do a lot of multistart for the perfect information MPC, we have to be sure it is the best we can get
+	- (V) baseline with perfect information (pars equal to true_pars, and no learnable cost weights) 
 	- baseline with no learning
 
 
