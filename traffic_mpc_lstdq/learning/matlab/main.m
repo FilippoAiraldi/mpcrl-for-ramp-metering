@@ -112,8 +112,8 @@ if ~soft_domain_constraints && ~max_in_and_out(2)
 end
 %
 discount = 1;                           % rl discount factor
-% lr = 1e-7;                              % fixed rl learning rate (no line search)
-grad_desc_version = 3;                  % type of gradient descent/hessian modification
+% lr = 1e-5;                              % fixed rl learning rate (no line search)
+grad_desc_version = 0;                  % type of gradient descent/hessian modification
 con_violation_penalty = 10;             % penalty for constraint violations
 rl_update_freq = K / 2;                 % when rl should update
 rl_mem_cap = 1000;                      % RL experience replay capacity
@@ -508,7 +508,7 @@ for ep = start_ep:episodes
             p = lr_ * p;
 
             % perform constrained update and save its maximum multiplier
-            [rl.pars, ~, lam] = rlmpc.constr_update(rl.pars, rl.bounds, p);
+            [rl.pars,~,lam] = rlmpc.constr_update(rl.pars,rl.bounds,p,1/5);
             lam_inf = max(lam_inf, lam);
 
             % log update result
