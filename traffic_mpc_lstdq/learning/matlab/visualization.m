@@ -256,8 +256,12 @@ if plot_learning
     end
 
     % learning quantities figure
+    nrows = 4;
+    if isfield(rl, 'lr')
+        nrows = nrows + 1;
+    end
     figure;
-    tiledlayout(4, 2, 'Padding', 'none', 'TileSpacing', 'compact')
+    tiledlayout(nrows, 2, 'Padding', 'none', 'TileSpacing', 'compact')
     sgtitle(runname, 'Interpreter', 'none')
     ax = matlab.graphics.axis.Axes.empty;
     
@@ -302,7 +306,7 @@ if plot_learning
         ylabel('TD error \tau')
     end
     
-    ax_ = nexttile(5);
+    ax(3) = nexttile(5);
     if Lrl.n_in == 3
         args = {origins_tot.queue, links_tot.density, links_tot.speed};
     else
@@ -311,32 +315,31 @@ if plot_learning
                 [origins_tot.rate(1), origins_tot.rate(1:end-1)]};
     end
     L_tot = full(Lrl(args{:}));
-    do_plot(t_tot(1:step:end), L_tot(:, 1:step:end))
+    do_plot(linspace(0, ep_tot, ceil(length(L_tot) / step)), L_tot(:, 1:step:end))
     % plot_episodes_separators(ax_, [], ep_tot, Tfin)
-    xlabel('time (h)'), ylabel('L')
-    ax_.XLim(2) = t_tot(end);
+    ylabel('L'); ax(3).XLim(2) = t_tot(end);
     
     traffic_pars = {'a'; 'v_free'; 'v_free_tracking'; 'rho_crit'};
     true_pars.v_free_tracking = true_pars.v_free;
 
-    ax(3) = nexttile(7); hold on
+    ax(4) = nexttile(7); hold on
     legendStrings = {};
     pars = intersect(fieldnames(rl.pars), traffic_pars);
     for i = 1:length(pars)
         par = pars{i};
         stairs(linspace(0, ep_tot, length(rl.pars.(par))), rl.pars.(par))
-        ax(3).ColorOrderIndex = i;
+        ax(4).ColorOrderIndex = i;
         plot([0, ep_tot], [true_pars.(par), true_pars.(par)], '--')
         legendStrings = [legendStrings, {par, ''}];
     end
     if log_learned
-        set(ax(3), 'YScale', 'log');
+        set(ax(4), 'YScale', 'log');
     end
     legend(legendStrings{:}, 'interpreter', 'none', 'FontSize', 6)
     hold off
     ylabel('learned parameters')
     
-    ax(4) = nexttile(6, [2, 1]); hold on
+    ax(5) = nexttile(6, [2, 1]); hold on
 
     markers = {'o', '*', 'x', 'v', 'd', '^', 's', '>', '<', '+'};
     weights = setdiff(fieldnames(rl.pars), traffic_pars);
@@ -359,7 +362,7 @@ if plot_learning
         end
     end
     if log_learned
-        set(ax(4), 'YScale', 'log');
+        set(ax(5), 'YScale', 'log');
     end
     hold off
     legend(legendStrings{:}, 'interpreter', 'none', 'FontSize', 6)
@@ -369,6 +372,12 @@ if plot_learning
         ylabel('weights')
     end
     
+    if isfield(rl, 'lr')
+        ax(5) = nexttile(9, [1, 2]);
+        do_plot(linspace(0, ep_tot, length(rl.lr)), cell2mat(rl.lr));
+        ylabel('learning rate')
+    end
+
     linkaxes(ax, 'x')
     for i = 1:length(ax)
         xlabel(ax(i), 'episode')
