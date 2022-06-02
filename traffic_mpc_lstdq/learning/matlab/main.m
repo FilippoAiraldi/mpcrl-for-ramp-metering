@@ -546,7 +546,7 @@ for ep = start_ep:episodes
     if ~exist('ph_J', 'var') || ~isvalid(ph_J)
         figure;
         yyaxis left, 
-        ph_J = plot(ep, ep_Jtot, '-o');
+        ph_J = semilogy(ep, ep_Jtot, '-o');
         ylabel('J')
         yyaxis right, 
         ph_TTS = plot(ep, ep_TTS, '-o');

@@ -26,7 +26,7 @@ plot_learning = true;
 
 mean_slack = false;
 scaled_learned = false;
-log_learned = false;
+log_learned = true;
 
 
 
@@ -262,11 +262,17 @@ if plot_learning
     ax = matlab.graphics.axis.Axes.empty;
     
     ax(1) = nexttile(1, [1, 2]);
-    performance = arrayfun(@(ep) ...
-        full(sum(Lrl(origins.queue{ep}, links.density{ep}, ...
-                     links.speed{ep}, origins.rate{ep}, ...
-                     [origins.rate{ep}(1), origins.rate{ep}(1:end-1)]))), ...
-                     1:ep_tot);
+    if Lrl.n_in == 3
+        performance = arrayfun(@(ep) full(sum(Lrl( ...
+            origins.queue{ep}, links.density{ep}, links.speed{ep}))), ...
+            1:ep_tot);
+    else
+        performance = arrayfun(@(ep) full(sum(Lrl( ...
+            origins.queue{ep}, links.density{ep}, links.speed{ep}, ...
+            origins.rate{ep}, ...
+            [origins.rate{ep}(1), origins.rate{ep}(1:end-1)]))), ...
+            1:ep_tot);
+    end
     performance_only_tts = arrayfun(@(ep) ...
         full(sum(TTS(origins.queue{ep}, links.density{ep}))), 1:ep_tot);
     yyaxis left
@@ -297,9 +303,14 @@ if plot_learning
     end
     
     ax_ = nexttile(5);
-    L_tot = full(Lrl(origins_tot.queue, links_tot.density, ...
-                     links_tot.speed, origins_tot.rate, ...
-                     [origins_tot.rate(1), origins_tot.rate(1:end-1)]));
+    if Lrl.n_in == 3
+        args = {origins_tot.queue, links_tot.density, links_tot.speed};
+    else
+        args = {origins_tot.queue, links_tot.density, links_tot.speed, ...
+                origins_tot.rate, ...
+                [origins_tot.rate(1), origins_tot.rate(1:end-1)]};
+    end
+    L_tot = full(Lrl(args{:}));
     do_plot(t_tot(1:step:end), L_tot(:, 1:step:end))
     % plot_episodes_separators(ax_, [], ep_tot, Tfin)
     xlabel('time (h)'), ylabel('L')
