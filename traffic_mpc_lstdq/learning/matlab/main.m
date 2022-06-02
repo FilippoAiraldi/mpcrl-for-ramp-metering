@@ -112,7 +112,7 @@ if ~soft_domain_constraints && ~max_in_and_out(2)
 end
 %
 discount = 1;                           % rl discount factor
-% lr = 1e-5;                              % fixed rl learning rate (no line search)
+% lr = 1e-7;                              % fixed rl learning rate (no line search)
 grad_desc_version = 3;                  % type of gradient descent/hessian modification
 con_violation_penalty = 10;             % penalty for constraint violations
 rl_update_freq = K / 2;                 % when rl should update
@@ -271,6 +271,7 @@ end
 rl = struct;
 rl.pars = cell2struct(args(:, 2), args(:, 1));
 rl.bounds = cell2struct(args(:, 3), args(:, 1));
+rl.lr = {};
 
 % compute symbolic derivatives
 deriv = struct;
@@ -490,12 +491,11 @@ for ep = start_ep:episodes
             % sample batch
             sample = replaymem.sample(rl_mem_sample, rl_mem_last);
 
-            % compute descent direction (for the Gauss-Newton just -dQdQ')
+            % compute descent direction (for the Gauss-Newton just dQdQ')
             g = -sample.dQ * sample.td_err;
-            H = -sample.dQ * sample.dQ' + ...
-                sum(sample.d2Q .* reshape(sample.td_err, 1,1,sample.n), 3);
+            H = sample.dQ * sample.dQ' - ...
+                sum(sample.d2Q .* reshape(sample.td_err, 1, 1, []), 3);
             p = rlmpc.descent_direction(g, H, grad_desc_version);
-            fprintf('Symmetry diff = %.f\n', norm(H - (H + H) / 2, 'fro'))
 
             % lr backtracking
             if ~exist('lr', 'var')
@@ -504,6 +504,7 @@ for ep = start_ep:episodes
             else
                 lr_ = lr / sample.n;
             end
+            rl.lr{end + 1} = lr_;
             p = lr_ * p;
 
             % perform constrained update and save its maximum multiplier
