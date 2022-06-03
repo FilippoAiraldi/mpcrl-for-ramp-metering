@@ -272,6 +272,7 @@ rl = struct;
 rl.pars = cell2struct(args(:, 2), args(:, 1));
 rl.bounds = cell2struct(args(:, 3), args(:, 1));
 rl.lr = {};
+rl.H_mod = {};
 
 % compute symbolic derivatives
 deriv = struct;
@@ -493,27 +494,31 @@ for ep = start_ep:episodes
 
             % compute descent direction (for the Gauss-Newton just dQdQ')
             g = -sample.dQ * sample.td_err;
-            H = sample.dQ * sample.dQ' - ...
-                sum(sample.d2Q .* reshape(sample.td_err, 1, 1, []), 3);
-            p = rlmpc.descent_direction(g, H, grad_desc_version);
+            if grad_desc_version ~= 0
+                H = sample.dQ * sample.dQ'; % - sum(sample.d2Q .* reshape(sample.td_err, 1, 1, []), 3);
+            else
+                H = [];
+            end
+            [p, rl.H_mod{end + 1}] = ...
+                        rlmpc.descent_direction(g, H, grad_desc_version);
 
             % lr backtracking
             if ~exist('lr', 'var')
-                lr_ = rlmpc.constr_backtracking(mpc.Q, deriv.Q, p, ...
-                                                    sample, rl, lam_inf);
+                rl.lr{end + 1} = rlmpc.constr_backtracking( ...
+                            mpc.Q, deriv.Q, p, sample, rl, lam_inf);
             else
-                lr_ = lr / sample.n;
+                rl.lr{end + 1} = lr / sample.n;
             end
-            rl.lr{end + 1} = lr_;
-            p = lr_ * p;
+            p = rl.lr{end} * p;
 
             % perform constrained update and save its maximum multiplier
             [rl.pars,~,lam] = rlmpc.constr_update(rl.pars,rl.bounds,p,1/5);
             lam_inf = max(lam_inf, lam);
 
             % log update result
-            msg = sprintf('RL update %i with %i samples and lr %1.3e: ', ...
-                length(rl.pars.rho_crit) - 1, sample.n, lr_);
+            msg = sprintf('update %i (N=%i, lr=%1.3e, H mod=%1.3e): ', ...
+                                length(rl.pars.rho_crit) - 1, sample.n, ...
+                                    rl.lr{end}, rl.H_mod{end});
             for name = fieldnames(rl.pars)'
                 msg = append(msg, name{1}, '=', ...
                             mat2str(rl.pars.(name{1}){end}(:)', 6), '; ');

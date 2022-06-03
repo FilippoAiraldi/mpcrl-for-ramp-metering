@@ -1,4 +1,4 @@
-function p = descent_direction(g, H, version)
+function [p, H_mod] = descent_direction(g, H, version)
     % DESCENT_DIRECTION Computes the gradient descent direction from the
     % linear system 
     %                       H p = -g
@@ -9,23 +9,28 @@ function p = descent_direction(g, H, version)
         version (1, 1) double ...
             {mustBeInteger, mustBeInRange(version, 0, 3)} = 0
     end
-    assert(~isempty(H) || version ~= 0, 'hessian is required')
+    assert(~isempty(H) || version == 0, 'hessian is required')
     switch version
         case 0
             % first order descent (no hessian information)
             p = -g;
+            H_mod = 0; % no hessian modification
         case 1
             % cholesky with added multiple identities
             L = chol_multiple_identities(H, 1e-3);
             p = L' \ (L \ -g);  
+            H_mod = norm(H - L * L', 'fro');
         case 2
             % modified cholesky factorization 1
-            [L, D] = mchol(H);
+            [L, D, E] = mchol(H);
             p = (D * L') \ (L \ -g); 
+            H_mod = norm(E, 'fro');
         case 3
             % modified cholesky factorization 2
             [L, D] = modchol_ldlt(H);
-            p = (D * L') \ (L \ -g); 
+            DL_ = D * L';
+            p = DL_ \ (L \ -g); 
+            H_mod = norm(H - L * DL_, 'fro');
         otherwise
             error('invalid hessian modification version')
     end
