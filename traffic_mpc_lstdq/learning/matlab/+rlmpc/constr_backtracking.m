@@ -141,6 +141,6 @@ function [phi, dphi]  = evaluate_phi(alpha, p, target, Q, derivQ, pars, ...
 
         % include boundaries into the objective
         phi = phi + v * sum(max(0, g_lb) + max(0, g_ub));
-        dphi = dphi + 0.5 * sum((sign(g_ub)) - sign(g_lb));
+        dphi = dphi + v * 0.5 * sum((sign(g_ub)) - sign(g_lb));
     end
 end

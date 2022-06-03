@@ -315,7 +315,7 @@ for n = slacknames
 end
 
 % initialize constrained QP RL update maximum lagrangian multiplier
-lam_inf = 15;
+lam_inf = 0;
 
 % initialize mpc solvers
 switch method
