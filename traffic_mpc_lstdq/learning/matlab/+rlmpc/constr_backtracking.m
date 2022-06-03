@@ -36,15 +36,16 @@ function lr = constr_backtracking(Q, derivQ, p, sample, rl, lam_inf)
 
     % run backtracking line search
     nsteps = 35;
-    c = 0.5;
+    c1 = 0.25;
+    c2 = 0.9;
     rho = 0.2;
     [phi0, dphi0] = eval_phi(0);
     dphi0 = p' * dphi0;
     lr = 1;
     for i = 1:nsteps
         try
-            phi = eval_phi(lr);
-            if phi <= phi0 + c * lr * dphi0
+            [phi, dphi] = eval_phi(lr);
+            if (phi <= phi0 + c1 * lr * dphi0) && (dphi' * p >= c2 * dphi0)
                 return
             end
         catch ME
