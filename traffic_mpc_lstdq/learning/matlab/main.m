@@ -332,7 +332,7 @@ mpc.Q.init_solver(args);
 mpc.V.init_solver(args);
 
 % create replay memory
-replaymem = rlmpc.ReplayMem(rl_mem_cap, 'none', 'td_err', 'dQ', 'd2Q', ...
+replaymem = rlmpc.ReplayMem(rl_mem_cap, 'none', 'td_err', 'dQ', ...
                                 'target', 'solQ', 'parsQ', 'last_solQ');
 
 % load checkpoint
@@ -428,11 +428,11 @@ for ep = start_ep:episodes
 
                     % compute numerical gradients w.r.t. params
                     dQ = infoQ.get_value(deriv.Q.dL);
-                    d2Q = infoQ.get_value(deriv.Q.d2L);
+                    % d2Q = infoQ.get_value(deriv.Q.d2L);
 
                     % store in memory
                     replaymem.add('td_err', td_err, 'dQ', dQ, ...
-                        'd2Q', d2Q, 'target', target, 'solQ', infoQ.f, ...
+                        'target', target, 'solQ', infoQ.f, ...
                         'parsQ', parsQ, 'last_solQ', last_solQ);
 
                     % util.info(toc(start_tot_time), ep, ...
