@@ -98,24 +98,17 @@ Numerical Optimization. Algorithm 3.2 (pag. 48) describes generally the 2nd orde
 	- (V) do a lot of multistart for the perfect information MPC, we have to be sure it is the best we can get
 	- (V) baseline with perfect information (pars equal to true_pars, and no learnable cost weights) 
 	- baseline with no learning
+- scale learnable parameters
 
 
 
-## NOTES
-1. do not use solutions where casadi has not converged to optimal
-
-2. remember to normalize
-
-3. MPC
-	- initial
-		affine term (EMPC) in states (can be also a parameter to learn)
-	- stage
-		quadratic in density with tracking of rho_crit (may be fixed to the starting known wrong value)
-		quadratic in speed with tracking alpha (can it be v_free itself or is it too high?)	
-	- terminal
-		quadratic in density with tracking of rho_crit
-   RL
-	same stage cost as MPC + constraint violation penalty (weights are fixed)
+################# 8th meeting #################
+- add condition 3.6b to backtracking line search (Algorithm 3.1)
+- log how much hessian is modified at each iteration
+- run GaussNetwon for 100-150 episodes
+- increase number of samples in backtracking, like the worst 10 td errors
+- use random demands: introduce training script (on a fixed seed) and validation seed (possibly without seed, which runs both the perfect information MPC and the MPC to validate)
+- use rho crit tracking, and add a multiplicative term to the rho crit tracking cost term as:  (\rho^2)*||\rho - \rho_crit||^2 
 
 
 
