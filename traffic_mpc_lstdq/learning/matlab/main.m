@@ -8,7 +8,7 @@ load_checkpoint = false;
 
 %% Model
 % simulation
-episodes = 50;                          % number of episodes to repeat
+episodes = 100;                         % number of episodes to repeat
 Tfin = 2;                               % simulation time per episode (h)
 T = 10 / 3600;                          % simulation step size (h)
 K = Tfin / T;                           % simulation steps per episode
@@ -113,7 +113,7 @@ end
 %
 discount = 1;                           % rl discount factor
 % lr = 1e-5;                              % fixed rl learning rate (no line search)
-grad_desc_version = 0;                  % type of gradient descent/hessian modification
+grad_desc_version = 1;                  % type of gradient descent/hessian modification
 con_violation_penalty = 10;             % penalty for constraint violations
 rl_update_freq = K / 2;                 % when rl should update
 rl_mem_cap = 1000;                      % RL experience replay capacity
@@ -488,7 +488,7 @@ for ep = start_ep:episodes
         v = full(v_next);
 
         % perform RL updates
-        if mod(k, rl_update_freq) == 0 && ep > 1
+        if mod(k, rl_update_freq) == 0 % && ep > 1
             % sample batch
             sample = replaymem.sample(rl_mem_sample, rl_mem_last);
 

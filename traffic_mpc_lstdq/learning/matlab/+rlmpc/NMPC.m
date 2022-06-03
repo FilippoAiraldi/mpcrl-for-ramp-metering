@@ -354,34 +354,40 @@ classdef NMPC < handle
             v = vertcat(v{:});
         end
 
-        function [sol, info] = solve(obj,pars,vals, shift_vals, multistart)
-            % SOLVE. Solve the NMPC problem with the given parameter values
-            % and initial conditions for the variables.
+        function [sol, info]=solve(obj, pars, vals, shift_vals, multistart)
+            % SOLVE. Solve the NMPC problem (can be multiple problems) with
+            % the given parameter values and initial conditions for the 
+            % variables.
             arguments
                 obj (1, 1) rlmpc.NMPC
-                pars (1, 1) struct
-                vals (1, 1) struct
+                pars (:, 1) struct
+                vals (:, 1) struct
                 shift_vals (1, 1) logical = true;
                 multistart (1, 1) {mustBePositive,mustBeInteger} = 1
             end
+            assert(length(pars) == length(vals), ...
+                                    'pars and vals with different sizes')
             
-            % if requested, shifts the initial conditions for the MPC by M
-            % instants to the left, and pads the right with a simulation.
-            % This step is independent of the algorithm and multistart.
-            if shift_vals
-                vals = obj.shift_vals( ...
-                                pars, vals, obj.M, obj.Np, obj.dynamics.f);
+            for i = length(pars)
+                % if requested, shifts the initial conditions for the MPC by M
+                % instants to the left, and pads the right with a simulation.
+                % This step is independent of the algorithm and multistart.
+                if shift_vals
+                    vals(i) = obj.shift_vals(pars(i), vals(i), ...
+                                            obj.M, obj.Np, obj.dynamics.f);
+                end
+
+                % help with feasibility issues
+                vals(i) = obj.impose_feasibility(vals(i));
+    
+                % order pars and vars according to the order of creation
+                vals(i) = orderfields(vals(i), obj.vars);
+                pars(i) = orderfields(pars(i), obj.pars);
             end
-
-            % help with feasibility issues
-            vals = obj.impose_feasibility(vals);
-
-            % order pars and vars according to the order of creation
-            vals = orderfields(vals, obj.vars);
-            pars = orderfields(pars, obj.pars);
 
             % decide which algorithm to use
             if isa(obj.opts, 'optim.options.Fmincon')
+                assert(length(pars) == 1, 'does not support multiproblems')
                 [sol, info] = obj.solve_fmincon_multistart( ...
                                                 pars, vals, multistart);
             else
@@ -463,74 +469,86 @@ classdef NMPC < handle
         function [sol, info] = solve_nlp_multistart(obj, pars, vals, ...
                                                                 multistart)
             % pre-compute stuff to avoid obj in the parfor loop
+            N = length(pars); % number of multiproblems
             slvr = obj.solver;
-            p_ = obj.subsevalf(obj.p, obj.pars, pars);
+            p_ = arrayfun( ...
+                @(i) obj.subsevalf(obj.p, obj.pars, pars(i)), 1:N, ...
+                'UniformOutput', false);
             lbx_ = obj.lbx;
             ubx_ = obj.ubx;
             lbg_ = obj.lbg;
             ubg_ = obj.ubg;
             varnames = fieldnames(obj.vars)';
 
-            % call SQP solver 
-            if multistart == 1
+            % call NLP solver 
+            if multistart == 1 && N == 1 
+                % convert to NLP and solve
                 x0 = obj.subsevalf(obj.x, obj.vars, vals);
                 x0 = max(lbx_, min(ubx_, x0));
-                sol = slvr('x0', x0, 'p', p_, 'lbx', lbx_, ...
+                sol = slvr('x0', x0, 'p', p_{1}, 'lbx', lbx_, ...
                           'ubx', ubx_, 'lbg', lbg_, 'ubg', ubg_); 
+
+                % get return status
                 status = slvr.stats.return_status;
                 success = obj.is_nlp_ok(status);
-            else
-                sols = cell(1, multistart);
-                statuses = cell(1, multistart);
-                parfor i = 1:multistart % multistart / 2)
-                    vals_i = rlmpc.NMPC.perturb_vals(vals, i - 1);
-                    x0 = cellfun(@(n) vals_i.(n)(:), varnames, ...
-                                                'UniformOutput', false);
-                    x0 = vertcat(x0{:});
-                    x0 = max(lbx_, min(ubx_, x0));
-                    sol = slvr('x0', x0, 'p', p_, 'lbx', lbx_, ...
-                                   'ubx', ubx_, 'lbg', lbg_, 'ubg', ubg_); %#ok<PFBNS> 
-                    sol.f = full(sol.f);
-                    sols{i} = sol;
-                    statuses{i} = slvr.stats.return_status;
-                end
 
+                % from the unique lam_x, extract lam_lbx and lam_ubx
+                lam_lbx_ = -min(0, sol.lam_x);
+                lam_ubx_ =  max(0, sol.lam_x);
+    
+                % build info
+                S = [obj.p; obj.x; obj.lam_g; obj.lam_lbx; obj.lam_ubx];
+                D = [p_{1}; sol.x; sol.lam_g; lam_lbx_; lam_ubx_];
+                get_value = @(o) rlmpc.NMPC.subsevalf(o, S, D);
+                info = struct('f', full(sol.f), 'msg', status, ...
+                              'success', success, 'get_value', get_value);  
+            
+                % compute per-variable solution
+                sol = struct;
+                for n = varnames
+                    sol.(n{1}) = get_value(obj.vars.(n{1}));
+                end
+                return
+            end
+
+            % in this case, the NLP is solved in parallel
+            sols = cell(1, N * multistart);
+            statuses = cell(1, N * multistart);
+            parfor i = 1:(multistart * N)
+                [np, ns] = ind2sub([N, multistart], i);
+
+                vals_s = rlmpc.NMPC.perturb_vals(vals(np), ns - 1);
+                x0 = cellfun(@(n) vals_s.(n)(:), varnames, ...
+                                            'UniformOutput', false);
+                x0 = vertcat(x0{:});
+                x0 = max(lbx_, min(ubx_, x0));
+                sol = slvr('x0', x0, 'p', p_{np}, 'lbx', lbx_, ...
+                               'ubx', ubx_, 'lbg', lbg_, 'ubg', ubg_); %#ok<PFBNS> 
+                sol.f = full(sol.f);
+                sols{i} = sol;
+                statuses{i} = slvr.stats.return_status;
+            end
+            sols = reshape(sols, [N, multistart]);
+            statuses = reshape(statuses, [N, multistart]);
+
+            % do these steps for all problems
+            successes = obj.is_nlp_ok(statuses);
+            for np = 1:N
                 % find best among all solutions
-                sol = sols{1};
-                success = obj.is_nlp_ok(statuses{1});
+                sol(np) = sols{np, 1};
+                success = successes(np, 1);
                 i_opt = 1; 
                 for i = 2:multistart
-                    sol_i = sols{i};
-                    success_i = obj.is_nlp_ok(statuses{i});
+                    sol_i = sols{np, i};
+                    success_i = successes(np, i);
                     if (~success && success_i) || ...               % pick first that is feasible
-                       ((success == success_i) && sol_i.f < sol.f)  % if both (in)feasible, compare f 
-                                                            
-                        sol = sol_i;
+                       ((success == success_i) && sol_i.f < sol(np).f)  % if both (in)feasible, compare f                                                             
+                        sol(np) = sol_i;
                         success = success_i; 
                         i_opt = i;
                     end
                 end
-                status = statuses{i_opt};
-            end
-
-            % from the unique lam_x, extract lam_lbx and lam_ubx
-            lam_lbx_ = -min(0, sol.lam_x);
-            lam_ubx_ =  max(0, sol.lam_x);
-
-            % build info
-            S = [obj.p; obj.x; obj.lam_g; obj.lam_lbx; obj.lam_ubx];
-            D = [p_; sol.x; sol.lam_g; lam_lbx_; lam_ubx_];
-            get_value = @(o) rlmpc.NMPC.subsevalf(o, S, D);
-            info = struct('f', full(sol.f), 'msg', status, ...
-                          'success', success, 'get_value', get_value);  
-            if multistart ~= 1
-                info.i_opt = i_opt;
-            end
-        
-            % compute per-variable solution
-            sol = struct;
-            for n = varnames
-                sol.(n{1}) = get_value(obj.vars.(n{1}));
+                status(np) = statuses{i_opt};
             end
         end
     end
@@ -612,8 +630,8 @@ classdef NMPC < handle
         end
 
         function ok = is_nlp_ok(status)
-            ok = any(strcmp(status, ...
-                    {'Solve_Succeeded', 'Solved_To_Acceptable_Level'}));
+            ok = strcmp(status, 'Solve_Succeeded') | ...
+                strcmp(status, 'Solved_To_Acceptable_Level');
         end
     end
 end

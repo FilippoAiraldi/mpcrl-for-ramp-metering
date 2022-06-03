@@ -13,7 +13,7 @@ function lr = constr_backtracking(Q, derivQ, p, sample, rl, ...
         sample (1, 1) struct
         rl (1, 1) struct
         lam_inf (1, 1) double
-        k_worst (1, 1) double = 10
+        k_worst (1, 1) double = 5
     end
 
     % pick the worst td error
@@ -137,17 +137,18 @@ function [phi, dphi]  = evaluate_phi(alpha, p, target, Q, derivQ, pars, ...
             pars(i).(par) = new_rl_pars.(par);
         end
 
-        % solve the MPC problem - don't shift values as they are already the
-        % solution, and don't use multistart
-        [~, ~, info] = evalc('Q.solve(pars(i), vals(i), false, 1)');
-        
-        % compute some values
-        if info.success
-            f(i) = info.f;
-            dQ(:, i) = info.get_value(derivQ.dL);
-            all_failed = false;
-        end
+%         % solve the MPC problem - don't shift values as they are already the
+%         % solution, and don't use multistart
+%         [~, ~, info] = evalc('Q.solve(pars(i), vals(i), false, 1)');
+%         
+%         % compute some values
+%         if info.success
+%             f(i) = info.f;
+%             dQ(:, i) = info.get_value(derivQ.dL);
+%             all_failed = false;
+%         end
     end
+    [~, infos] = Q.solve(pars, vals, true, 8);
     assert(~all_failed, 'Evaluation of phi failed')
 
     % compute the value of phi and its derivative
