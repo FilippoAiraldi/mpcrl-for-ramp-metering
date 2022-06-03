@@ -103,13 +103,14 @@ Numerical Optimization. Algorithm 3.2 (pag. 48) describes generally the 2nd orde
 
 
 ################# 8th meeting #################
-- add condition 3.6b to backtracking line search (Algorithm 3.1)
-- log how much hessian is modified at each iteration
+- (V) add condition 3.6b to backtracking line search (Algorithm 3.1)
+- (V) log how much hessian is modified at each iteration
+- (V) compute duration of constraint violation in visualization plots
 - run GaussNetwon for 100-150 episodes
 - increase number of samples in backtracking, like the worst 10 td errors
 - use random demands: introduce training script (on a fixed seed) and validation seed (possibly without seed, which runs both the perfect information MPC and the MPC to validate)
 - use rho crit tracking, and add a multiplicative term to the rho crit tracking cost term as:  (\rho^2)*||\rho - \rho_crit||^2 
-
+- look into policy gradient descent and see if we have time to implement that as well
 
 
 
