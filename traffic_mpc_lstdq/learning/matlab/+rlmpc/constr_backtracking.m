@@ -38,7 +38,7 @@ function lr = constr_backtracking(Q, derivQ, p, sample, rl, ...
 
     % run backtracking line search
     nsteps = 35;
-    c1 = 0.25;
+    c1 = 1e-4;
     c2 = 0.9;
     rho = 0.2;
     [phi0, dphi0] = eval_phi(0);
