@@ -19,9 +19,9 @@ end
 % plotting options
 step = 3; % reduce number of datapoints to be plot
 
-plot_summary = true;
-plot_traffic = true;
-plot_slacks = true;
+plot_summary = false;
+plot_traffic = false;
+plot_slacks = false;
 plot_learning = true;
 
 mean_slack = false;
@@ -256,12 +256,8 @@ if plot_learning
     end
 
     % learning quantities figure
-    nrows = 4;
-    if isfield(rl, 'lr')
-        nrows = nrows + 1;
-    end
     figure;
-    tiledlayout(nrows, 2, 'Padding', 'none', 'TileSpacing', 'compact')
+    tiledlayout(5, 2, 'Padding', 'none', 'TileSpacing', 'compact')
     sgtitle(runname, 'Interpreter', 'none')
     ax = matlab.graphics.axis.Axes.empty;
     
@@ -280,31 +276,24 @@ if plot_learning
     performance_only_tts = arrayfun(@(ep) ...
         full(sum(TTS(origins.queue{ep}, links.density{ep}))), 1:ep_tot);
     yyaxis left
-    do_plot(linspace(0, ep_tot, length(performance)), performance, '-o')
+    do_plot(linspace(0, ep_tot, ep_tot), performance, '-o')
     ylabel('J(\pi)')
     yyaxis right
-    do_plot(linspace(0, ep_tot, ...
-        length(performance_only_tts)), performance_only_tts, '-o')
+    do_plot(linspace(0, ep_tot, ep_tot), performance_only_tts, '-o')
     ylabel('TTS(\pi)')
     
     ax(2) = nexttile(3, [1, 2]);
     td_error_tot = cell2mat(td_error);
-    if exist('td_error_perc', 'var')
-        td_error_perc_tot = abs(cell2mat(td_error_perc)) * 100;
-        yyaxis left
-        do_plot(linspace(0, ep_tot, ...
-            length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
-        ylabel('TD error \tau')
-        yyaxis right
-        do_plot(linspace(0, ep_tot, ...
-            length(td_error_perc_tot)), td_error_perc_tot, '*', ...
-            'MarkerSize', 2)
-        ylabel('%')
-    else
-        do_plot(linspace(0, ep_tot, ...
-            length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
-        ylabel('TD error \tau')
-    end
+    td_error_perc_tot = abs(cell2mat(td_error_perc)) * 100;
+    yyaxis left
+    do_plot(linspace(0, ep_tot, ...
+        length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
+    ylabel('TD error \tau')
+    yyaxis right
+    do_plot(linspace(0, ep_tot, ...
+        length(td_error_perc_tot)), td_error_perc_tot, '*', ...
+        'MarkerSize', 2)
+    ylabel('%')
     
     ax(3) = nexttile(5);
     if Lrl.n_in == 3
@@ -372,8 +361,14 @@ if plot_learning
         ylabel('weights')
     end
     
+    ax(6) = nexttile(9);
+    violation_prob = arrayfun(@(ep) ...
+                sum(origins.queue{ep}(2, :) > max_queue(2)) / K, 1:ep_tot);
+    area(linspace(0, ep_tot, ep_tot), violation_prob);
+    ylabel('w_{o2} constr. violation %')
+
     if isfield(rl, 'lr')
-        ax(5) = nexttile(9, [1, 2]);
+        ax(7) = nexttile(10);
         do_plot(linspace(0, ep_tot, length(rl.lr)), cell2mat(rl.lr));
         ylabel('learning rate')
     end
