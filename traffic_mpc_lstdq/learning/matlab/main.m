@@ -315,7 +315,7 @@ for n = slacknames
 end
 
 % initialize constrained QP RL update maximum lagrangian multiplier
-lam_inf = 0;
+lam_inf = 1;
 
 % initialize mpc solvers
 switch method
@@ -513,10 +513,10 @@ for ep = start_ep:episodes
 
             % perform constrained update and save its maximum multiplier
             [rl.pars,~,lam] = rlmpc.constr_update(rl.pars,rl.bounds,p,1/5);
-            lam_inf = max(lam_inf, lam);
+            lam_inf = 0.25 * lam + 0.75 * lam_inf; % exp moving average
 
             % log update result
-            msg = sprintf('update %i (N=%i, lr=%1.3e, H mod=%1.3e): ', ...
+            msg = sprintf('update %i (N=%i, lr=%1.3e, Hmod=%1.3e): ', ...
                                 length(rl.pars.rho_crit) - 1, sample.n, ...
                                     rl.lr{end}, rl.H_mod{end});
             for name = fieldnames(rl.pars)'

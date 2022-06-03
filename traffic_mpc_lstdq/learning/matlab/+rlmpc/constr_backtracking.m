@@ -1,4 +1,5 @@
-function lr = constr_backtracking(Q, derivQ, p, sample, rl, lam_inf)
+function lr = constr_backtracking(Q, derivQ, p, sample, rl, ...
+                                                        lam_inf, k_worst)
     % CONSTR_BACKTRACKING Performs constrained backtracking to find a 
     % learning rate satisfying Wolfe's conditions.
     %
@@ -12,13 +13,14 @@ function lr = constr_backtracking(Q, derivQ, p, sample, rl, lam_inf)
         sample (1, 1) struct
         rl (1, 1) struct
         lam_inf (1, 1) double
+        k_worst (1, 1) double = 10
     end
 
     % pick the worst td error
-    [~, worst] = max(abs(sample.td_err));
-    pars = sample.parsQ(worst);
-    vals = sample.last_solQ(worst);
-    target = sample.target(worst);
+    [~, worsts] = maxk(sample.td_err, k_worst, 'ComparisonMethod', 'abs');
+    pars = sample.parsQ(worsts);
+    vals = sample.last_solQ(worsts);
+    target = sample.target(worsts);
 
     % unpack search direction p for each RL parameter
     i = 1;
@@ -49,8 +51,8 @@ function lr = constr_backtracking(Q, derivQ, p, sample, rl, lam_inf)
                 return
             end
         catch ME
-            warning(ME.identifier, ...
-                        'Error during evaluation of phi: %s', ME.message)
+%             warning(ME.identifier, ...
+%                         'Error during evaluation of phi: %s', ME.message)
         end
         lr = rho * lr;
     end
@@ -114,30 +116,49 @@ end
 
 %% local functions
 function [phi, dphi]  = evaluate_phi(alpha, p, target, Q, derivQ, pars, ...
-                                                          vals, rl, v)
+                                                      vals, rl, v)
+    N = length(target);
+    f = zeros(N, 1);
+    dQ = zeros(size(derivQ.dL, 1), N);
+    parnames = string(fieldnames(rl.pars)');
+    
     % modify the RL parameters by alpha
-    for name = fieldnames(rl.pars)'
-        par = name{1};
-        lb = rl.bounds.(par)(1);
-        ub = rl.bounds.(par)(2);
-        pars.(par) = ...
-                max(lb, min(pars.(par) + alpha * p.(par), ub));
+    new_rl_pars = struct;
+    for par = parnames
+        new_par = rl.pars.(par){end} + alpha * p.(par);
+%         if ~strcmp(par, 'weight_V')
+%             new_par = max(1e-3, new_par); % all parameters expect weight_V must be positive
+%         end
+        new_rl_pars.(par) = new_par;
     end
+    all_failed = true;
+    for i = 1:N
+        for par = parnames
+            pars(i).(par) = new_rl_pars.(par);
+        end
 
-    % solve the MPC problem - don't shift values as they are already the
-    % solution, and don't use multistart
-    [~, info] = Q.solve(pars, vals, false, 1);
-    assert(info.success, 'Evaluation of phi failed')
+        % solve the MPC problem - don't shift values as they are already the
+        % solution, and don't use multistart
+        [~, ~, info] = evalc('Q.solve(pars(i), vals(i), false, 1)');
+        
+        % compute some values
+        if info.success
+            f(i) = info.f;
+            dQ(:, i) = info.get_value(derivQ.dL);
+            all_failed = false;
+        end
+    end
+    assert(~all_failed, 'Evaluation of phi failed')
 
     % compute the value of phi and its derivative
-    phi = (target - info.f)^2;
-    dphi = - (target - info.f) * info.get_value(derivQ.dL);
+    phi = sum((target - f).^2);
+    dphi = - dQ * (target - f);
     for name = fieldnames(rl.pars)'
         par = name{1};
 
         % compute the values of the boundary constraints
-        g_lb = rl.bounds.(par)(1) - pars.(par);
-        g_ub = pars.(par) - rl.bounds.(par)(2);
+        g_lb = rl.bounds.(par)(1) - new_rl_pars.(par);
+        g_ub = new_rl_pars.(par) - rl.bounds.(par)(2);
 
         % include boundaries into the objective
         phi = phi + v * sum(max(0, g_lb) + max(0, g_ub));
