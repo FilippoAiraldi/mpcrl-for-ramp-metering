@@ -14,7 +14,7 @@ function [p, H_mod] = descent_direction(g, H, version)
         case 0
             % first order descent (no hessian information)
             p = -g;
-            H_mod = 0; % no hessian modification
+            H_mod = nan; % no hessian modification
         case 1
             % cholesky with added multiple identities
             L = chol_multiple_identities(H, 1e-3);
