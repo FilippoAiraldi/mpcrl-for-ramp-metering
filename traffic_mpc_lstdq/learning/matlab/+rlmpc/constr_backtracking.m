@@ -13,7 +13,7 @@ function lr = constr_backtracking(Q, derivQ, p, sample, rl, ...
         sample (1, 1) struct
         rl (1, 1) struct
         lam_inf (1, 1) double
-        k_worst (1, 1) double = 5
+        k_worst (1, 1) double = 4
     end
 
     % pick the worst td error
@@ -38,16 +38,16 @@ function lr = constr_backtracking(Q, derivQ, p, sample, rl, ...
 
     % run backtracking line search
     nsteps = 35;
-    c1 = 1e-4;
-    c2 = 0.9;
+    c1 = 1e-6;
+    c2 = 0.999;
     rho = 0.2;
     [phi0, dphi0] = eval_phi(0);
-    dphi0 = p' * dphi0;
     lr = 1;
     for i = 1:nsteps
         try
             [phi, dphi] = eval_phi(lr);
-            if (phi <= phi0 + c1 * lr * dphi0) && (dphi' * p >= c2 * dphi0)
+            if (phi <= phi0 + c1 * lr * dphi0' * p) && ...
+                                            (dphi' * p >= c2 * dphi0' * p)
                 return
             end
         catch ME
@@ -115,53 +115,59 @@ end
 
 
 %% local functions
-function [phi, dphi]  = evaluate_phi(alpha, p, target, Q, derivQ, pars, ...
-                                                      vals, rl, v)
+function [phi, dphi]  = evaluate_phi(alpha, p, target, ...
+                                            Q, derivQ, pars, vals, rl, v)
+    % EVALUATE_PHI. Phi is the following function 
+    %               phi(theta) = 1/2N sum_i(target_i - Q(theta))^2 
+    %                                   + v * sum_j(max(0, g_j(theta)))
+    %   i.e., the lagrangian of the Bellman residuals (not all residuals, 
+    %   only a subset). Its derivative is
+    %               dphi = -1/N sum_i(td_err_i * dQ) 
+    %                            + 1/2 * v * sum_j (dg_j * (sign(g_j) + 1))
+
     N = length(target);
-    f = zeros(N, 1);
-    dQ = zeros(size(derivQ.dL, 1), N);
-    parnames = string(fieldnames(rl.pars)');
+    rlparnames = string(fieldnames(rl.pars)');
     
-    % modify the RL parameters by alpha
+    % modify the RL parameters by alpha and assign it 
+    % to each parameter struct
     new_rl_pars = struct;
-    for par = parnames
+    for par = rlparnames
         new_par = rl.pars.(par){end} + alpha * p.(par);
+%         % all parameters expect weight_V must be positive
 %         if ~strcmp(par, 'weight_V')
-%             new_par = max(1e-3, new_par); % all parameters expect weight_V must be positive
+%             new_par = max(1e-3, new_par); 
 %         end
         new_rl_pars.(par) = new_par;
-    end
-    all_failed = true;
-    for i = 1:N
-        for par = parnames
-            pars(i).(par) = new_rl_pars.(par);
+
+        % assign the parameter to the problems' pars structs
+        for i = 1:N
+            pars(i).(par) = new_par;
         end
-
-%         % solve the MPC problem - don't shift values as they are already the
-%         % solution, and don't use multistart
-%         [~, ~, info] = evalc('Q.solve(pars(i), vals(i), false, 1)');
-%         
-%         % compute some values
-%         if info.success
-%             f(i) = info.f;
-%             dQ(:, i) = info.get_value(derivQ.dL);
-%             all_failed = false;
-%         end
     end
-    [~, infos] = Q.solve(pars, vals, true, 8);
-    assert(~all_failed, 'Evaluation of phi failed')
 
-    % compute the value of phi and its derivative
-    phi = sum((target - f).^2);
-    dphi = - dQ * (target - f);
-    for name = fieldnames(rl.pars)'
-        par = name{1};
+    % solve the MPC problem - don't shift values as they are already from 
+    % the previously computed solution
+    [~, ~, infos] = evalc('Q.solve(pars, vals, false, 1)');
+    successes = [infos.success];
+    assert(any(successes), 'Evaluation of phi failed')
 
-        % compute the values of the boundary constraints
+    % precompute some values
+    f = zeros(N, 1);
+    dQ = zeros(size(derivQ.dL, 1), N);
+    for i = find(successes) % failures remain at zero
+        f(i) = infos(i).f;
+        dQ(:, i) = infos(i).get_value(derivQ.dL);
+    end
+
+    % compute the value of phi and its derivative - normalize by the 
+    % number of successes
+    phi = 0.5 * sum((target - f).^2) / sum(successes);
+    dphi = -dQ * (target - f) / sum(successes);
+
+    % add to phi and dphi the cost related to violation of constraints
+    for par = rlparnames
         g_lb = rl.bounds.(par)(1) - new_rl_pars.(par);
         g_ub = new_rl_pars.(par) - rl.bounds.(par)(2);
-
-        % include boundaries into the objective
         phi = phi + v * sum(max(0, g_lb) + max(0, g_ub));
         dphi = dphi + v * 0.5 * sum((sign(g_ub)) - sign(g_lb));
     end
