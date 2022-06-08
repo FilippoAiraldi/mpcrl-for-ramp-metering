@@ -8,7 +8,7 @@ load_checkpoint = false;
 
 %% Model
 % simulation
-episodes = 50;                         % number of episodes to repeat
+episodes = 10;                         % number of episodes to repeat
 Tfin = 2;                               % simulation time per episode (h)
 T = 10 / 3600;                          % simulation step size (h)
 K = Tfin / T;                           % simulation steps per episode
@@ -112,7 +112,7 @@ if ~soft_domain_constraints && ~max_in_and_out(2)
 end
 %
 discount = 1;                           % rl discount factor
-lr = 1e-1;                              % fixed rl learning rate (no line search)
+lr = 1e-2;                              % fixed rl learning rate (no line search)
 grad_desc_version = 0;                  % type of gradient descent/hessian modification
 con_violation_penalty = 10;             % penalty for constraint violations
 rl_update_freq = K / 2;                 % when rl should update
@@ -271,8 +271,11 @@ end
 rl = struct;
 rl.pars = cell2struct(args(:, 2), args(:, 1));
 rl.bounds = cell2struct(args(:, 3), args(:, 1));
-rl.lr = {};
-rl.H_mod = {};
+rl_history.lr = {};
+rl_history.H_mod = {};
+rl_history.g_norm = cell(1, episodes);
+rl_history.td_error = cell(1, episodes);
+rl_history.td_error_perc = cell(1, episodes); 
 
 % compute symbolic derivatives
 deriv = struct;
@@ -300,8 +303,6 @@ slacks = struct;
 for n = slacknames
     slacks.(n) = cell(1, episodes);
 end
-td_error = cell(1, episodes);
-td_error_perc = cell(1, episodes);  % td error as a percentage of the Q function
 exec_times = nan(1, episodes);
 
 % initialize mpc last solutions to steady-state
@@ -366,8 +367,9 @@ for ep = start_ep:episodes
     for n = slacknames
         slacks.(n){ep} = nan(numel(mpc.V.vars.(n)), ceil(K / M));
     end
-    td_error{ep} = nan(1, ceil(K / M));
-    td_error_perc{ep} = nan(1, ceil(K / M));
+    rl_history.g_norm{ep} = nan(1, ceil(K / M));
+    rl_history.td_error{ep} = nan(1, ceil(K / M));
+    rl_history.td_error_perc{ep} = nan(1, ceil(K / M));
 
     % simulate episode
     start_ep_time = tic;
@@ -423,8 +425,6 @@ for ep = start_ep:episodes
                                                           r_prev_prev)) ...
                                 + discount * infoV.f;
                     td_err = target - infoQ.f;
-                    td_error{ep}(k_mpc) = td_err;
-                    td_error_perc{ep}(k_mpc) = td_err / infoQ.f;
 
                     % compute numerical gradients w.r.t. params
                     dQ = infoQ.get_value(deriv.Q.dL);
@@ -435,6 +435,10 @@ for ep = start_ep:episodes
                         'target', target, 'solQ', infoQ.f, ...
                         'parsQ', parsQ, 'last_solQ', last_solQ);
 
+                    % save stuff
+                    rl_history.g_norm{ep}(k_mpc) = norm(td_err * dQ, 2);
+                    rl_history.td_error{ep}(k_mpc) = td_err;
+                    rl_history.td_error_perc{ep}(k_mpc) = td_err / infoQ.f;
                     % util.info(toc(start_tot_time), ep, ...
                     %                     toc(start_ep_time), t(k), k, K);
                 else
@@ -499,26 +503,29 @@ for ep = start_ep:episodes
             else
                 H = [];
             end
-            [p, rl.H_mod{end + 1}] = ...
-                        rlmpc.descent_direction(g, H, grad_desc_version);
+            [p, H_mod] = rlmpc.descent_direction(g, H, grad_desc_version);
 
             % lr backtracking
             if ~exist('lr', 'var')
-                rl.lr{end + 1} = rlmpc.constr_backtracking( ...
+                lr_ = rlmpc.constr_backtracking( ...
                             mpc.Q, deriv.Q, p, sample, rl, lam_inf);
             else
-                rl.lr{end + 1} = lr / sample.n;
+                lr_ = lr; % / sample.n;
             end
-            p = rl.lr{end} * p;
 
             % perform constrained update and save its maximum multiplier
-            [rl.pars,~,lam] = rlmpc.constr_update(rl.pars,rl.bounds,p,1/5);
+            [rl.pars, ~, lam] = rlmpc.constr_update(rl.pars, rl.bounds, ...
+                                                           lr_ * p, 1 / 5);
             lam_inf = 0.25 * lam + 0.75 * lam_inf; % exp moving average
+
+            % save stuff
+            rl_history.lr{end + 1} = lr_;
+            rl_history.H_mod{end + 1} = H_mod;
 
             % log update result
             msg = sprintf('update %i (N=%i, lr=%1.3e, Hmod=%1.3e): ', ...
-                                length(rl.pars.rho_crit) - 1, sample.n, ...
-                                    rl.lr{end}, rl.H_mod{end});
+                          length(rl.pars.rho_crit) - 1, sample.n, ...
+                          rl_history.lr{end}, rl_history.H_mod{end});
             for name = fieldnames(rl.pars)'
                 msg = append(msg, name{1}, '=', ...
                             mat2str(rl.pars.(name{1}){end}(:)', 6), '; ');
@@ -554,18 +561,23 @@ for ep = start_ep:episodes
 
     % plot performance
     if ~exist('ph_J', 'var') || ~isvalid(ph_J)
-        figure;
+        figure; tiledlayout(2, 1);
+        nexttile; 
         yyaxis left, 
         ph_J = semilogy(ep, ep_Jtot, '-o');
-        ylabel('J')
+        ylabel('J(\pi)')
         yyaxis right, 
         ph_TTS = plot(ep, ep_TTS, '-o');
-        ylabel('TTS')
+        ylabel('TTS(\pi)'), xlabel('episode')
+        nexttile;
+        ph_g_norm = semilogy(rl_history.g_norm{ep}, 'o', 'MarkerSize', 2);
+        ylabel('||g||'), xlabel('transition')
     else
         set(ph_J, 'XData', [ph_J.XData, ep]);
         set(ph_J, 'YData', [ph_J.YData, ep_Jtot]);
         set(ph_TTS, 'XData', [ph_TTS.XData, ep]);
         set(ph_TTS, 'YData', [ph_TTS.YData, ep_TTS]);
+        set(ph_g_norm, 'YData', [ph_g_norm.YData, rl_history.g_norm{ep}]);
     end
     drawnow;
 end

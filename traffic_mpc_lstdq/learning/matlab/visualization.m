@@ -19,14 +19,14 @@ end
 % plotting options
 step = 3; % reduce number of datapoints to be plot
 
-plot_summary = true;
-plot_traffic = true;
-plot_slacks = true;
+plot_summary = false;
+plot_traffic = false;
+plot_slacks = false;
 plot_learning = true;
 
 mean_slack = false;
 scaled_learned = false;
-log_learned = true;
+log_learned = false;
 
 
 
@@ -257,11 +257,12 @@ if plot_learning
 
     % learning quantities figure
     figure;
-    tiledlayout(5, 2, 'Padding', 'none', 'TileSpacing', 'compact')
+    tiledlayout(4, 2, 'Padding', 'none', 'TileSpacing', 'compact')
     sgtitle(runname, 'Interpreter', 'none')
     ax = matlab.graphics.axis.Axes.empty;
-    
-    ax(1) = nexttile(1, [1, 2]);
+
+    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    ax(1) = nexttile(1);
     if Lrl.n_in == 3
         performance = arrayfun(@(ep) full(sum(Lrl( ...
             origins.queue{ep}, links.density{ep}, links.speed{ep}))), ...
@@ -281,10 +282,10 @@ if plot_learning
     yyaxis right
     do_plot(linspace(0, ep_tot, ep_tot), performance_only_tts, '-o')
     ylabel('TTS(\pi)')
-    
-    ax(2) = nexttile(3, [1, 2]);
-    td_error_tot = cell2mat(td_error);
-    td_error_perc_tot = abs(cell2mat(td_error_perc)) * 100;
+
+    ax(2) = nexttile(3);
+    td_error_tot = cell2mat(rl_history.td_error);
+    td_error_perc_tot = abs(cell2mat(rl_history.td_error_perc)) * 100;
     yyaxis left
     do_plot(linspace(0, ep_tot, ...
         length(td_error_tot)), td_error_tot, 'o', 'MarkerSize', 2)
@@ -294,7 +295,7 @@ if plot_learning
         length(td_error_perc_tot)), td_error_perc_tot, '*', ...
         'MarkerSize', 2)
     ylabel('%')
-    
+
     ax(3) = nexttile(5);
     if Lrl.n_in == 3
         args = {origins_tot.queue, links_tot.density, links_tot.speed};
@@ -304,32 +305,43 @@ if plot_learning
                 [origins_tot.rate(1), origins_tot.rate(1:end-1)]};
     end
     L_tot = full(Lrl(args{:}));
-    do_plot(linspace(0, ep_tot, ceil(length(L_tot) / step)), L_tot(:, 1:step:end))
+    do_plot(linspace(0, ep_tot, ceil(length(L_tot) / step)), ...
+                                                    L_tot(:, 1:step:end))
     % plot_episodes_separators(ax_, [], ep_tot, Tfin)
-    ylabel('L'); ax(3).XLim(2) = t_tot(end);
-    
+    ylabel('L')
+
+    ax(4) = nexttile(6);
+    violation_prob = arrayfun(@(ep) ...
+                sum(origins.queue{ep}(2, :) > max_queue(2)) / K, 1:ep_tot);
+    area(linspace(0, ep_tot, ep_tot), violation_prob);
+    ylabel('w_{o2} constr. violation %')
+
+    ax(5) = nexttile(7);
+    g_norm_tot = cell2mat(rl_history.g_norm);
+    do_plot(linspace(0, ep_tot, length(g_norm_tot)), g_norm_tot, '-o');
+    ylabel('||\nabla J||')
+
     traffic_pars = {'a'; 'v_free'; 'v_free_tracking'; 'rho_crit'};
     true_pars.v_free_tracking = true_pars.v_free;
 
-    ax(4) = nexttile(7); hold on
+    ax(6) = nexttile(2); hold on
     legendStrings = {};
     pars = intersect(fieldnames(rl.pars), traffic_pars);
     for i = 1:length(pars)
         par = pars{i};
         stairs(linspace(0, ep_tot, length(rl.pars.(par))), rl.pars.(par))
-        ax(4).ColorOrderIndex = i;
+        ax(6).ColorOrderIndex = i;
         plot([0, ep_tot], [true_pars.(par), true_pars.(par)], '--')
         legendStrings = [legendStrings, {par, ''}];
     end
     if log_learned
-        set(ax(4), 'YScale', 'log');
+        set(ax(6), 'YScale', 'log');
     end
     legend(legendStrings{:}, 'interpreter', 'none', 'FontSize', 6)
     hold off
     ylabel('learned parameters')
     
-    ax(5) = nexttile(6, [2, 1]); hold on
-
+    ax(7) = nexttile(4); hold on
     markers = {'o', '*', 'x', 'v', 'd', '^', 's', '>', '<', '+'};
     weights = setdiff(fieldnames(rl.pars), traffic_pars);
     legendStrings = {};
@@ -351,7 +363,7 @@ if plot_learning
         end
     end
     if log_learned
-        set(ax(5), 'YScale', 'log');
+        set(ax(7), 'YScale', 'log');
     end
     hold off
     legend(legendStrings{:}, 'interpreter', 'none', 'FontSize', 6)
@@ -360,25 +372,13 @@ if plot_learning
     else
         ylabel('weights')
     end
-    
-    ax(6) = nexttile(9);
-    violation_prob = arrayfun(@(ep) ...
-                sum(origins.queue{ep}(2, :) > max_queue(2)) / K, 1:ep_tot);
-    area(linspace(0, ep_tot, ep_tot), violation_prob);
-    ylabel('w_{o2} constr. violation %')
 
-    if isfield(rl, 'lr')
-        ax(7) = nexttile(10);
-        do_plot(linspace(0, ep_tot, length(rl.lr)), cell2mat(rl.lr));
-        ylabel('learning rate')
-    end
-
-    linkaxes(ax, 'x')
-    for i = 1:length(ax)
-        xlabel(ax(i), 'episode')
-        ax(i).XLim(2) = ep_tot;
-    end
+    ax(9) = nexttile(8);
+    lr_tot = cell2mat(rl_history.lr);
+    do_plot(linspace(0, ep_tot, length(lr_tot)), lr_tot);
+    ylabel('learning rate')
 end
+
 
 
 % %% local functions
