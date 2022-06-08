@@ -133,10 +133,16 @@ function [phi, dphi]  = evaluate_phi(alpha, p, target, ...
     new_rl_pars = struct;
     for par = rlparnames
         new_par = rl.pars.(par){end} + alpha * p.(par);
+        %%%%%%%%%%%%%%%
+%         lb = rl.bounds.(par)(1);
+%         ub = rl.bounds.(par)(2);
+%         new_par = max(lb, min(new_par, ub));
+        %%%%%%%%%%%%%%%
 %         % all parameters expect weight_V must be positive
 %         if ~strcmp(par, 'weight_V')
 %             new_par = max(1e-3, new_par); 
 %         end
+        %%%%%%%%%%%%%%%
         new_rl_pars.(par) = new_par;
 
         % assign the parameter to the problems' pars structs

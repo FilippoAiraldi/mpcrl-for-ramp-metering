@@ -1,6 +1,6 @@
 % made with MATLAB 2021b
 clc, clearvars, close all, diary off, warning('on')
-rng(42)
+rng(69)
 runname = datestr(datetime, 'yyyymmdd_HHMMSS');
 load_checkpoint = false;
 
@@ -8,7 +8,7 @@ load_checkpoint = false;
 
 %% Model
 % simulation
-episodes = 10;                         % number of episodes to repeat
+episodes = 150;                         % number of episodes to repeat
 Tfin = 2;                               % simulation time per episode (h)
 T = 10 / 3600;                          % simulation step size (h)
 K = Tfin / T;                           % simulation steps per episode
@@ -112,8 +112,8 @@ if ~soft_domain_constraints && ~max_in_and_out(2)
 end
 %
 discount = 1;                           % rl discount factor
-lr = 1e-2;                              % fixed rl learning rate (no line search)
-grad_desc_version = 0;                  % type of gradient descent/hessian modification
+% lr = 1e-2;                              % fixed rl learning rate (no line search)
+grad_desc_version = 3;                  % type of gradient descent/hessian modification
 con_violation_penalty = 10;             % penalty for constraint violations
 rl_update_freq = K / 2;                 % when rl should update
 rl_mem_cap = 1000;                      % RL experience replay capacity
@@ -514,9 +514,9 @@ for ep = start_ep:episodes
             end
 
             % perform constrained update and save its maximum multiplier
-            [rl.pars, ~, lam] = rlmpc.constr_update(rl.pars, rl.bounds, ...
-                                                           lr_ * p, 1 / 5);
-            lam_inf = 0.25 * lam + 0.75 * lam_inf; % exp moving average
+            [rl.pars,~,lam] = rlmpc.constr_update(rl.pars,rl.bounds,p,1/5);
+            % lam_inf = 0.25 * lam + 0.75 * lam_inf; % exp moving average
+            lam_inf = max(lam_inf, lam);
 
             % save stuff
             rl_history.lr{end + 1} = lr_;
