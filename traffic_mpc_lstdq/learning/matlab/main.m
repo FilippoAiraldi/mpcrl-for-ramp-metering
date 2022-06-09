@@ -1,6 +1,6 @@
 % made with MATLAB 2021b
 clc, clearvars, close all, diary off, warning('on')
-% rng(69)
+rng(42)
 runname = datestr(datetime, 'yyyymmdd_HHMMSS');
 load_checkpoint = false;
 
@@ -8,7 +8,7 @@ load_checkpoint = false;
 
 %% Model
 % simulation
-episodes = 100;                         % number of episodes to repeat
+episodes = 50;                          % number of episodes to repeat
 Tfin = 2;                               % simulation time per episode (h)
 T = 10 / 3600;                          % simulation step size (h)
 K = Tfin / T;                           % simulation steps per episode
@@ -111,8 +111,8 @@ if ~soft_domain_constraints && ~max_in_and_out(2)
     warning('Dynamics can be negative and hard constraints unfeasible')
 end
 %
-discount = 1;                           % rl discount factor
-lr = 1e-3;                              % fixed rl learning rate (no line search)
+discount = 0.99;                        % rl discount factor
+% lr = 1e-3;                              % fixed rl learning rate (no line search)
 grad_desc_version = 2;                  % type of gradient descent/hessian modification
 con_violation_penalty = 10;             % penalty for constraint violations
 rl_update_freq = K / 2;                 % when rl should update

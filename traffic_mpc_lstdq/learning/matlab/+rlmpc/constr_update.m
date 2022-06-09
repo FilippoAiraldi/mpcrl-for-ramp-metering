@@ -24,7 +24,7 @@ function [pars, deltas, lam_inf] = constr_update(pars, bnd, p, max_delta)
     ub = struct2array(ub)';
 
     % solve constrained lcqp
-    H = eye(length(p));
+    H = 0.5 * eye(length(p));
     [deltas, ~, exitflag, ~, lambda] = quadprog(H, -p, [], [], [], [], ...
         lb, ub, p, optimoptions('quadprog', 'Display', 'off', ...
                                     'Algorithm', 'interior-point-convex'));

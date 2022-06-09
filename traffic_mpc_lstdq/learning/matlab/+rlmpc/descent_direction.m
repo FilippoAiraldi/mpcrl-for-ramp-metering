@@ -27,7 +27,7 @@ function [p, H_mod] = descent_direction(g, H, version)
             H_mod = norm(E, 'fro');
         case 3
             % modified cholesky factorization 2
-            [L, D] = modchol_ldlt(H);
+            [L, D] = modchol_ldlt(H, 1);
             DL_ = D * L';
             p = DL_ \ (L \ -g); 
             H_mod = norm(H - L * DL_, 'fro');
@@ -49,7 +49,7 @@ function L = chol_multiple_identities(G, beta)
 
     for i = 1:1e3
         try
-            L = chol(G + tau * eye(n));
+            L = chol(G + tau * eye(n), 'lower');
             return
         catch 
             tau = max(1.1 * tau, beta);
