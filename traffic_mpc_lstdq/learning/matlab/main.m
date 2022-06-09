@@ -8,7 +8,7 @@ load_checkpoint = false;
 
 %% Model
 % simulation
-episodes = 10;                         % number of episodes to repeat
+episodes = 50;                         % number of episodes to repeat
 Tfin = 2;                               % simulation time per episode (h)
 T = 10 / 3600;                          % simulation step size (h)
 K = Tfin / T;                           % simulation steps per episode
@@ -365,11 +365,11 @@ for ep = start_ep:episodes
     links.density{ep} = nan(size(mpc.V.vars.rho, 1), K);
     links.speed{ep} = nan(size(mpc.V.vars.v, 1), K);
     for n = slacknames
-        slacks.(n){ep} = nan(numel(mpc.V.vars.(n)), ceil(K / M));
+        slacks.(n){ep} = nan(numel(mpc.V.vars.(n)), K / M);
     end
-    rl_history.g_norm{ep} = nan(1, ceil(K / M));
-    rl_history.td_error{ep} = nan(1, ceil(K / M));
-    rl_history.td_error_perc{ep} = nan(1, ceil(K / M));
+    rl_history.g_norm{ep} = nan(1, K / M);
+    rl_history.td_error{ep} = nan(1, K / M);
+    rl_history.td_error_perc{ep} = nan(1, K / M);
 
     % simulate episode
     start_ep_time = tic;
@@ -555,6 +555,7 @@ for ep = start_ep:episodes
     ep_Jtot = full(sum(Lrl(origins.queue{ep}, links.density{ep}, ...
                            links.speed{ep}, origins.rate{ep}, rate_prev)));
     ep_TTS = full(sum(TTS(origins.queue{ep}, links.density{ep})));
+    g_norm_avg = mean(rl_history.g_norm{ep}, 'omitnan');
     util.info(toc(start_tot_time), ep, exec_times(ep), t(end), K, K, ...
         sprintf('episode %i: Jtot=%.3f, TTS=%.3f, fails=%i(%.1f%%)', ...
         ep, ep_Jtot, ep_TTS, nb_fail, nb_fail / K * M * 100));
@@ -568,16 +569,17 @@ for ep = start_ep:episodes
         ylabel('J(\pi)')
         yyaxis right, 
         ph_TTS = plot(ep, ep_TTS, '-o');
-        ylabel('TTS(\pi)'), xlabel('episode')
-        nexttile;
-        ph_g_norm = semilogy(rl_history.g_norm{ep}, 'o', 'MarkerSize', 2);
-        ylabel('||g||'), xlabel('transition')
+        ylabel('TTS(\pi)'),
+        nexttile; 
+        ph_g_norm = semilogy(ep, g_norm_avg, '-*');
+        ylabel('average ||g||'), xlabel('episode'), hold off
     else
         set(ph_J, 'XData', [ph_J.XData, ep]);
         set(ph_J, 'YData', [ph_J.YData, ep_Jtot]);
         set(ph_TTS, 'XData', [ph_TTS.XData, ep]);
         set(ph_TTS, 'YData', [ph_TTS.YData, ep_TTS]);
-        set(ph_g_norm, 'YData', [ph_g_norm.YData, rl_history.g_norm{ep}]);
+        set(ph_g_norm, 'XData', [ph_g_norm.XData, ep]);
+        set(ph_g_norm, 'YData', [ph_g_norm.YData, g_norm_avg]);
     end
     drawnow;
 end
