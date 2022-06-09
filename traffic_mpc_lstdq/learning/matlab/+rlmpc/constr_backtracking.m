@@ -1,5 +1,5 @@
-function lr = constr_backtracking(Q, derivQ, p, sample, rl, ...
-                                                        lam_inf, k_worst)
+function lr = constr_backtracking(Q, derivQ, p, sample, rl, max_delta, ...
+                                  lam_inf, k_worst)
     % CONSTR_BACKTRACKING Performs constrained backtracking to find a 
     % learning rate satisfying Wolfe's conditions.
     %
@@ -12,8 +12,9 @@ function lr = constr_backtracking(Q, derivQ, p, sample, rl, ...
         p (:, 1) double
         sample (1, 1) struct
         rl (1, 1) struct
+        max_delta (1, 1) double
         lam_inf (1, 1) double
-        k_worst (1, 1) double = 4
+        k_worst (1, 1) double = 8
     end
 
     % pick the worst td error
@@ -34,13 +35,14 @@ function lr = constr_backtracking(Q, derivQ, p, sample, rl, ...
     % shortcut for evaluation of phi - for phi of 0 we don't need to run 
     % the MPC again, since we already have the solution
     eval_phi = @(alpha) evaluate_phi(alpha, p_, target, Q, derivQ, ...
-                                     pars, vals, rl, lam_inf * 10);
+                                    pars, vals, rl, max_delta, ...
+                                    lam_inf * 2);
 
     % run backtracking line search
-    nsteps = 35;
+    nsteps = 20;
     c1 = 1e-6;
     c2 = 0.999;
-    rho = 0.2;
+    rho = 0.1;
     [phi0, dphi0] = eval_phi(0);
     lr = 1;
     for i = 1:nsteps
@@ -116,7 +118,8 @@ end
 
 %% local functions
 function [phi, dphi]  = evaluate_phi(alpha, p, target, ...
-                                            Q, derivQ, pars, vals, rl, v)
+                                     Q, derivQ, pars, vals, ...
+                                     rl, max_delta, v)
     % EVALUATE_PHI. Phi is the following function 
     %               phi(theta) = 1/2N sum_i(target_i - Q(theta))^2 
     %                                   + v * sum_j(max(0, g_j(theta)))
@@ -170,10 +173,27 @@ function [phi, dphi]  = evaluate_phi(alpha, p, target, ...
     phi = 0.5 * sum((target - f).^2) / sum(successes);
     dphi = -dQ * (target - f) / sum(successes);
 
+%         rel_delta = abs(pars.(name{1}){end} * max_delta);
+%         rel_delta = max(rel_delta, 1e-1); % avoids parameters close to 0 not growing
+%         lb.(name{1}) = max(...
+%             bnd.(name{1})(:, 1) - pars.(name{1}){end}, -rel_delta)';
+%         ub.(name{1}) = min(...
+%             bnd.(name{1})(:, 2) - pars.(name{1}){end}, rel_delta)';
+
     % add to phi and dphi the cost related to violation of constraints
     for par = rlparnames
-        g_lb = rl.bounds.(par)(1) - new_rl_pars.(par);
-        g_ub = new_rl_pars.(par) - rl.bounds.(par)(2);
+        % first find the bounds for the current parameter
+        rel_delta = abs(rl.pars.(par){end} * max_delta);
+        rel_delta = max(rel_delta, 1e-1); % avoids parameters close to 0 not growing
+        lb = max(rl.bounds.(par)(:, 1), rl.pars.(par){end} - rel_delta);
+        ub = min(rl.bounds.(par)(:, 2), rl.pars.(par){end} + rel_delta);
+        assert(all(lb <= ub, 'all'))
+
+        % compute the value of g(theta) = lb <= theta <= ub
+        g_lb = lb - new_rl_pars.(par);
+        g_ub = new_rl_pars.(par) - ub;
+
+        % add as penalty to the lagrangian
         phi = phi + v * sum(max(0, g_lb) + max(0, g_ub));
         dphi = dphi + v * 0.5 * sum((sign(g_ub)) - sign(g_lb));
     end
