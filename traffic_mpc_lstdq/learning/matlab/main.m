@@ -113,7 +113,8 @@ end
 %
 discount = 0.99;                        % rl discount factor
 % lr = 1e-3;                              % fixed rl learning rate (no line search)
-grad_desc_version = 2;                  % type of gradient descent/hessian modification
+grad_desc_version = 1;                  % type of gradient descent/hessian modification
+max_delta = 1 / 5;                      % percentage of maximum parameter change in a single update
 con_violation_penalty = 10;             % penalty for constraint violations
 rl_update_freq = K / 2;                 % when rl should update
 rl_mem_cap = K / M * 10;                % RL experience replay capacity
@@ -272,6 +273,7 @@ rl = struct;
 rl.pars = cell2struct(args(:, 2), args(:, 1));
 rl.bounds = cell2struct(args(:, 3), args(:, 1));
 rl_history.lr = {};
+rl_history.p_norm = {};
 rl_history.H_mod = {};
 rl_history.g_norm = cell(1, episodes);
 rl_history.td_error = cell(1, episodes);
@@ -514,13 +516,15 @@ for ep = start_ep:episodes
             end
 
             % perform constrained update and save its maximum multiplier
-            [rl.pars,~,lam] = rlmpc.constr_update(rl.pars,rl.bounds,p,1/5);
+            [rl.pars,~,lam] = rlmpc.constr_update(rl.pars, rl.bounds, ...
+                                                  p, max_delta);
             % lam_inf = 0.25 * lam + 0.75 * lam_inf; % exp moving average
             lam_inf = max(lam_inf, lam);
 
             % save stuff
             rl_history.lr{end + 1} = lr_;
             rl_history.H_mod{end + 1} = H_mod;
+            rl_history.p_norm{end + 1} = norm(p);
 
             % log update result
             msg = sprintf('update %i (N=%i, lr=%1.3e, Hmod=%1.3e): ', ...
@@ -556,23 +560,27 @@ for ep = start_ep:episodes
                            links.speed{ep}, origins.rate{ep}, rate_prev)));
     ep_TTS = full(sum(TTS(origins.queue{ep}, links.density{ep})));
     g_norm_avg = mean(rl_history.g_norm{ep}, 'omitnan');
+    p_norm = cell2mat(rl_history.p_norm);
     util.info(toc(start_tot_time), ep, exec_times(ep), t(end), K, K, ...
         sprintf('episode %i: Jtot=%.3f, TTS=%.3f, fails=%i(%.1f%%)', ...
         ep, ep_Jtot, ep_TTS, nb_fail, nb_fail / K * M * 100));
 
     % plot performance
     if ~exist('ph_J', 'var') || ~isvalid(ph_J)
-        figure; tiledlayout(2, 1);
+        figure; tiledlayout(3, 1);
         nexttile; 
         yyaxis left, 
         ph_J = semilogy(ep, ep_Jtot, '-o');
         ylabel('J(\pi)')
         yyaxis right, 
         ph_TTS = plot(ep, ep_TTS, '-o');
-        ylabel('TTS(\pi)'),
+        xlabel('episode'), ylabel('TTS(\pi)'),
         nexttile; 
         ph_g_norm = semilogy(ep, g_norm_avg, '-*');
-        ylabel('average ||g||'), xlabel('episode'), hold off
+        xlabel('episode'), ylabel('average ||g||')
+        nexttile; 
+        ph_p_norm = semilogy(1, '-o');
+        xlabel('update'), ylabel('||p||'), 
     else
         set(ph_J, 'XData', [ph_J.XData, ep]);
         set(ph_J, 'YData', [ph_J.YData, ep_Jtot]);
@@ -580,6 +588,7 @@ for ep = start_ep:episodes
         set(ph_TTS, 'YData', [ph_TTS.YData, ep_TTS]);
         set(ph_g_norm, 'XData', [ph_g_norm.XData, ep]);
         set(ph_g_norm, 'YData', [ph_g_norm.YData, g_norm_avg]);
+        set(ph_p_norm, 'YData', p_norm);
     end
     drawnow;
 end

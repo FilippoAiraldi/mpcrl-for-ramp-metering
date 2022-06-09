@@ -19,14 +19,14 @@ end
 % plotting options
 step = 3; % reduce number of datapoints to be plot
 
-plot_summary = false;
-plot_traffic = false;
+plot_summary = true;
+plot_traffic = true;
 plot_slacks = false;
 plot_learning = true;
 
 mean_slack = false;
 scaled_learned = false;
-log_learned = false;
+log_learned = true;
 
 
 
