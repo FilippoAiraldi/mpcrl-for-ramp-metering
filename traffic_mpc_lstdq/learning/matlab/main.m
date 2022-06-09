@@ -1,6 +1,6 @@
 % made with MATLAB 2021b
 clc, clearvars, close all, diary off, warning('on')
-rng(42)
+% rng(69)
 runname = datestr(datetime, 'yyyymmdd_HHMMSS');
 load_checkpoint = false;
 
@@ -8,7 +8,7 @@ load_checkpoint = false;
 
 %% Model
 % simulation
-episodes = 50;                         % number of episodes to repeat
+episodes = 100;                         % number of episodes to repeat
 Tfin = 2;                               % simulation time per episode (h)
 T = 10 / 3600;                          % simulation step size (h)
 K = Tfin / T;                           % simulation steps per episode
@@ -97,7 +97,7 @@ opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
                             'ScaleProblem', true, ...
                             'SpecifyObjectiveGradient', true, ...
                             'SpecifyConstraintGradient', true);
-perturb_mag = 10;                       % magnitude of exploratory perturbation
+perturb_mag = 100;                      % magnitude of exploratory perturbation
 if ~approx.flow_as_control_action
     rate_var_penalty = 0.4;             % penalty weight for rate variability
 else
@@ -112,13 +112,13 @@ if ~soft_domain_constraints && ~max_in_and_out(2)
 end
 %
 discount = 1;                           % rl discount factor
-lr = 1e-2;                              % fixed rl learning rate (no line search)
-grad_desc_version = 0;                  % type of gradient descent/hessian modification
+lr = 1e-3;                              % fixed rl learning rate (no line search)
+grad_desc_version = 2;                  % type of gradient descent/hessian modification
 con_violation_penalty = 10;             % penalty for constraint violations
 rl_update_freq = K / 2;                 % when rl should update
-rl_mem_cap = 1000;                      % RL experience replay capacity
-rl_mem_sample = 500;                    % RL experience replay sampling size
-rl_mem_last = rl_update_freq / M;       % percentage of last experiences to include in sample
+rl_mem_cap = K / M * 10;                % RL experience replay capacity
+rl_mem_sample = K / M * 5;              % RL experience replay sampling size
+rl_mem_last = K / M;                    % percentage of last experiences to include in sample
 save_freq = 2;                          % checkpoint saving frequency
 
 % create a symbolic casadi function for the dynamics (both true and nominal)
@@ -514,9 +514,9 @@ for ep = start_ep:episodes
             end
 
             % perform constrained update and save its maximum multiplier
-            [rl.pars, ~, lam] = rlmpc.constr_update(rl.pars, rl.bounds, ...
-                                                           lr_ * p, 1 / 5);
-            lam_inf = 0.25 * lam + 0.75 * lam_inf; % exp moving average
+            [rl.pars,~,lam] = rlmpc.constr_update(rl.pars,rl.bounds,p,1/5);
+            % lam_inf = 0.25 * lam + 0.75 * lam_inf; % exp moving average
+            lam_inf = max(lam_inf, lam);
 
             % save stuff
             rl_history.lr{end + 1} = lr_;
