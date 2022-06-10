@@ -8,7 +8,7 @@ load_checkpoint = false;
 
 %% Model
 % simulation
-episodes = 50;                          % number of episodes to repeat
+episodes = 75;                          % number of episodes to repeat
 Tfin = 2;                               % simulation time per episode (h)
 T = 10 / 3600;                          % simulation step size (h)
 K = Tfin / T;                           % simulation steps per episode
@@ -112,7 +112,7 @@ if ~soft_domain_constraints && ~max_in_and_out(2)
 end
 %
 discount = 0.99;                        % rl discount factor
-% lr = 1e-3;                              % fixed rl learning rate (no line search)
+lr = 1e-3;                              % fixed rl learning rate (no line search)
 grad_desc_version = 1;                  % type of gradient descent/hessian modification
 max_delta = 1 / 5;                      % percentage of maximum parameter change in a single update
 con_violation_penalty = 10;             % penalty for constraint violations
@@ -509,15 +509,15 @@ for ep = start_ep:episodes
 
             % lr backtracking
             if ~exist('lr', 'var')
-                lr_ = rlmpc.constr_backtracking( ...
-                            mpc.Q, deriv.Q, p, sample, rl, lam_inf);
+                lr_ = rlmpc.constr_backtracking(mpc.Q, deriv.Q, p, ...
+                                        sample, rl, max_delta, lam_inf);
             else
                 lr_ = lr; % / sample.n;
             end
 
             % perform constrained update and save its maximum multiplier
             [rl.pars,~,lam] = rlmpc.constr_update(rl.pars, rl.bounds, ...
-                                                  p, max_delta);
+                                                  lr_ * p, max_delta);
             % lam_inf = 0.25 * lam + 0.75 * lam_inf; % exp moving average
             lam_inf = max(lam_inf, lam);
 
