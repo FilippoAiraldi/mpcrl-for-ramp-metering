@@ -15,56 +15,31 @@ K = Tfin / T;                           % simulation steps per episode
 t = (0:(K - 1)) * T;                    % time vector (h)
 
 % model parameters
+mdl = util.get_model();
+
+% known (wrong) model parameters
+a = mdl.a * 1.3;
+v_free = mdl.v_free * 1.3;
+rho_crit = mdl.rho_crit * 0.7;
+
+
+% TODO: remove this garbage
+max_queue = [Inf, mdl.max_queue];       % maximum queue (veh) constraint
 approx = struct;                        % structure containing approximations
 approx.origin_as_ramp = true;           % origin is regarded as a ramp if true; otherwise, as a pure flow with no queue
 approx.control_origin = false;          % toggle this to control the origin ramp
 approx.simple_rho_down = false;         % removes the max/min from the density downstream computations
 approx.flow_as_control_action = true;   % if true, the control action is the ramp flows; otherwise, metering rate is used
-assert(approx.origin_as_ramp || ~approx.control_origin)
-if approx.origin_as_ramp && approx.flow_as_control_action ...
-                                                && ~approx.control_origin
-    warning(['with this combo, the origin has a min function. Would ' ...
-        'suggest to model the origin as a ramp and control it'])
-end
-demand_type = 'fixed';
 
-% network size
-n_origins = 1 + approx.origin_as_ramp;
-n_links = 3;
-n_ramps = 1 + approx.control_origin;
 
-% segments
-L = 1;                                  % length of links (km)
-lanes = 2;                              % lanes per link (adim)
 
-% origins O1 and O2
-C = [3500, 2000];                       % on-ramp capacity (veh/h/lane)
-max_queue = [150, 50];                  % maximum queue (veh) constraint
-if ~approx.control_origin
-    max_queue(1) = inf;
-end
-if ~approx.origin_as_ramp
-    C = C(2);
-    max_queue = max_queue(2);
-end
 
-% model parameters
-tau = 18 / 3600;                        % model parameter (s)
-kappa = 40;                             % model parameter (veh/km/lane)
-eta = 60;                               % model parameter (km^2/lane)
-rho_max = 180;                          % maximum capacity (veh/km/lane)
-delta = 0.0122;                         % merging phenomenum parameter
-
-% known (wrong) and true (unknown) model parameters
-true_pars = struct('a', 1.867, 'v_free', 102, 'rho_crit', 33.5);
-a = true_pars.a * 1.3;                  % model parameter (adim)
-v_free = true_pars.v_free * 1.3;        % free flow speed (km/h)
-rho_crit = true_pars.rho_crit * 0.7;    % critical capacity (veh/km/lane)
 
 
 
 %% Disturbances
-D = util.get_demand_profiles(t, episodes + 1, demand_type); % +1 to avoid out-of-bound access
+D = util.get_demand_profiles(t, episodes + 1, 'fixed'); % +1 to avoid out-of-bound access
+assert(size(D, 1) == mdl.n_dist, 'mismatch found')
 
 % plot((0:length(D) - 1) * T, (D .* [1; 1; 50])'),
 % legend('O1', 'O2', 'cong_{\times50}'), xlabel('time (h)'), ylabel('demand (h)')
@@ -112,7 +87,7 @@ if ~soft_domain_constraints && ~max_in_and_out(2)
 end
 %
 discount = 0.99;                        % rl discount factor
-% lr = 1e-1;                              % fixed rl learning rate (no line search)
+lr = 1e-3;                              % fixed rl learning rate (no line search)
 grad_desc_version = 1;                  % type of gradient descent/hessian modification (1 is the only one working out)
 max_delta = 1 / 5;                      % percentage of maximum parameter change in a single update
 con_violation_penalty = 10;             % penalty for constraint violations
@@ -123,24 +98,14 @@ rl_mem_last = K / M;                    % percentage of last experiences to incl
 save_freq = 2;                          % checkpoint saving frequency
 
 % create a symbolic casadi function for the dynamics (both true and nominal)
-n_dist = size(D, 1);
-args = {n_links, n_origins, n_ramps, n_dist, T, L, lanes, C, rho_max, ...
-    tau, delta, eta, kappa, max_in_and_out, eps, ...
-    approx.origin_as_ramp, approx.control_origin, ...
-    approx.simple_rho_down, approx.flow_as_control_action};
-if approx.Veq
-    [Veq_approx, pars_Veq_approx] = ...
-                metanet.get_Veq_approx(v_free, a, rho_crit, rho_max, eps);
-    args{end + 1} = Veq_approx;
-end
-dynamics = metanet.get_dynamics(args{:});
+dynamics = metanet.get_dynamics(mdl, T);
 
 % cost terms
-[TTS, Rate_var] = metanet.get_mpc_costs(n_links, n_origins, n_ramps, ...
-                                                        Nc, T, L, lanes);
-[Vcost, Lcost, Tcost] = rlmpc.get_mpc_costs(n_links, n_origins, ...
+[TTS, Rate_var] = metanet.get_mpc_costs(mdl.n_links, mdl.n_origins, mdl.n_ramps, ...
+                                                        Nc, T, mdl.L, mdl.lanes);
+[Vcost, Lcost, Tcost] = rlmpc.get_mpc_costs(mdl.n_links, mdl.n_origins, ...
                                                 'affine', 'diag', 'diag');
-Lrl = rlmpc.get_rl_cost(n_links, n_origins, n_ramps, TTS, Rate_var, ...
+Lrl = rlmpc.get_rl_cost(mdl.n_links, mdl.n_origins, mdl.n_ramps, TTS, Rate_var, ...
                     max_queue, rate_var_penalty, con_violation_penalty);
 
 % build mpc-based value function approximators
@@ -149,11 +114,11 @@ for name = ["Q", "V"]
     % instantiate an MPC
     ctrl = rlmpc.NMPC(name, Np, Nc, M, dynamics.nominal, max_queue, ...
                            soft_domain_constraints, eps, ...
-                           approx.flow_as_control_action, rho_max, C, T);
+                           approx.flow_as_control_action, mdl.rho_max, mdl.C, T);
 
     % normalization constants
     normalization.w = max(max_queue(isfinite(max_queue)));
-    normalization.rho = rho_max;
+    normalization.rho = mdl.rho_max;
     normalization.v = v_free;
     normalization.r = ctrl.r_bnd{2};
 
@@ -244,12 +209,12 @@ clear ctrl
 r = mpc.V.r_bnd{2};                     % metering rate/flow
 r_prev = r;                             % previous rate
 [w, rho, v] = util.steady_state(dynamics.real.f, ...
-    zeros(n_origins, 1), 10 * ones(n_links, 1), 100 * ones(n_links, 1), ...
-    r, D(:, 1), true_pars.rho_crit, true_pars.a, true_pars.v_free);
+    zeros(mdl.n_origins, 1), 10 * ones(mdl.n_links, 1), 100 * ones(mdl.n_links, 1), ...
+    r, D(:, 1), mdl.rho_crit, mdl.a, mdl.v_free);
 
 % initial learnable Q/V function approx. weights and their bounds
 args = cell(0, 3);
-args(end + 1, :) = {'rho_crit', {rho_crit}, [10, rho_max * 0.9]};
+args(end + 1, :) = {'rho_crit', {rho_crit}, [10, mdl.rho_max * 0.9]};
 if ~approx.Veq
     args(end + 1, :) = {'v_free', {v_free}, [30, 300]};
 else
@@ -477,7 +442,7 @@ for ep = start_ep:episodes
         % step state (according to the true dynamics)
         [q_o, w_next, q, rho_next, v_next] = dynamics.real.f(...
             w, rho, v, r, D(:, K*(ep-1) + k), ...
-            true_pars.rho_crit, true_pars.a, true_pars.v_free);
+            mdl.rho_crit, mdl.a, mdl.v_free);
 
         % save current state and other infos
         origins.demand{ep}(:, k) = D(:, K*(ep-1) + k);
