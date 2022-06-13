@@ -404,3 +404,53 @@ end
 %         hlegend.String = hlegend.String(1:n_data);
 %     end
 % end
+
+
+%% smaller visualizations
+clc, close all, clear all
+
+files = [ ...
+    "data\2_GN_BT_hess1.mat", "data\2_GN_1e-3_hess1.mat", ...
+    "data\2_FH_BT_hess1.mat", "data\2_FH_1e-0_hess1.mat", ...
+    "data\2_FH_1e-3_hess1.mat", "data\2_FH_1e-6_hess1.mat"];
+for i = 1:length(files)
+    load(files(i))
+
+    figure(i); 
+    t = tiledlayout(3, 1);
+    
+    performance = arrayfun(@(ep) full(sum(Lrl( ...
+        origins.queue{ep}, links.density{ep}, links.speed{ep}, ...
+        origins.rate{ep}, ...
+        [origins.rate{ep}(1), origins.rate{ep}(1:end-1)]))), 1:episodes);
+    performance_only_tts = arrayfun(@(ep) ...
+        full(sum(TTS(origins.queue{ep}, links.density{ep}))), 1:episodes);
+    
+    nexttile;
+    yyaxis left
+    plot(1:episodes, performance, '-o')
+    ylabel('J(\pi)')
+    yyaxis right
+    plot(1:episodes, performance_only_tts, '-o')
+    xlabel('episode'), ylabel('TTS(\pi)')
+    xlim([1, episodes])
+    
+    g_norm = cellfun(@nanmean, rl_history.g_norm);
+    p_norm = cell2mat(rl_history.p_norm);
+    
+    nexttile;
+    yyaxis left
+    semilogy(1:episodes, g_norm, '-*')
+    ylabel('||g|| (average)')
+    yyaxis right
+    semilogy(linspace(1, episodes, length(p_norm)), p_norm, '-*')
+    xlabel('episode'), ylabel('||p||')
+    xlim([1, episodes])
+    
+    nexttile;
+    violation = arrayfun(@(ep) ...
+                sum(origins.queue{ep}(2, :) > max_queue(2)), 1:episodes);
+    area(1:episodes, violation / K);
+    xlim([1, episodes])
+    xlabel('episode'), ylabel('Constr. violation (%)')
+end
