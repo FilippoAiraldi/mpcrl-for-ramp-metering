@@ -15,7 +15,7 @@ K = Tfin / T;                           % simulation steps per episode
 t = (0:(K - 1)) * T;                    % time vector (h)
 
 % model parameters
-mdl = util.get_model();
+mdl = metanet.get_pars();
 
 % known (wrong) model parameters
 a = mdl.a * 1.3;
@@ -25,12 +25,6 @@ rho_crit = mdl.rho_crit * 0.7;
 
 % TODO: remove this garbage
 max_queue = [Inf, mdl.max_queue];       % maximum queue (veh) constraint
-approx = struct;                        % structure containing approximations
-approx.origin_as_ramp = true;           % origin is regarded as a ramp if true; otherwise, as a pure flow with no queue
-approx.control_origin = false;          % toggle this to control the origin ramp
-approx.simple_rho_down = false;         % removes the max/min from the density downstream computations
-approx.flow_as_control_action = true;   % if true, the control action is the ramp flows; otherwise, metering rate is used
-
 
 
 
@@ -48,8 +42,8 @@ assert(size(D, 1) == mdl.n_dist, 'mismatch found')
 
 
 %% MPC-based RL
+% TODO: put all these parameters in rlmpc.get_pars()
 % parameters (constant)
-approx.Veq = false;                     % whether to use an approximation of Veq
 max_in_and_out = [false, true];         % whether to apply max to inputs and outputs of dynamics
 %
 Np = 4;                                 % prediction horizon - \approx 3*L/(M*T*v_avg)
@@ -73,14 +67,10 @@ opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
                             'SpecifyObjectiveGradient', true, ...
                             'SpecifyConstraintGradient', true);
 perturb_mag = 100;                      % magnitude of exploratory perturbation
-if ~approx.flow_as_control_action
-    rate_var_penalty = 0.4;             % penalty weight for rate variability
-else
-    rate_var_penalty = 4e-2;
-end
+rate_var_penalty = 4e-2;
 methods = {'ipopt', 'sqpmethod', 'fmincon'};
 method = methods{1};                    % solver method for MPC
-multistart = 1; %4 * 4;                     % multistarting NMPC solver
+multistart = 1; %4 * 4;                 % multistarting NMPC solver
 soft_domain_constraints = false;        % whether to use soft constraints on positivity of states (either this, or max on output)
 if ~soft_domain_constraints && ~max_in_and_out(2)
     warning('Dynamics can be negative and hard constraints unfeasible')
@@ -101,23 +91,21 @@ save_freq = 2;                          % checkpoint saving frequency
 dynamics = metanet.get_dynamics(mdl, T);
 
 % cost terms
-[TTS, Rate_var] = metanet.get_mpc_costs(mdl.n_links, mdl.n_origins, mdl.n_ramps, ...
-                                                        Nc, T, mdl.L, mdl.lanes);
-[Vcost, Lcost, Tcost] = rlmpc.get_mpc_costs(mdl.n_links, mdl.n_origins, ...
-                                                'affine', 'diag', 'diag');
-Lrl = rlmpc.get_rl_cost(mdl.n_links, mdl.n_origins, mdl.n_ramps, TTS, Rate_var, ...
-                    max_queue, rate_var_penalty, con_violation_penalty);
+[TTS, Rate_var] = metanet.get_mpc_costs(mdl, Nc, T);
+[Vcost, Lcost, Tcost] = rlmpc.get_mpc_costs(mdl, 'affine', 'diag', 'diag');
+Lrl = rlmpc.get_rl_cost(mdl, TTS, Rate_var, rate_var_penalty, ...
+                                                    con_violation_penalty);
 
 % build mpc-based value function approximators
 mpc = struct;
 for name = ["Q", "V"]
     % instantiate an MPC
-    ctrl = rlmpc.NMPC(name, Np, Nc, M, dynamics.nominal, max_queue, ...
+    ctrl = rlmpc.NMPC(name, Np, Nc, M, dynamics, max_queue, ...
                            soft_domain_constraints, eps, ...
-                           approx.flow_as_control_action, mdl.rho_max, mdl.C, T);
+                           true, mdl.rho_max, mdl.C, T);
 
     % normalization constants
-    normalization.w = max(max_queue(isfinite(max_queue)));
+    normalization.w = mdl.max_queue;
     normalization.rho = mdl.rho_max;
     normalization.v = v_free;
     normalization.r = ctrl.r_bnd{2};
@@ -208,19 +196,14 @@ clear ctrl
 % initial conditions
 r = mpc.V.r_bnd{2};                     % metering rate/flow
 r_prev = r;                             % previous rate
-[w, rho, v] = util.steady_state(dynamics.real.f, ...
+[w, rho, v] = util.steady_state(dynamics.f, ...
     zeros(mdl.n_origins, 1), 10 * ones(mdl.n_links, 1), 100 * ones(mdl.n_links, 1), ...
     r, D(:, 1), mdl.rho_crit, mdl.a, mdl.v_free);
 
-% initial learnable Q/V function approx. weights and their bounds
+% initial learnable Q/V function approxiamtion weights and their bounds
 args = cell(0, 3);
 args(end + 1, :) = {'rho_crit', {rho_crit}, [10, mdl.rho_max * 0.9]};
-if ~approx.Veq
-    args(end + 1, :) = {'v_free', {v_free}, [30, 300]};
-else
-    args(end + 1, :) = {'pars_Veq_approx', ...
-        {pars_Veq_approx}, [-1e2, 0; 1e-2, 2 * v_free; 1e-2, 2 * v_free]};
-end
+args(end + 1, :) = {'v_free', {v_free}, [30, 300]};
 args(end + 1, :) = {'v_free_tracking', {v_free}, [30, 300]};
 args(end + 1, :) = {'weight_V', ...
                         {ones(size(mpc.V.pars.weight_V))}, [-inf, inf]};
@@ -351,10 +334,7 @@ for ep = start_ep:episodes
                 pars = struct( ...
                     'd', D(:, K*(ep-1) + k-M:K*(ep-1) + k-M + M*Np-1), ...
                     'w0', w_prev, 'rho0', rho_prev, 'v0', v_prev, ...
-                    'r_last', r_prev_prev, 'r0', r_prev); % a(k-2) and a(k-1)
-                if ~approx.Veq
-                    pars.a = a;
-                end
+                    'a', a, 'r_last', r_prev_prev, 'r0', r_prev); % a(k-2) and a(k-1)
                 for n = fieldnames(rl.pars)'
                     pars.(n{1}) = rl.pars.(n{1}){end};
                 end
@@ -374,11 +354,8 @@ for ep = start_ep:episodes
             % run V(s(k))
             pars = struct( ...
                 'd', D(:, K*(ep-1) + k:K*(ep-1) + k + M*Np-1), ...
-                'w0', w, 'rho0', rho, 'v0', v, ...
+                'w0', w, 'rho0', rho, 'v0', v, 'a', a, ...
                 'r_last', r, 'perturbation', pert);
-            if ~approx.Veq
-                pars.a = a;
-            end
             for n = fieldnames(rl.pars)'
                 pars.(n{1}) = rl.pars.(n{1}){end};
             end
@@ -440,7 +417,7 @@ for ep = start_ep:episodes
         end
 
         % step state (according to the true dynamics)
-        [q_o, w_next, q, rho_next, v_next] = dynamics.real.f(...
+        [q_o, w_next, q, rho_next, v_next] = dynamics.f(...
             w, rho, v, r, D(:, K*(ep-1) + k), ...
             mdl.rho_crit, mdl.a, mdl.v_free);
 

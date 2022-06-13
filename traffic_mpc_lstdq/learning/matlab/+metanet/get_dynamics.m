@@ -7,52 +7,41 @@ function dyn = get_dynamics(model, T)
         T (1, 1) double {mustBePositive}
     end
    
-    dyn = struct;
-    for name = ["real", "nominal"]
-        % create states, input, disturbances and other parameters
-        w = casadi.SX.sym('w', model.n_origins, 1);
-        rho = casadi.SX.sym('rho', model.n_links, 1);
-        v = casadi.SX.sym('v', model.n_links, 1);
-        r = casadi.SX.sym('r', model.n_ramps, 1);
-        d = casadi.SX.sym('d', model.n_dist, 1); 
-        a = casadi.SX.sym('a', 1, 1);
-        v_free = casadi.SX.sym('v_free', 1, 1);
-        rho_crit = casadi.SX.sym('rho_crit', 1, 1);
-    
-        % run system dynamics function
-        [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, ...
-                                            rho_crit, a, v_free, T, model);
+    % create states, input, disturbances and other parameters
+    w = casadi.SX.sym('w', model.n_origins, 1);
+    rho = casadi.SX.sym('rho', model.n_links, 1);
+    v = casadi.SX.sym('v', model.n_links, 1);
+    r = casadi.SX.sym('r', model.n_ramps, 1);
+    d = casadi.SX.sym('d', model.n_dist, 1); 
+    a = casadi.SX.sym('a', 1, 1);
+    v_free = casadi.SX.sym('v_free', 1, 1);
+    rho_crit = casadi.SX.sym('rho_crit', 1, 1);
 
-        % make sure that output is not negative
-        q_o = max(0, q_o);
-        w_o_next = max(0, w_o_next);
-        q = max(0, q);
-        rho_next = max(0, rho_next);
-        v_next = max(0, v_next);
-    
-        % create dynamics function args and outputs
-        args = struct('w', w, 'rho', rho, 'v', v, 'r', r, 'd', d, ...
-            'rho_crit', rho_crit, 'a', a, 'v_free', v_free);
-        out = struct('q_o', q_o, 'w_o_next', w_o_next, 'q', q, ...
-            'rho_next', rho_next, 'v_next', v_next);
-    
-        % create casadi function and division between vars and pars
-        dyn.(name) = struct;
-        dyn.(name).f = casadi.Function('F', ...
-            struct2cell(args), struct2cell(out), ...
-            fieldnames(args), fieldnames(out));
-        dyn.(name).states = struct('w', w, 'rho', rho, 'v', v); % states
-        dyn.(name).input = struct('r', r);                      % controls
-        dyn.(name).dist = struct('d', d);                       % disturbances
-        dyn.(name).pars = struct;                               % parameters
-        remaining_args = setdiff(fieldnames(args), ...
-                                [fieldnames(dyn.(name).states); ...
-                                fieldnames(dyn.(name).input); ...
-                                fieldnames(dyn.(name).dist)], 'stable');
-        for arg = remaining_args'
-            dyn.(name).pars.(arg{1}) = args.(arg{1});
-        end
-    end
+    % run system dynamics function
+    [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, ...
+                                        rho_crit, a, v_free, T, model);
+
+    % make sure that output is not negative
+    q_o = max(0, q_o);
+    w_o_next = max(0, w_o_next);
+    q = max(0, q);
+    rho_next = max(0, rho_next);
+    v_next = max(0, v_next);
+
+    % create dynamics function args and outputs
+    args = struct('w', w, 'rho', rho, 'v', v, 'r', r, 'd', d, ...
+        'rho_crit', rho_crit, 'a', a, 'v_free', v_free);
+    out = struct('q_o', q_o, 'w_o_next', w_o_next, 'q', q, ...
+        'rho_next', rho_next, 'v_next', v_next);
+
+    % create casadi function and division between vars and pars
+    dyn = struct;
+    dyn.f = casadi.Function('F', struct2cell(args), struct2cell(out), ...
+                                 fieldnames(args), fieldnames(out));
+    dyn.states = struct('w', w, 'rho', rho, 'v', v);                    % states
+    dyn.input = struct('r', r);                                         % controls
+    dyn.dist = struct('d', d);                                          % disturbances
+    dyn.pars = struct('rho_crit', rho_crit, 'a', a, 'v_free', v_free);  % parameters
 
     % dynamics
     % F:(w[2],rho[3],v[3],r,d[3],rho_crit,a,v_free)->(q_o[2],w_o_next[2],q[3],rho_next[3],v_next[3])

@@ -1,5 +1,6 @@
-function mdl = get_model()
-    % GET_MODEL. Returns a structure containing the model parameters.
+function mdl = get_pars()
+    % GET_PARS. Returns a structure containing the METANET model 
+    % parameters.
 
     % network size
     mdl.n_origins = 2;              % number of origins
