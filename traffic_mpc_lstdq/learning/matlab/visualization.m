@@ -317,9 +317,10 @@ if plot_learning
     ylabel('w_{o2} constr. violation %')
 
     ax(5) = nexttile(7);
-    g_norm_tot = cell2mat(rl_history.g_norm);
+    % g_norm_tot = cell2mat(rl_history.g_norm);
+    g_norm_tot = cellfun(@(o) mean(o, 'omitnan'), rl_history.g_norm);
     do_plot(linspace(0, ep_tot, length(g_norm_tot)), g_norm_tot, '-o');
-    ylabel('||\nabla J||')
+    ylabel('||g||')
 
     traffic_pars = {'a'; 'v_free'; 'v_free_tracking'; 'rho_crit'};
     true_pars.v_free_tracking = true_pars.v_free;
@@ -366,7 +367,7 @@ if plot_learning
         set(ax(7), 'YScale', 'log');
     end
     hold off
-    legend(legendStrings{:}, 'interpreter', 'none', 'FontSize', 6)
+    % legend(legendStrings{:}, 'interpreter', 'none', 'FontSize', 6)
     if scaled_learned
         ylabel('weights (scaled)')
     else

@@ -112,8 +112,8 @@ if ~soft_domain_constraints && ~max_in_and_out(2)
 end
 %
 discount = 0.99;                        % rl discount factor
-% lr = 1e-3;                              % fixed rl learning rate (no line search)
-grad_desc_version = 1;                  % type of gradient descent/hessian modification
+% lr = 1e-1;                              % fixed rl learning rate (no line search)
+grad_desc_version = 1;                  % type of gradient descent/hessian modification (1 is the only one working out)
 max_delta = 1 / 5;                      % percentage of maximum parameter change in a single update
 con_violation_penalty = 10;             % penalty for constraint violations
 rl_update_freq = K / 2;                 % when rl should update
@@ -335,7 +335,7 @@ mpc.Q.init_solver(args);
 mpc.V.init_solver(args);
 
 % create replay memory
-replaymem = rlmpc.ReplayMem(rl_mem_cap, 'none', 'td_err', 'dQ', ...
+replaymem = rlmpc.ReplayMem(rl_mem_cap, 'none', 'td_err', 'dQ', 'd2Q', ...
                                 'target', 'solQ', 'parsQ', 'last_solQ');
 
 % load checkpoint
@@ -430,11 +430,11 @@ for ep = start_ep:episodes
 
                     % compute numerical gradients w.r.t. params
                     dQ = infoQ.get_value(deriv.Q.dL);
-                    % d2Q = infoQ.get_value(deriv.Q.d2L);
+                    d2Q = infoQ.get_value(deriv.Q.d2L);
 
                     % store in memory
                     replaymem.add('td_err', td_err, 'dQ', dQ, ...
-                        'target', target, 'solQ', infoQ.f, ...
+                        'd2Q', d2Q, 'target', target, 'solQ', infoQ.f, ...
                         'parsQ', parsQ, 'last_solQ', last_solQ);
 
                     % save stuff
@@ -501,7 +501,8 @@ for ep = start_ep:episodes
             % compute descent direction (for the Gauss-Newton just dQdQ')
             g = -sample.dQ * sample.td_err;
             if grad_desc_version ~= 0
-                H = sample.dQ * sample.dQ'; % - sum(sample.d2Q .* reshape(sample.td_err, 1, 1, []), 3);
+                H = sample.dQ * sample.dQ' - ...
+                    sum(sample.d2Q .* reshape(sample.td_err, 1, 1, []), 3);
             else
                 H = [];
             end
@@ -516,8 +517,8 @@ for ep = start_ep:episodes
             end
 
             % perform constrained update and save its maximum multiplier
-            [rl.pars,~,lam] = rlmpc.constr_update(rl.pars, rl.bounds, ...
-                                                  lr_ * p, max_delta);
+            [rl.pars, ~, lam] = rlmpc.constr_update(rl.pars, rl.bounds, ...
+                                                    lr_ * p, max_delta);
             % lam_inf = 0.25 * lam + 0.75 * lam_inf; % exp moving average
             lam_inf = max(lam_inf, lam);
 
