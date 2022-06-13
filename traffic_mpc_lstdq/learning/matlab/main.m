@@ -112,7 +112,7 @@ if ~soft_domain_constraints && ~max_in_and_out(2)
 end
 %
 discount = 0.99;                        % rl discount factor
-lr = 1e-3;                              % fixed rl learning rate (no line search)
+% lr = 1e-3;                              % fixed rl learning rate (no line search)
 grad_desc_version = 1;                  % type of gradient descent/hessian modification
 max_delta = 1 / 5;                      % percentage of maximum parameter change in a single update
 con_violation_penalty = 10;             % penalty for constraint violations
