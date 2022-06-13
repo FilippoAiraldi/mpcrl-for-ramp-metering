@@ -106,12 +106,17 @@ Numerical Optimization. Algorithm 3.2 (pag. 48) describes generally the 2nd orde
 - (V) add condition 3.6b to backtracking line search (Algorithm 3.1)
 - (V) log how much hessian is modified at each iteration
 - (V) compute duration of constraint violation in visualization plots
-- run GaussNetwon for 100-150 episodes
-- increase number of samples in backtracking, like the worst 10 td errors
-- use random demands: introduce training script (on a fixed seed) and validation seed (possibly without seed, which runs both the perfect information MPC and the MPC to validate)
+- (V) run GaussNetwon for 100-150 episodes
+- (V) increase number of samples in backtracking, like the worst 10 td errors
+- (see) use random demands: introduce training script (on a fixed seed) and validation seed (possibly without seed, which runs both the perfect information MPC and the MPC to validate)
 - use rho crit tracking, and add a multiplicative term to the rho crit tracking cost term as:  (\rho^2)*||\rho - \rho_crit||^2 
-- look into policy gradient descent and see if we have time to implement that as well
 
+- backlog
+	- 0) reduce weight of control variability cost term (debatable)
+	- 1) make train/valid split so that we have a good benchmark
+		While learning can happen only once (i.e., train till convergence then save), validation should be done on N episodes for K times (so we get an average and std of the TTS reduction against the baseline)
+	- 2) why not create a Gym like environment? Training should happen on K episodes, N times (e..g, on 10 episodes for 5 times = 50 episodes in total). In this way, at the end of the K episodes we can reset the gym. Validation should be done on K episodes for N times to get averages and stds.
+		
 
 
 ############################ CODE FOR HESSIAN AND JACOBIAN, REMOVE IF NECESSARY

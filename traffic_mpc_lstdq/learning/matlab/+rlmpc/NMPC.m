@@ -48,7 +48,7 @@ classdef NMPC < handle
                 name (1, :) char {mustBeTextScalar}
                 Np, Nc, M (1, 1) double {mustBePositive,mustBeInteger}
                 dyn (1, 1) struct
-                max_queue (:, 1) double = []
+                max_queue (1, 1) double
                 soft_con (1, 1) logical = false
                 eps (1, 1) double {mustBeNonnegative} = 0
                 flow_as_control (1, 1) logical = false
@@ -72,11 +72,7 @@ classdef NMPC < handle
                 slack_rho = obj.add_var('slack_rho', size(rho), eps^2);
                 slack_v = obj.add_var('slack_v', size(v), eps^2);
             end
-            if ~isempty(max_queue) % optional slacks for max queues
-                assert(length(max_queue) == dyn.states.w.size(1))
-                slack_w_max = obj.add_var('slack_w_max', ...
-                            [sum(isfinite(max_queue)), M * Np + 1], eps^2);
-            end
+            slack_w_max = obj.add_var('slack_w_max', [1, M * Np + 1], eps^2);
             
             % based on what is the control action, bounds differ
             if ~flow_as_control
@@ -115,14 +111,7 @@ classdef NMPC < handle
             end
 
             % (soft) constraints on queues
-            if ~isempty(max_queue)
-                I = find(isfinite(max_queue));
-                for i = 1:size(slack_w_max, 1)
-                    obj.add_con('w_max', ...
-                      w(I(i), :) - slack_w_max(i, :) - max_queue(I(i)), ...
-                      -inf, 0);
-                end
-            end
+            obj.add_con('w_max', w(2, :) - slack_w_max - max_queue,-inf,0);
 
             % constraints on initial conditions
             obj.add_con('w_init', w(:, 1) - w0, 0, 0)

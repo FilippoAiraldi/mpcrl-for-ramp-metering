@@ -2,37 +2,20 @@
 clc, clearvars, close all, diary off, warning('on')
 rng(42)
 runname = datestr(datetime, 'yyyymmdd_HHMMSS');
-load_checkpoint = false;
+save_freq = 2;                          % checkpoint saving frequency
 
 
 
-%% Model
-% simulation
+%% Model & Disturbances
 episodes = 75;                          % number of episodes to repeat
-Tfin = 2;                               % simulation time per episode (h)
-T = 10 / 3600;                          % simulation step size (h)
-K = Tfin / T;                           % simulation steps per episode
-t = (0:(K - 1)) * T;                    % time vector (h)
 
 % model parameters
 mdl = metanet.get_pars();
 
-% known (wrong) model parameters
-a = mdl.a * 1.3;
-v_free = mdl.v_free * 1.3;
-rho_crit = mdl.rho_crit * 0.7;
-
-
-% TODO: remove this garbage
-max_queue = [Inf, mdl.max_queue];       % maximum queue (veh) constraint
-
-
-
-
-
-
-%% Disturbances
-D = util.get_demand_profiles(t, episodes + 1, 'fixed'); % +1 to avoid out-of-bound access
+% disturbances
+% TODO: after cleaning, remove fixed demands and create a gym where
+% disturbances and dynamics are created by the gym itself
+D = util.get_demand_profiles(mdl.t, episodes + 1, 'fixed'); % +1 to avoid out-of-bound access
 assert(size(D, 1) == mdl.n_dist, 'mismatch found')
 
 % plot((0:length(D) - 1) * T, (D .* [1; 1; 50])'),
@@ -42,72 +25,28 @@ assert(size(D, 1) == mdl.n_dist, 'mismatch found')
 
 
 %% MPC-based RL
-% TODO: put all these parameters in rlmpc.get_pars()
-% parameters (constant)
-max_in_and_out = [false, true];         % whether to apply max to inputs and outputs of dynamics
-%
-Np = 4;                                 % prediction horizon - \approx 3*L/(M*T*v_avg)
-Nc = 3;                                 % control horizon
-M  = 6;                                 % horizon spacing factor
-eps = 0;                                % nonnegative constraint precision
-opts.ipopt = struct('expand', 1, 'print_time', 0, 'ipopt', ...
-                struct('print_level', 0, 'max_iter', 3e3, 'tol', 1e-8, ...
-                       'barrier_tol_factor', 10));
-opts.sqpmethod = struct('expand', 1, 'qpsol', 'qrqp', 'verbose', 0, ...
-                        'print_header', 0, 'print_iteration', 0, ...
-                        'print_status', 0, 'print_time', 0, ...
-                        'qpsol_options', struct('print_iter', 0, ...
-                                                'print_header', 0, ...
-                                                'error_on_fail', 0));
-opts.fmincon = optimoptions('fmincon', 'Algorithm', 'sqp', ...
-                            'Display', 'none', ...
-                            'OptimalityTolerance', 1e-7, ...
-                            'StepTolerance', 1e-7, ...
-                            'ScaleProblem', true, ...
-                            'SpecifyObjectiveGradient', true, ...
-                            'SpecifyConstraintGradient', true);
-perturb_mag = 100;                      % magnitude of exploratory perturbation
-rate_var_penalty = 4e-2;
-methods = {'ipopt', 'sqpmethod', 'fmincon'};
-method = methods{1};                    % solver method for MPC
-multistart = 1; %4 * 4;                 % multistarting NMPC solver
-soft_domain_constraints = false;        % whether to use soft constraints on positivity of states (either this, or max on output)
-if ~soft_domain_constraints && ~max_in_and_out(2)
-    warning('Dynamics can be negative and hard constraints unfeasible')
-end
-%
-discount = 0.99;                        % rl discount factor
-lr = 1e-3;                              % fixed rl learning rate (no line search)
-grad_desc_version = 1;                  % type of gradient descent/hessian modification (1 is the only one working out)
-max_delta = 1 / 5;                      % percentage of maximum parameter change in a single update
-con_violation_penalty = 10;             % penalty for constraint violations
-rl_update_freq = K / 2;                 % when rl should update
-rl_mem_cap = K / M * 10;                % RL experience replay capacity
-rl_mem_sample = K / M * 5;              % RL experience replay sampling size
-rl_mem_last = K / M;                    % percentage of last experiences to include in sample
-save_freq = 2;                          % checkpoint saving frequency
+mpc = struct;
+mpc.pars = rlmpc.get_pars(mdl.K);
 
 % create a symbolic casadi function for the dynamics (both true and nominal)
-dynamics = metanet.get_dynamics(mdl, T);
+dynamics = metanet.get_dynamics(mdl);
 
 % cost terms
-[TTS, Rate_var] = metanet.get_mpc_costs(mdl, Nc, T);
+[TTS, Rate_var] = metanet.get_mpc_costs(mdl, mpc);
 [Vcost, Lcost, Tcost] = rlmpc.get_mpc_costs(mdl, 'affine', 'diag', 'diag');
-Lrl = rlmpc.get_rl_cost(mdl, TTS, Rate_var, rate_var_penalty, ...
-                                                    con_violation_penalty);
+Lrl = rlmpc.get_rl_cost(mdl, mpc, TTS, Rate_var);
 
 % build mpc-based value function approximators
-mpc = struct;
 for name = ["Q", "V"]
     % instantiate an MPC
-    ctrl = rlmpc.NMPC(name, Np, Nc, M, dynamics, max_queue, ...
-                           soft_domain_constraints, eps, ...
-                           true, mdl.rho_max, mdl.C, T);
+    ctrl = rlmpc.NMPC(name, mpc.pars.Np, mpc.pars.Nc, mpc.pars.M, ...
+                      dynamics, mdl.max_queue, false, eps, true, ...
+                      mdl.rho_max, mdl.C, mdl.T);
 
     % normalization constants
     normalization.w = mdl.max_queue;
     normalization.rho = mdl.rho_max;
-    normalization.v = v_free;
+    normalization.v = mdl.v_free_wrong;
     normalization.r = ctrl.r_bnd{2};
 
     % grab the names of the slack variables
@@ -130,6 +69,7 @@ for name = ["Q", "V"]
     ctrl.add_par('r_last', [size(ctrl.vars.r, 1), 1]);
 
     % initial, stage and terminal learnable costs
+    % TODO: remove normalization out of function arguments
     cost = Vcost(ctrl.vars.w(:, 1), ...
                  ctrl.vars.rho(:, 1), ...
                  ctrl.vars.v(:, 1), ...
@@ -137,7 +77,7 @@ for name = ["Q", "V"]
                  normalization.w, ...
                  normalization.rho, ...
                  normalization.v);
-    for k = 2:M * Np
+    for k = 2:mpc.pars.M * mpc.pars.Np
         cost = cost + Lcost(ctrl.vars.rho(:, k), ...
                             ctrl.vars.v(:, k), ...
                             ctrl.pars.rho_crit, ...
@@ -202,20 +142,20 @@ r_prev = r;                             % previous rate
 
 % initial learnable Q/V function approxiamtion weights and their bounds
 args = cell(0, 3);
-args(end + 1, :) = {'rho_crit', {rho_crit}, [10, mdl.rho_max * 0.9]};
-args(end + 1, :) = {'v_free', {v_free}, [30, 300]};
-args(end + 1, :) = {'v_free_tracking', {v_free}, [30, 300]};
+args(end + 1, :) = {'rho_crit', {mdl.rho_crit_wrong}, [10, mdl.rho_max * 0.9]};
+args(end + 1, :) = {'v_free', {mdl.v_free_wrong}, [30, 300]};
+args(end + 1, :) = {'v_free_tracking', {mdl.v_free_wrong}, [30, 300]};
 args(end + 1, :) = {'weight_V', ...
                         {ones(size(mpc.V.pars.weight_V))}, [-inf, inf]};
 args(end + 1, :) = {'weight_L', ...
                         {ones(size(mpc.V.pars.weight_L))}, [0, inf]};
 args(end + 1, :) = {'weight_T', ...
                         {ones(size(mpc.V.pars.weight_T))}, [0, inf]};
-args(end + 1, :) = {'weight_rate_var', {rate_var_penalty}, [1e-3, 1e3]};
+args(end + 1, :) = {'weight_rate_var', {mpc.pars.rate_var_penalty}, [1e-3, 1e3]};
 if isfield(mpc.V.vars, 'slack_w_max')
     args(end+1,:) = {'weight_slack_w_max', ...
         {ones(size(mpc.V.pars.weight_slack_w_max)) * ...
-                                        con_violation_penalty}, [0, inf]};
+                                        mpc.pars.con_violation_penalty}, [0, inf]};
 end
 rl = struct;
 rl.pars = cell2struct(args(:, 2), args(:, 1));
@@ -229,7 +169,7 @@ rl_history.td_error_perc = cell(1, episodes);
 
 % compute symbolic derivatives
 deriv = struct;
-for n = string(fieldnames(mpc)')
+for n = ["Q", "V"]
     % assemble all RL parameters in a single vector for V and Q
     deriv.(n).rl_pars = mpc.(n).concat_pars(fieldnames(rl.pars));
 
@@ -257,56 +197,39 @@ exec_times = nan(1, episodes);
 
 % initialize mpc last solutions to steady-state
 last_sol = struct( ...
-    'w', repmat(w, 1, M * Np + 1), ...
-    'rho', repmat(rho, 1, M * Np + 1), ...
-    'v', repmat(v, 1, M * Np + 1), ...
-    'r', repmat(r, 1, Nc));
+    'w', repmat(w, 1, mpc.pars.M * mpc.pars.Np + 1), ...
+    'rho', repmat(rho, 1, mpc.pars.M * mpc.pars.Np + 1), ...
+    'v', repmat(v, 1, mpc.pars.M * mpc.pars.Np + 1), ...
+    'r', repmat(r, 1, mpc.pars.Nc));
 for n = slacknames
     last_sol.(n) = ones(size(mpc.V.vars.(n))) * eps^2;
 end
 
 % initialize constrained QP RL update maximum lagrangian multiplier
-lam_inf = 1;
+% lam_inf = 1;
 
 % initialize mpc solvers
-switch method
-    case 'ipopt'
-        args = opts.ipopt;
-    case 'sqpmethod'
-        args = opts.sqpmethod;
-    case 'fmincon'
-        args = opts.fmincon;
-    otherwise
-        error('invalid method')
-end
-mpc.Q.init_solver(args);
-mpc.V.init_solver(args);
+mpc.Q.init_solver(mpc.pars.opts_ipopt);
+mpc.V.init_solver(mpc.pars.opts_ipopt);
 
 % create replay memory
-replaymem = rlmpc.ReplayMem(rl_mem_cap, 'none', 'td_err', 'dQ', 'd2Q', ...
-                                'target', 'solQ', 'parsQ', 'last_solQ');
-
-% load checkpoint
-if load_checkpoint
-    load checkpoint.mat
-    start_ep = ep + 1;
-else
-    start_ep = 1;
-end
+replaymem = rlmpc.ReplayMem(mpc.pars.mem_cap, 'none', 'td_err', 'dQ', ...
+                            'd2Q', 'target', 'solQ', 'parsQ', 'last_solQ');
 
 % start logging
 diary(strcat(runname, '_log.txt'))
 fprintf(['# Fields: [Realtime_tot|Episode_n|Realtime_episode] ', ...
     '- [Sim_time|Sim_iter|Sim_perc] - Message\n'])
 
-% simulate episodes
-if load_checkpoint
-    fprintf('Loaded checkpoint\n')
-else
-    start_tot_time = tic;
-end
-for ep = start_ep:episodes
+% TODO: to be removed
+K = mdl.K;
+M = mpc.pars.M;
+Np = mpc.pars.Np;
+
+start_tot_time = tic;
+for ep = 1:episodes
     % preallocate episode result containers
+    % TODO: let some gym monitor save all these variables
     origins.queue{ep} = nan(size(mpc.V.vars.w, 1), K);
     origins.flow{ep} = nan(size(mpc.V.vars.w, 1), K);
     origins.rate{ep} = nan(size(mpc.V.vars.r, 1), K);
@@ -334,19 +257,19 @@ for ep = start_ep:episodes
                 pars = struct( ...
                     'd', D(:, K*(ep-1) + k-M:K*(ep-1) + k-M + M*Np-1), ...
                     'w0', w_prev, 'rho0', rho_prev, 'v0', v_prev, ...
-                    'a', a, 'r_last', r_prev_prev, 'r0', r_prev); % a(k-2) and a(k-1)
+                    'a', mdl.a_wrong, 'r_last', r_prev_prev, 'r0', r_prev); % a(k-2) and a(k-1)
                 for n = fieldnames(rl.pars)'
                     pars.(n{1}) = rl.pars.(n{1}){end};
                 end
                 [last_sol, infoQ] = mpc.Q.solve(pars, last_sol, true, ...
-                                                            multistart);
+                                                            mpc.pars.multistart);
                 parsQ = pars;           % to be saved for backtracking
                 last_solQ = last_sol;   % to be saved for backtracking
             end
 
             % choose if to apply perturbation
             if rand < 0.1 * exp(-(ep - 1) / 5)
-                pert = perturb_mag * exp(-(ep - 1) / 5) * randn;
+                pert = mpc.pars.perturb_mag * exp(-(ep - 1) / 5) * randn;
             else
                 pert = 0;
             end
@@ -354,12 +277,12 @@ for ep = start_ep:episodes
             % run V(s(k))
             pars = struct( ...
                 'd', D(:, K*(ep-1) + k:K*(ep-1) + k + M*Np-1), ...
-                'w0', w, 'rho0', rho, 'v0', v, 'a', a, ...
+                'w0', w, 'rho0', rho, 'v0', v, 'a', mdl.a_wrong, ...
                 'r_last', r, 'perturbation', pert);
             for n = fieldnames(rl.pars)'
                 pars.(n{1}) = rl.pars.(n{1}){end};
             end
-            [last_sol, infoV] = mpc.V.solve(pars,last_sol,true,multistart);
+            [last_sol, infoV] = mpc.V.solve(pars, last_sol, true, mpc.pars.multistart);
 
             % save to memory if successful, or log error 
             if ep > 1 || k_mpc > 5 % skip the first td errors to let them settle
@@ -367,7 +290,7 @@ for ep = start_ep:episodes
                     % compute td error
                     target = full(Lrl(w_prev, rho_prev, v_prev, r_prev, ...
                                                           r_prev_prev)) ...
-                                + discount * infoV.f;
+                                + mpc.pars.discount * infoV.f;
                     td_err = target - infoQ.f;
 
                     % compute numerical gradients w.r.t. params
@@ -436,33 +359,25 @@ for ep = start_ep:episodes
         v = full(v_next);
 
         % perform RL updates
-        if mod(k, rl_update_freq) == 0 && ep > 1
+        if mod(k, mpc.pars.update_freq) == 0 && ep > 1
             % sample batch
-            sample = replaymem.sample(rl_mem_sample, rl_mem_last);
+            sample = replaymem.sample(mpc.pars.mem_sample, mpc.pars.mem_last);
 
             % compute descent direction (for the Gauss-Newton just dQdQ')
             g = -sample.dQ * sample.td_err;
-            if grad_desc_version ~= 0
-                H = sample.dQ * sample.dQ' - ...
-                    sum(sample.d2Q .* reshape(sample.td_err, 1, 1, []), 3);
-            else
-                H = [];
-            end
-            [p, H_mod] = rlmpc.descent_direction(g, H, grad_desc_version);
+            H = sample.dQ * sample.dQ' - ...
+                sum(sample.d2Q .* reshape(sample.td_err, 1, 1, []), 3);
+            % H = [];
+            [p, H_mod] = rlmpc.descent_direction(g, H, 1);
 
-            % lr backtracking
-            if ~exist('lr', 'var')
-                lr_ = rlmpc.constr_backtracking(mpc.Q, deriv.Q, p, ...
-                                        sample, rl, max_delta, lam_inf);
-            else
-                lr_ = lr; % / sample.n;
-            end
+            % lr (fixed or backtracking)
+            lr_ = mpc.pars.lr0;
+            % lr_ = rlmpc.constr_backtracking(mpc.Q, deriv.Q, p, sample, rl, mpc.pars.max_delta, lam_inf);
 
             % perform constrained update and save its maximum multiplier
             [rl.pars, ~, lam] = rlmpc.constr_update(rl.pars, rl.bounds, ...
-                                                    lr_ * p, max_delta);
-            % lam_inf = 0.25 * lam + 0.75 * lam_inf; % exp moving average
-            lam_inf = max(lam_inf, lam);
+                                              lr_ * p, mpc.pars.max_delta);
+            % lam_inf = max(lam_inf, lam);
 
             % save stuff
             rl_history.lr{end + 1} = lr_;
@@ -478,7 +393,7 @@ for ep = start_ep:episodes
                             mat2str(rl.pars.(name{1}){end}(:)', 6), '; ');
             end
             util.info(toc(start_tot_time), ep, toc(start_ep_time), ...
-                                                        t(k), k, K, msg);
+                                                        mdl.t(k), k, K, msg);
         end
     end
     exec_times(ep) = toc(start_ep_time);
@@ -486,10 +401,9 @@ for ep = start_ep:episodes
     % save every episode in a while (exclude some variables)
     if mod(ep - 1, save_freq) == 0
         warning('off');
-        save('checkpoint', '-regexp', ...
-            '^(?!(mpc|cost|ctrl|dQlagr|r_last|v_free_tr|weight_)).*')
+        save('checkpoint')
         warning('on');
-        util.info(toc(start_tot_time), ep, exec_times(ep), t(end), K, ...
+        util.info(toc(start_tot_time), ep, exec_times(ep), mdl.t(end), K, ...
             K, 'checkpoint saved');
     end
 
@@ -504,7 +418,7 @@ for ep = start_ep:episodes
     ep_TTS = full(sum(TTS(origins.queue{ep}, links.density{ep})));
     g_norm_avg = mean(rl_history.g_norm{ep}, 'omitnan');
     p_norm = cell2mat(rl_history.p_norm);
-    util.info(toc(start_tot_time), ep, exec_times(ep), t(end), K, K, ...
+    util.info(toc(start_tot_time), ep, exec_times(ep), mdl.t(end), K, K, ...
         sprintf('episode %i: Jtot=%.3f, TTS=%.3f, fails=%i(%.1f%%)', ...
         ep, ep_Jtot, ep_TTS, nb_fail, nb_fail / K * M * 100));
 
@@ -541,17 +455,6 @@ diary off
 
 
 %% Saving and plotting
-% build arrays
-rl.pars = structfun(@(x) cell2mat(x), rl.pars, 'UniformOutput', false);
-
-% clear and save
-clear ans args cost ctrl D d d_cong deriv dtd_err d1 d2 dQ d2Q dynamics ...
-      exp ep_Jtot ep_TTS f filter_num filter_den H i infoQ infoV Is k ...
-      Lagr last_sol load_checkpoint log_filename methods mpc msg n ...
-      nb_fail name pars penalty ph_J ph_TTS q q_o r r_first r_last r_prev ...
-      rcondA replaymem rho rho_next rho_prev save_freq start_ep_time ...
-      start_ep start_tot_time td_err sz v v_next v_prev ...
-      w w_next w_prev
 delete checkpoint.mat
 save(strcat(runname, '_data.mat'));
 

@@ -1,10 +1,9 @@
-function dyn = get_dynamics(model, T)
+function dyn = get_dynamics(model)
     % GET_DYNAMICS. Creates a structure containing the real and nominal 
     % dynamics (casadi.Function and its variables) representing the 
     % underlying dynamics of the 3-link traffic network
     arguments
         model (1, 1) struct
-        T (1, 1) double {mustBePositive}
     end
    
     % create states, input, disturbances and other parameters
@@ -19,7 +18,7 @@ function dyn = get_dynamics(model, T)
 
     % run system dynamics function
     [q_o, w_o_next, q, rho_next, v_next] = f(w, rho, v, r, d, ...
-                                        rho_crit, a, v_free, T, model);
+                                        rho_crit, a, v_free, model);
 
     % make sure that output is not negative
     q_o = max(0, q_o);
@@ -51,7 +50,7 @@ end
 
 %% local functions
 function [q_o, w_o_next, q, rho_next, v_next] = f( ...
-                            w, rho, v, r, d, rho_crit, a, v_free, T, model)
+                            w, rho, v, r, d, rho_crit, a, v_free, model)
     % Computes the actual dynamical equations. It can work both with
     % symbolical variables and numerical variables
     C = model.C;
@@ -62,6 +61,7 @@ function [q_o, w_o_next, q, rho_next, v_next] = f( ...
     eta = model.eta;
     kappa = model.kappa;
     delta = model.delta;
+    T = model.T;
 
     % which link the on-ramp is attached to
     ramped_link = 3;
