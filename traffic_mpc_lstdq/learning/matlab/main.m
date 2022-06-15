@@ -418,34 +418,36 @@ for ep = 1:episodes
     ep_TTS = full(sum(TTS(origins.queue{ep}, links.density{ep})));
     g_norm_avg = mean(rl_history.g_norm{ep}, 'omitnan');
     p_norm = cell2mat(rl_history.p_norm);
+    constr_viol = sum(origins.queue{ep}(2, :) > mdl.max_queue) / K;
     util.info(toc(start_tot_time), ep, exec_times(ep), mdl.t(end), K, K, ...
         sprintf('episode %i: Jtot=%.3f, TTS=%.3f, fails=%i(%.1f%%)', ...
         ep, ep_Jtot, ep_TTS, nb_fail, nb_fail / K * M * 100));
 
     % plot performance
     if ~exist('ph_J', 'var') || ~isvalid(ph_J)
-        figure; tiledlayout(3, 1);
+        figure; tiledlayout(4, 1);
         nexttile; 
         yyaxis left, 
-        ph_J = semilogy(ep, ep_Jtot, '-o');
+        ph_J = semilogy(ep_Jtot, '-o');
         ylabel('J(\pi)')
         yyaxis right, 
-        ph_TTS = plot(ep, ep_TTS, '-o');
+        ph_TTS = plot(ep_TTS, '-o');
         xlabel('episode'), ylabel('TTS(\pi)'),
         nexttile; 
-        ph_g_norm = semilogy(ep, g_norm_avg, '-*');
+        ph_g_norm = semilogy(g_norm_avg, '-*');
         xlabel('episode'), ylabel('average ||g||')
         nexttile; 
         ph_p_norm = semilogy(1, '-o');
         xlabel('update'), ylabel('||p||'), 
+        nexttile; 
+        ph_viol = area(constr_viol);
+        xlabel('episode'), ylabel('constr. violation'), 
     else
-        set(ph_J, 'XData', [ph_J.XData, ep]);
         set(ph_J, 'YData', [ph_J.YData, ep_Jtot]);
-        set(ph_TTS, 'XData', [ph_TTS.XData, ep]);
         set(ph_TTS, 'YData', [ph_TTS.YData, ep_TTS]);
-        set(ph_g_norm, 'XData', [ph_g_norm.XData, ep]);
         set(ph_g_norm, 'YData', [ph_g_norm.YData, g_norm_avg]);
         set(ph_p_norm, 'YData', p_norm);
+        set(ph_viol, 'YData', [ph_viol.YData, constr_viol]);
     end
     drawnow;
 end

@@ -115,7 +115,7 @@ Numerical Optimization. Algorithm 3.2 (pag. 48) describes generally the 2nd orde
 	- 0) reduce weight of control variability cost term (debatable)
 	- 1) make train/valid split so that we have a good benchmark
 		While learning can happen only once (i.e., train till convergence then save), validation should be done on N episodes for K times (so we get an average and std of the TTS reduction against the baseline)
-	- 2) why not create a Gym like environment? Training should happen on K episodes, N times (e..g, on 10 episodes for 5 times = 50 episodes in total). In this way, at the end of the K episodes we can reset the gym. Validation should be done on K episodes for N times to get averages and stds.
+	- 2) why not create a Gym like environment? Training should happen on K episodes, N times (e..g, on 10 episodes for 5 times = 50 episodes in total). In this way, at the end of the K episodes we can reset the gym. Validation should be done on K episodes for N times to get averages and stds. Also, the Agent should record all the quantities (both traffic and agent-related? I think so) and plot them online (we should be able to turn this feature on and off though)
 		
 
 
