@@ -33,81 +33,48 @@ classdef NMPC < handle
         opts (1, 1)
         %
         dynamics (1, 1) struct
-        % 
-        r_bnd (:, 2) = {}
     end
 
 
     
     methods (Access = public)
-        function obj = NMPC(name, Np, Nc, M, dyn, max_queue, soft_con, ...
-                                    eps, flow_as_control, rho_max, C, T)
+        function obj = NMPC(name, model, mpc, dyn)
             % NMPC. Builds an instance of an NMPC with the corresponding
             % horizons and dynamics.
             arguments
                 name (1, :) char {mustBeTextScalar}
-                Np, Nc, M (1, 1) double {mustBePositive,mustBeInteger}
+                model (1, 1) struct
+                mpc (1, 1) struct
                 dyn (1, 1) struct
-                max_queue (1, 1) double
-                soft_con (1, 1) logical = false
-                eps (1, 1) double {mustBeNonnegative} = 0
-                flow_as_control (1, 1) logical = false
-                rho_max (1, 1) double = 0   % only needed if flow_as_control=true
-                C (:, 1) double = 0         % only needed if flow_as_control=true
-                T (1, 1) double = 0         % only needed if flow_as_control=true
             end
             obj.name = name;
 
-            % create variables
-            if ~soft_con
-                bnd = eps;
-            else
-                bnd = -inf;
-            end
-            w = obj.add_var('w', [dyn.states.w.size(1), M * Np + 1], bnd);
-            rho = obj.add_var('rho', [dyn.states.v.size(1), M*Np+1], bnd);
-            v = obj.add_var('v', [dyn.states.v.size(1), M * Np + 1], bnd);
-            if soft_con
-                slack_w = obj.add_var('slack_w', size(w), eps^2);
-                slack_rho = obj.add_var('slack_rho', size(rho), eps^2);
-                slack_v = obj.add_var('slack_v', size(v), eps^2);
-            end
-            slack_w_max = obj.add_var('slack_w_max', [1, M * Np + 1], eps^2);
+            max_queue = model.max_queue;
+            rho_max = model.rho_max;
+            C = model.C;
+            T = model.T;
+            Np = mpc.pars.Np;
+            Nc = mpc.pars.Nc;
+            M = mpc.pars.M;
+
+            % create state variables
+            w = obj.add_var('w', [dyn.states.w.size(1), M * Np + 1], 0);
+            rho = obj.add_var('rho', [dyn.states.v.size(1), M*Np+1], 0);
+            v = obj.add_var('v', [dyn.states.v.size(1), M * Np + 1], 0);
+            slack_w_max = obj.add_var('slack_w_max', [1, M * Np + 1], 0);
             
-            % based on what is the control action, bounds differ
-            if ~flow_as_control
-                obj.r_bnd = {0.2, 1}; % metering rate is between [0.2, 1]
-            else
-                if isequal([size(dyn.input.r, 1), length(C)], [1, 1]) % origin is not a ramp, and is not controlled
-                    obj.r_bnd = {2e2, C(1)};
-                elseif isequal([size(dyn.input.r, 1), length(C)], [1, 2]) % origin is a ramp, but is not controlled
-                    obj.r_bnd = {2e2, C(2)};
-                else % [2, 2] % origin is a ramp, and is controlled
-                    obj.r_bnd = {2e2, C};
-                end 
-                % this fixed lb might cause infeasibility when too congested
-            end
-            r = obj.add_var('r', [size(dyn.input.r, 1), Nc], obj.r_bnd{:});
+            % create control action (flow of ramp O2)
+            r = obj.add_var('r', [size(dyn.input.r, 1), Nc], 2e2, C(2));
 
 			% create parameters
             d = obj.add_par('d', [dyn.dist.d.size(1), M * Np]);
             w0 = obj.add_par('w0', [dyn.states.w.size(1), 1]);
             rho0 = obj.add_par('rho0', [dyn.states.rho.size(1), 1]);
             v0 = obj.add_par('v0', [dyn.states.v.size(1), 1]);
-
-            % create params for the system dynamics - might vary
             pars_dyn = {}; % will be helpful later to call dynamics.f
             for par = fieldnames(dyn.pars)'
                 pars_dyn{end + 1} = obj.add_par( ...
                                 par{1}, size(dyn.pars.(par{1}))); %#ok<AGROW> 
-            end
-
-            % if constraints on domains are soft, then we must specify them
-            % manually
-            if soft_con
-                obj.add_con('w_pos', -w - slack_w + eps, -inf, 0)
-                obj.add_con('rho_pos', -rho - slack_rho + eps, -inf, 0)
-                obj.add_con('v_pos', -v - slack_v + eps, -inf, 0)
             end
 
             % (soft) constraints on queues
@@ -121,33 +88,13 @@ classdef NMPC < handle
             % expand constraint to match size of states
             r_exp = [repelem(r, 1, M), repelem(r(:, end), 1, M * (Np-Nc))];
             
-            % if flow is control action, add constraints to its value
+            % Since flow is control action, add constraints to its value
             % mimicking the min term in the dynamics
-            if flow_as_control
-                assert(rho_max > 0 && T > 0 && all(C > 0))
-                if isequal([size(r, 1), size(w, 1)], [1, 1]) % origin is not a ramp, and is not controlled
-                    I = {1, 2, 1};
-                elseif isequal([size(r, 1), size(w, 1)], [1, 2]) % origin is a ramp, but is not controlled
-                    I = {1, 2, 2};
-                else % [2, 2] % origin is a ramp, and is not controlled
-                    I = {1:2, 1:2, 1:2};
-                end
-                obj.add_con('flow_control_min1', ...
-                    r_exp(I{1}, :) - d(I{2}, :) - w(I{3}, 1:end-1) / T, ...
-                    -inf, 0)
-
-                if isequal([size(r, 1), length(C)], [1, 1]) % origin is not a ramp, and is not controlled
-                    I = {1, 1, 3};
-                elseif isequal([size(r, 1), length(C)], [1, 2]) % origin is a ramp, but is not controlled
-                    I = {1, 2, 3};
-                else % [2, 2] % origin is a ramp, and is controlled
-                    I = {1:2, 1:2, [1, 3]};
-                end 
-                obj.add_con('flow_control_min2', ...
-                    (rho_max - obj.pars.rho_crit) * r_exp(I{1}, :) - ...
-                             C(I{2}) .* (rho_max - rho(I{3}, 1:end-1)), ...
-                    -inf, 0);
-            end
+            obj.add_con('flow_control_min1', ...
+                r_exp - d(2, :) - w(2, 1:end-1) / T, -inf, 0)
+            obj.add_con('flow_control_min2', ...
+                (rho_max - obj.pars.rho_crit) * r_exp - ...
+                         C(2) .* (rho_max - rho(3, 1:end-1)), -inf, 0);
 
             % constraints on state evolution
             for k = 1:M * Np
@@ -276,40 +223,15 @@ classdef NMPC < handle
             % INIT_SOLVER. Initializes the solver, either ipopt or fmincon.
             arguments
                 obj (1, 1) rlmpc.NMPC 
-                opts (1, 1) 
+                opts (1, 1) struct
             end
 
-            if isa(opts, 'optim.options.Fmincon')
-                % do this only once
-                file = sprintf('F_gen_%s.c', obj.name);
-                if ~isfile(file)
-                    warning( ...
-                        ['generating mex file for SPQ; delete "', ...
-                          file, '" to force repeating the process.'])
-        
-                    % compute symbolic derivatives and generate code
-                    df = jacobian(obj.f, obj.x)';
-                    dg_eq = jacobian(obj.g(obj.Ig_eq), obj.x)';
-                    dg_ineq = jacobian(obj.g(obj.Ig_ineq), obj.x)';
-                    F = casadi.Function('F', {obj.p, obj.x}, ...
-                             {obj.f, df, obj.g(obj.Ig_eq), ...
-                                    dg_eq, obj.g(obj.Ig_ineq), dg_ineq});
-                    F.generate(file, struct('mex', true));
-        
-                    % load it as a mex
-                    mex(file, '-largeArrayDims');
-                end
-            else
-                % create solver
-                if isfield(opts, 'ipopt')
-                    solver_type = 'ipopt';
-                else
-                    solver_type = 'sqpmethod';
-                end
-                nlp = struct('x',obj.x, 'p',obj.p, 'g', obj.g, 'f', obj.f);
-                obj.solver = casadi.nlpsol( ...
-                    ['solver_', obj.name], solver_type, nlp, opts);
-            end
+            % create solver
+            nlp = struct('x',obj.x, 'p',obj.p, 'g', obj.g, 'f', obj.f);
+            obj.solver = casadi.nlpsol( ...
+                ['solver_', obj.name], 'ipopt', nlp, opts);
+            
+            % save options
             obj.opts = opts;
         end
 
@@ -375,89 +297,15 @@ classdef NMPC < handle
                 pars(i) = orderfields(pars(i), obj.pars);
             end
 
-            % decide which algorithm to use
-            if isa(obj.opts, 'optim.options.Fmincon')
-                assert(length(pars) == 1, 'does not support multiproblems')
-                [sol, info] = obj.solve_fmincon_multistart( ...
-                                                pars, vals, multistart);
-            else
-                [sol, info] = obj.solve_nlp_multistart( ...
-                                                pars, vals, multistart);
-            end
+            % run nlp
+            [sol, info] = obj.solve_nlp(pars, vals, multistart);
         end
     end
 
 
 
     methods (Access = protected)
-        function [sol, info] = solve_fmincon_multistart(obj, pars, ...
-                                                        vals, multistart)
-            % pre-compute stuff to avoid obj in the parfor loop
-            p_ = obj.subsevalf(obj.p, obj.pars, pars);
-            lbx_ = obj.lbx;
-            ubx_ = obj.ubx;
-            varnames = fieldnames(obj.vars)';
-            name_ = obj.name;
-            opts_ = obj.opts;
-
-            % call SQP solver 
-            if multistart == 1
-                x0 = obj.subsevalf(obj.x, obj.vars, vals);
-                x0 = max(lbx_, min(ubx_, x0));
-                sol = rlmpc.solveSQP(name_, p_, x0, lbx_, ubx_, opts_);
-            else
-                sols = cell(1, multistart);
-                parfor i = 1:multistart % multistart / 2)
-                    vals_i = rlmpc.NMPC.perturb_vals(vals, i - 1);
-                    x0 = cellfun(@(n) vals_i.(n)(:), varnames, ...
-                                                'UniformOutput', false);
-                    x0 = vertcat(x0{:});
-                    x0 = max(lbx_, min(ubx_, x0));
-                    sols{i} = rlmpc.solveSQP(name_, p_, ...
-                                                    x0, lbx_, ubx_, opts_);
-                end
-    
-                % find best among all solutions
-                sol = sols{1};
-                i_opt = 1; 
-                for i = 2:multistart
-                    sol_i = sols{i};
-                    if (~sol.success && sol_i.success) || ...               % pick first that is feasible
-                       ((sol.success == sol_i.success) && sol_i.f < sol.f)  % if both (in)feasible, compare f 
-                                                            
-                        sol = sol_i;
-                        i_opt = i;
-                    end
-                end
-            end
-
-            % put multiplier in a unique vector
-%             assert(all(sol.lambda.ineqnonlin >= 0, 'all') && ...
-%                 all(sol.lambda.lower >= 0, 'all') && ...
-%                 all(sol.lambda.upper >= 0, 'all'), 'invalid multipliers')
-            lam_g_ = nan(obj.ng, 1);
-            lam_g_(obj.Ig_eq) = sol.lambda.eqnonlin;
-            lam_g_(obj.Ig_ineq) = sol.lambda.ineqnonlin;
-
-            % build info
-            S = [obj.p; obj.x; obj.lam_g; obj.lam_lbx; obj.lam_ubx];
-            D = [p_; sol.x; lam_g_; sol.lambda.lower; sol.lambda.upper];
-            get_value = @(o) rlmpc.NMPC.subsevalf(o, S, D);
-            info = struct('f', sol.f, 'success', sol.success, ...
-                          'msg', sol.msg, 'get_value', get_value);
-            if multistart ~= 1
-                info.i_opt = i_opt;
-            end
-        
-            % compute per-variable solution
-            sol = struct;
-            for n = varnames
-                sol.(n{1}) = get_value(obj.vars.(n{1}));
-            end
-        end
-    
-        function [sol, info] = solve_nlp_multistart(obj, pars, vals, ...
-                                                                multistart)
+        function [sol, info] = solve_nlp(obj, pars, vals, multistart)
             % pre-compute stuff to avoid obj in the parfor loop
             N = length(pars); % number of multiproblems
             slvr = obj.solver;

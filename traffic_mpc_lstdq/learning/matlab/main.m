@@ -26,30 +26,24 @@ assert(size(D, 1) == mdl.n_dist, 'mismatch found')
 
 %% MPC-based RL
 mpc = struct;
-mpc.pars = rlmpc.get_pars(mdl.K);
+mpc.pars = rlmpc.get_pars(mdl);
 
 % create a symbolic casadi function for the dynamics (both true and nominal)
 dynamics = metanet.get_dynamics(mdl);
 
 % cost terms
 [TTS, Rate_var] = metanet.get_mpc_costs(mdl, mpc);
-[Vcost, Lcost, Tcost] = rlmpc.get_mpc_costs(mdl, 'affine', 'diag', 'diag');
+[Vcost,Lcost,Tcost] = rlmpc.get_mpc_costs(mdl,mpc,'affine','diag','diag');
 Lrl = rlmpc.get_rl_cost(mdl, mpc, TTS, Rate_var);
 
 % build mpc-based value function approximators
+% TODO: move this to some get_agent method (also costs above)
 for name = ["Q", "V"]
     % instantiate an MPC
-    ctrl = rlmpc.NMPC(name, mpc.pars.Np, mpc.pars.Nc, mpc.pars.M, ...
-                      dynamics, mdl.max_queue, false, eps, true, ...
-                      mdl.rho_max, mdl.C, mdl.T);
-
-    % normalization constants
-    normalization.w = mdl.max_queue;
-    normalization.rho = mdl.rho_max;
-    normalization.v = mdl.v_free_wrong;
-    normalization.r = ctrl.r_bnd{2};
+    ctrl = rlmpc.NMPC(name, mdl, mpc, dynamics);
 
     % grab the names of the slack variables
+    % TODO: get rid of these names
     slacknames = fieldnames(ctrl.vars)';
     slacknames = string(slacknames(startsWith(slacknames, 'slack')));
 
@@ -69,31 +63,23 @@ for name = ["Q", "V"]
     ctrl.add_par('r_last', [size(ctrl.vars.r, 1), 1]);
 
     % initial, stage and terminal learnable costs
-    % TODO: remove normalization out of function arguments
     cost = Vcost(ctrl.vars.w(:, 1), ...
                  ctrl.vars.rho(:, 1), ...
                  ctrl.vars.v(:, 1), ...
-                 ctrl.pars.weight_V, ...
-                 normalization.w, ...
-                 normalization.rho, ...
-                 normalization.v);
+                 ctrl.pars.weight_V);
     for k = 2:mpc.pars.M * mpc.pars.Np
         cost = cost + Lcost(ctrl.vars.rho(:, k), ...
                             ctrl.vars.v(:, k), ...
                             ctrl.pars.rho_crit, ...
                             ctrl.pars.v_free_tracking, ... % ctrl.pars.v_free
-                            ctrl.pars.weight_L, ...
-                            normalization.rho, ...
-                            normalization.v);
+                            ctrl.pars.weight_L);
     end
     % terminal cost
     cost = cost + Tcost(ctrl.vars.rho(:, end), ...
                         ctrl.vars.v(:, end), ...
                         ctrl.pars.rho_crit, ...
                         ctrl.pars.v_free_tracking, ...
-                        ctrl.pars.weight_T, ...
-                        normalization.rho, ...
-                        normalization.v);
+                        ctrl.pars.weight_T);
     % max queue slack cost and domain slack cost
     for n = slacknames
         % w_max slacks are punished less because the weight is learnable
@@ -122,7 +108,7 @@ for name = ["Q", "V"]
         % V approximator has perturbation to enhance exploration
         ctrl.add_par('perturbation', size(ctrl.vars.r(:, 1)));
         ctrl.minimize(ctrl.f + ctrl.pars.perturbation' * ...
-                                    ctrl.vars.r(:, 1) ./ normalization.r);
+                            ctrl.vars.r(:, 1) ./ mpc.pars.normalization.r);
     end
 
     % save to struct
@@ -134,7 +120,7 @@ clear ctrl
 
 %% Simulation
 % initial conditions
-r = mpc.V.r_bnd{2};                     % metering rate/flow
+r = mdl.C(2);                           % metering rate/flow
 r_prev = r;                             % previous rate
 [w, rho, v] = util.steady_state(dynamics.f, ...
     zeros(mdl.n_origins, 1), 10 * ones(mdl.n_links, 1), 100 * ones(mdl.n_links, 1), ...
@@ -202,7 +188,7 @@ last_sol = struct( ...
     'v', repmat(v, 1, mpc.pars.M * mpc.pars.Np + 1), ...
     'r', repmat(r, 1, mpc.pars.Nc));
 for n = slacknames
-    last_sol.(n) = ones(size(mpc.V.vars.(n))) * eps^2;
+    last_sol.(n) = zeros(size(mpc.V.vars.(n)));
 end
 
 % initialize constrained QP RL update maximum lagrangian multiplier
@@ -229,7 +215,7 @@ Np = mpc.pars.Np;
 start_tot_time = tic;
 for ep = 1:episodes
     % preallocate episode result containers
-    % TODO: let some gym monitor save all these variables
+    % TODO: let the agent class instance save all these variables
     origins.queue{ep} = nan(size(mpc.V.vars.w, 1), K);
     origins.flow{ep} = nan(size(mpc.V.vars.w, 1), K);
     origins.rate{ep} = nan(size(mpc.V.vars.r, 1), K);
@@ -319,7 +305,7 @@ for ep = 1:episodes
                         msg = append(msg, sprintf('Q: %s.', infoQ.msg));
                     end
                     util.info(toc(start_tot_time), ep, ...
-                                    toc(start_ep_time), t(k), k, K, msg);
+                                    toc(start_ep_time), mdl.t(k), k, K, msg);
                 end
             end
 
