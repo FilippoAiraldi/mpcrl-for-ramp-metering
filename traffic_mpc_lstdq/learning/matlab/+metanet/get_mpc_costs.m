@@ -1,24 +1,25 @@
-function [TTS, Rate_var] = get_mpc_costs(model, mpc)
+function [TTS, Rate_var] = get_mpc_costs(model, sim, mpc)
     % GET_MPC_COSTS. Returns the MPC's Total-Time-Spent cost, which
     % is widely used in traffic network control, and the cost associated
     % to the variability of the ramp metering rate control action.
     arguments
         model (1, 1) struct
+        sim (1, 1) struct
         mpc (1, 1) struct
     end
 
     n_origins = model.n_origins;
     n_links = model.n_links;
     n_ramps = model.n_ramps;
-    T = model.T;
     L = model.L;
     lanes = model.lanes;
+    T = sim.T;
 
     % create symbolic arguments
     w = casadi.SX.sym('w', n_origins, 1);
     rho = casadi.SX.sym('rho', n_links, 1);
     r_last = casadi.SX.sym('r_last', n_ramps, 1);
-    r = casadi.SX.sym('r', n_ramps, mpc.pars.Nc);
+    r = casadi.SX.sym('r', n_ramps, mpc.Nc);
 
     % compute TTS
     J_TTS = T * (sum(w, 1) + sum(rho * L * lanes, 1));

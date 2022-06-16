@@ -38,12 +38,13 @@ classdef NMPC < handle
 
     
     methods (Access = public)
-        function obj = NMPC(name, model, mpc, dyn)
+        function obj = NMPC(name, model, sim, mpc, dyn)
             % NMPC. Builds an instance of an NMPC with the corresponding
             % horizons and dynamics.
             arguments
                 name (1, :) char {mustBeTextScalar}
                 model (1, 1) struct
+                sim (1, 1) struct
                 mpc (1, 1) struct
                 dyn (1, 1) struct
             end
@@ -52,10 +53,10 @@ classdef NMPC < handle
             max_queue = model.max_queue;
             rho_max = model.rho_max;
             C = model.C;
-            T = model.T;
-            Np = mpc.pars.Np;
-            Nc = mpc.pars.Nc;
-            M = mpc.pars.M;
+            T = sim.T;
+            Np = mpc.Np;
+            Nc = mpc.Nc;
+            M = mpc.M;
 
             % create state variables
             w = obj.add_var('w', [dyn.states.w.size(1), M * Np + 1], 0);

@@ -11,8 +11,8 @@ function L = get_rl_cost(model, mpc, TTS, Rate_var)
     n_origins = model.n_origins;
     n_ramps = model.n_ramps;
     max_queue = model.max_queue;
-    rate_var_penalty = mpc.pars.rate_var_penalty;
-    con_violation = mpc.pars.con_violation_penalty;
+    rate_var_penalty = mpc.rate_var_penalty;
+    con_violation = mpc.con_violation_penalty;
 
     % create symbols
     w = casadi.SX.sym('w', n_origins, 1);

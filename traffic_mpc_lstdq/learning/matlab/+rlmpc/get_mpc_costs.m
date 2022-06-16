@@ -16,9 +16,9 @@ function [init_cost, stage_cost, terminal_cost] = get_mpc_costs(model, ...
     v = casadi.SX.sym('v', n_links, 1);
     rho_crit = casadi.SX.sym('rho_crit', 1, 1);
     v_free = casadi.SX.sym('v_free', 1, 1);
-    w_norm = mpc.pars.normalization.w;
-    rho_norm = mpc.pars.normalization.rho;
-    v_norm = mpc.pars.normalization.v;
+    w_norm = mpc.normalization.w;
+    rho_norm = mpc.normalization.rho;
+    v_norm = mpc.normalization.v;
 
 
 

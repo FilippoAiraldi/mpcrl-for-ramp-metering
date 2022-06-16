@@ -6,18 +6,20 @@ save_freq = 2;                          % checkpoint saving frequency
 
 
 
-%% Model & Disturbances
+%% Instanciate environment
 episodes = 75;                          % number of episodes to repeat
+[sim, mdl, mpc] = util.get_pars();
 
-% model parameters
-mdl = metanet.get_pars();
+% create gym 
+env = metanet.TrafficEnv(episodes, sim, mdl);
+env.reset();
 
-% disturbances
-% TODO: after cleaning, remove fixed demands and create a gym where
-% disturbances and dynamics are created by the gym itself
-D = util.get_demand_profiles(mdl.t, episodes + 1, 'fixed'); % +1 to avoid out-of-bound access
-assert(size(D, 1) == mdl.n_dist, 'mismatch found')
+% create known (wrong) model parameters
+wrong_pars = struct('a', env.model.a * 1.3, ...
+                    'v_free', env.model.v_free * 1.3, ...
+                    'rho_crit', env.model.rho_crit * 0.7);
 
+% TODO: delete these
 % plot((0:length(D) - 1) * T, (D .* [1; 1; 50])'),
 % legend('O1', 'O2', 'cong_{\times50}'), xlabel('time (h)'), ylabel('demand (h)')
 % ylim([0, 4000])
@@ -25,22 +27,20 @@ assert(size(D, 1) == mdl.n_dist, 'mismatch found')
 
 
 %% MPC-based RL
-mpc = struct;
-mpc.pars = rlmpc.get_pars(mdl);
-
-% create a symbolic casadi function for the dynamics (both true and nominal)
-dynamics = metanet.get_dynamics(mdl);
+% TODO: move all of this to some get_agent method (also costs above)
 
 % cost terms
-[TTS, Rate_var] = metanet.get_mpc_costs(mdl, mpc);
-[Vcost,Lcost,Tcost] = rlmpc.get_mpc_costs(mdl,mpc,'affine','diag','diag');
-Lrl = rlmpc.get_rl_cost(mdl, mpc, TTS, Rate_var);
+[TTS, Rate_var] = metanet.get_mpc_costs(mdl, sim, mpc);
+[Vcost,Lcost,Tcost] = rlmpc.get_mpc_costs(mdl, mpc,'affine','diag','diag');
+
+% TODO: move this to env, need to remove depence on mpc
+Lrl = rlmpc.get_rl_cost(mdl, mpc, TTS, Rate_var); 
 
 % build mpc-based value function approximators
-% TODO: move this to some get_agent method (also costs above)
+
 for name = ["Q", "V"]
     % instantiate an MPC
-    ctrl = rlmpc.NMPC(name, mdl, mpc, dynamics);
+    ctrl = rlmpc.NMPC(name, mdl, sim, mpc, env.dynamics);
 
     % grab the names of the slack variables
     % TODO: get rid of these names
@@ -67,7 +67,7 @@ for name = ["Q", "V"]
                  ctrl.vars.rho(:, 1), ...
                  ctrl.vars.v(:, 1), ...
                  ctrl.pars.weight_V);
-    for k = 2:mpc.pars.M * mpc.pars.Np
+    for k = 2:mpc.M * mpc.Np
         cost = cost + Lcost(ctrl.vars.rho(:, k), ...
                             ctrl.vars.v(:, k), ...
                             ctrl.pars.rho_crit, ...
@@ -108,7 +108,7 @@ for name = ["Q", "V"]
         % V approximator has perturbation to enhance exploration
         ctrl.add_par('perturbation', size(ctrl.vars.r(:, 1)));
         ctrl.minimize(ctrl.f + ctrl.pars.perturbation' * ...
-                            ctrl.vars.r(:, 1) ./ mpc.pars.normalization.r);
+                            ctrl.vars.r(:, 1) ./ mpc.normalization.r);
     end
 
     % save to struct
@@ -120,28 +120,25 @@ clear ctrl
 
 %% Simulation
 % initial conditions
-r = mdl.C(2);                           % metering rate/flow
-r_prev = r;                             % previous rate
-[w, rho, v] = util.steady_state(dynamics.f, ...
-    zeros(mdl.n_origins, 1), 10 * ones(mdl.n_links, 1), 100 * ones(mdl.n_links, 1), ...
-    r, D(:, 1), mdl.rho_crit, mdl.a, mdl.v_free);
+% TODO: can we remove these?
+r_prev = env.r_prev;
 
 % initial learnable Q/V function approxiamtion weights and their bounds
 args = cell(0, 3);
-args(end + 1, :) = {'rho_crit', {mdl.rho_crit_wrong}, [10, mdl.rho_max * 0.9]};
-args(end + 1, :) = {'v_free', {mdl.v_free_wrong}, [30, 300]};
-args(end + 1, :) = {'v_free_tracking', {mdl.v_free_wrong}, [30, 300]};
+args(end + 1, :) = {'rho_crit', {wrong_pars.rho_crit}, [10, mdl.rho_max * 0.9]};
+args(end + 1, :) = {'v_free', {wrong_pars.v_free}, [30, 300]};
+args(end + 1, :) = {'v_free_tracking', {wrong_pars.v_free}, [30, 300]};
 args(end + 1, :) = {'weight_V', ...
                         {ones(size(mpc.V.pars.weight_V))}, [-inf, inf]};
 args(end + 1, :) = {'weight_L', ...
                         {ones(size(mpc.V.pars.weight_L))}, [0, inf]};
 args(end + 1, :) = {'weight_T', ...
                         {ones(size(mpc.V.pars.weight_T))}, [0, inf]};
-args(end + 1, :) = {'weight_rate_var', {mpc.pars.rate_var_penalty}, [1e-3, 1e3]};
+args(end + 1, :) = {'weight_rate_var', {mpc.rate_var_penalty}, [1e-3, 1e3]};
 if isfield(mpc.V.vars, 'slack_w_max')
     args(end+1,:) = {'weight_slack_w_max', ...
         {ones(size(mpc.V.pars.weight_slack_w_max)) * ...
-                                        mpc.pars.con_violation_penalty}, [0, inf]};
+                                        mpc.con_violation_penalty}, [0, inf]};
 end
 rl = struct;
 rl.pars = cell2struct(args(:, 2), args(:, 1));
@@ -183,10 +180,10 @@ exec_times = nan(1, episodes);
 
 % initialize mpc last solutions to steady-state
 last_sol = struct( ...
-    'w', repmat(w, 1, mpc.pars.M * mpc.pars.Np + 1), ...
-    'rho', repmat(rho, 1, mpc.pars.M * mpc.pars.Np + 1), ...
-    'v', repmat(v, 1, mpc.pars.M * mpc.pars.Np + 1), ...
-    'r', repmat(r, 1, mpc.pars.Nc));
+    'w', repmat(env.state.w, 1, mpc.M * mpc.Np + 1), ...
+    'rho', repmat(env.state.rho, 1, mpc.M * mpc.Np + 1), ...
+    'v', repmat(env.state.v, 1, mpc.M * mpc.Np + 1), ...
+    'r', repmat(env.r_prev, 1, mpc.Nc));
 for n = slacknames
     last_sol.(n) = zeros(size(mpc.V.vars.(n)));
 end
@@ -195,11 +192,11 @@ end
 % lam_inf = 1;
 
 % initialize mpc solvers
-mpc.Q.init_solver(mpc.pars.opts_ipopt);
-mpc.V.init_solver(mpc.pars.opts_ipopt);
+mpc.Q.init_solver(mpc.opts_ipopt);
+mpc.V.init_solver(mpc.opts_ipopt);
 
 % create replay memory
-replaymem = rlmpc.ReplayMem(mpc.pars.mem_cap, 'none', 'td_err', 'dQ', ...
+replaymem = rlmpc.ReplayMem(mpc.mem_cap, 'none', 'td_err', 'dQ', ...
                             'd2Q', 'target', 'solQ', 'parsQ', 'last_solQ');
 
 % start logging
@@ -208,14 +205,14 @@ fprintf(['# Fields: [Realtime_tot|Episode_n|Realtime_episode] ', ...
     '- [Sim_time|Sim_iter|Sim_perc] - Message\n'])
 
 % TODO: to be removed
-K = mdl.K;
-M = mpc.pars.M;
-Np = mpc.pars.Np;
+K = sim.K;
+M = mpc.M;
+Np = mpc.Np;
 
 start_tot_time = tic;
 for ep = 1:episodes
     % preallocate episode result containers
-    % TODO: let the agent class instance save all these variables
+    % TODO: let the monitor class instance save all these variables
     origins.queue{ep} = nan(size(mpc.V.vars.w, 1), K);
     origins.flow{ep} = nan(size(mpc.V.vars.w, 1), K);
     origins.rate{ep} = nan(size(mpc.V.vars.r, 1), K);
@@ -235,48 +232,49 @@ for ep = 1:episodes
     nb_fail = 0;
     for k = 1:K
         % check if MPCs must be run
+        k = env.k;
         if mod(k, M) == 1
             k_mpc = ceil(k / M); % mpc iteration
 
             % run Q(s(k-1), a(k-1)) (condition excludes very first iteration)
             if ep > 1 || k_mpc > 1
                 pars = struct( ...
-                    'd', D(:, K*(ep-1) + k-M:K*(ep-1) + k-M + M*Np-1), ...
-                    'w0', w_prev, 'rho0', rho_prev, 'v0', v_prev, ...
-                    'a', mdl.a_wrong, 'r_last', r_prev_prev, 'r0', r_prev); % a(k-2) and a(k-1)
+                    'd', env.demand(:, K*(ep-1) + k-M:K*(ep-1) + k-M + M*Np-1), ...
+                    'w0', state_prev.w, 'rho0', state_prev.rho, 'v0', state_prev.v, ...
+                    'a', wrong_pars.a, 'r_last', r_prev_prev, 'r0', r_prev); % a(k-2) and a(k-1)
                 for n = fieldnames(rl.pars)'
                     pars.(n{1}) = rl.pars.(n{1}){end};
                 end
                 [last_sol, infoQ] = mpc.Q.solve(pars, last_sol, true, ...
-                                                            mpc.pars.multistart);
+                                                            mpc.multistart);
                 parsQ = pars;           % to be saved for backtracking
                 last_solQ = last_sol;   % to be saved for backtracking
             end
 
             % choose if to apply perturbation
             if rand < 0.1 * exp(-(ep - 1) / 5)
-                pert = mpc.pars.perturb_mag * exp(-(ep - 1) / 5) * randn;
+                pert = mpc.perturb_mag * exp(-(ep - 1) / 5) * randn;
             else
                 pert = 0;
             end
 
             % run V(s(k))
             pars = struct( ...
-                'd', D(:, K*(ep-1) + k:K*(ep-1) + k + M*Np-1), ...
-                'w0', w, 'rho0', rho, 'v0', v, 'a', mdl.a_wrong, ...
-                'r_last', r, 'perturbation', pert);
+                'd', env.demand(:, K*(ep-1) + k:K*(ep-1) + k + M*Np-1), ...
+                'w0', env.state.w, 'rho0', env.state.rho, 'v0', env.state.v, 'a', wrong_pars.a, ...
+                'r_last', env.r_prev, 'perturbation', pert);
             for n = fieldnames(rl.pars)'
                 pars.(n{1}) = rl.pars.(n{1}){end};
             end
-            [last_sol, infoV] = mpc.V.solve(pars, last_sol, true, mpc.pars.multistart);
+            [last_sol, infoV] = mpc.V.solve(pars, last_sol, true, mpc.multistart);
 
             % save to memory if successful, or log error 
             if ep > 1 || k_mpc > 5 % skip the first td errors to let them settle
                 if infoV.success && infoQ.success
                     % compute td error
-                    target = full(Lrl(w_prev, rho_prev, v_prev, r_prev, ...
-                                                          r_prev_prev)) ...
-                                + mpc.pars.discount * infoV.f;
+                    target = full(Lrl(state_prev.w, state_prev.rho, state_prev.v, ...
+                                      r_prev, r_prev_prev)) ...
+                                + mpc.discount * infoV.f;
                     td_err = target - infoQ.f;
 
                     % compute numerical gradients w.r.t. params
@@ -305,7 +303,7 @@ for ep = 1:episodes
                         msg = append(msg, sprintf('Q: %s.', infoQ.msg));
                     end
                     util.info(toc(start_tot_time), ep, ...
-                                    toc(start_ep_time), mdl.t(k), k, K, msg);
+                                    toc(start_ep_time), sim.t(k), k, K, msg);
                 end
             end
 
@@ -320,34 +318,27 @@ for ep = 1:episodes
             % save for next transition
             r_prev_prev = r_prev;
             r_prev = r;
-            w_prev = w;
-            rho_prev = rho;
-            v_prev = v;
+            state_prev = env.state;
         end
 
-        % step state (according to the true dynamics)
-        [q_o, w_next, q, rho_next, v_next] = dynamics.f(...
-            w, rho, v, r, D(:, K*(ep-1) + k), ...
-            mdl.rho_crit, mdl.a, mdl.v_free);
+        % save current state, input, and demand
+        origins.queue{ep}(:, k) = env.state.w;
+        links.density{ep}(:, k) = env.state.rho;
+        origins.rate{ep}(:, k) = r;
+        links.speed{ep}(:, k) = env.state.v;
+        origins.demand{ep}(:, k) = env.d;
 
-        % save current state and other infos
-        origins.demand{ep}(:, k) = D(:, K*(ep-1) + k);
-        origins.queue{ep}(:, k) = full(w);
-        origins.flow{ep}(:, k) = full(q_o);
-        origins.rate{ep}(:, k) = full(r);
-        links.flow{ep}(:, k) = full(q);
-        links.density{ep}(:, k) = full(rho);
-        links.speed{ep}(:, k) = full(v);
+        % step the environment
+        [~, ~, done, info] = env.step(r);
 
-        % set next state as current
-        w = full(w_next);
-        rho = full(rho_next);
-        v = full(v_next);
+        % save current flows
+        origins.flow{ep}(:, k) = info.q_o;
+        links.flow{ep}(:, k) = info.q;
 
         % perform RL updates
-        if mod(k, mpc.pars.update_freq) == 0 && ep > 1
+        if mod(k, mpc.update_freq) == 0 && ep > 1
             % sample batch
-            sample = replaymem.sample(mpc.pars.mem_sample, mpc.pars.mem_last);
+            sample = replaymem.sample(mpc.mem_sample, mpc.mem_last);
 
             % compute descent direction (for the Gauss-Newton just dQdQ')
             g = -sample.dQ * sample.td_err;
@@ -357,12 +348,12 @@ for ep = 1:episodes
             [p, H_mod] = rlmpc.descent_direction(g, H, 1);
 
             % lr (fixed or backtracking)
-            lr_ = mpc.pars.lr0;
+            lr_ = mpc.lr0;
             % lr_ = rlmpc.constr_backtracking(mpc.Q, deriv.Q, p, sample, rl, mpc.pars.max_delta, lam_inf);
 
             % perform constrained update and save its maximum multiplier
             [rl.pars, ~, lam] = rlmpc.constr_update(rl.pars, rl.bounds, ...
-                                              lr_ * p, mpc.pars.max_delta);
+                                              lr_ * p, mpc.max_delta);
             % lam_inf = max(lam_inf, lam);
 
             % save stuff
@@ -379,7 +370,7 @@ for ep = 1:episodes
                             mat2str(rl.pars.(name{1}){end}(:)', 6), '; ');
             end
             util.info(toc(start_tot_time), ep, toc(start_ep_time), ...
-                                                        mdl.t(k), k, K, msg);
+                                                        sim.t(k), k, K, msg);
         end
     end
     exec_times(ep) = toc(start_ep_time);
@@ -389,7 +380,7 @@ for ep = 1:episodes
         warning('off');
         save('checkpoint')
         warning('on');
-        util.info(toc(start_tot_time), ep, exec_times(ep), mdl.t(end), K, ...
+        util.info(toc(start_tot_time), ep, exec_times(ep), sim.t(end), K, ...
             K, 'checkpoint saved');
     end
 
@@ -405,7 +396,7 @@ for ep = 1:episodes
     g_norm_avg = mean(rl_history.g_norm{ep}, 'omitnan');
     p_norm = cell2mat(rl_history.p_norm);
     constr_viol = sum(origins.queue{ep}(2, :) > mdl.max_queue) / K;
-    util.info(toc(start_tot_time), ep, exec_times(ep), mdl.t(end), K, K, ...
+    util.info(toc(start_tot_time), ep, exec_times(ep), sim.t(end), K, K, ...
         sprintf('episode %i: Jtot=%.3f, TTS=%.3f, fails=%i(%.1f%%)', ...
         ep, ep_Jtot, ep_TTS, nb_fail, nb_fail / K * M * 100));
 
