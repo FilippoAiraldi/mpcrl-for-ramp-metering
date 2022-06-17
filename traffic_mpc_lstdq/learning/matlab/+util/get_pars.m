@@ -19,8 +19,8 @@ function [sim, mdl, mpc] = get_pars()
     mdl = struct; 
 
     % network size
-    mdl.n_origins = 2;                  % number of origins
     mdl.n_links = 3;                    % number of links
+    mdl.n_origins = 2;                  % number of origins
     mdl.n_ramps = 1;                    % number of controlled on-ramps
     mdl.n_dist = 3;                     % number of disturbances/demands
 

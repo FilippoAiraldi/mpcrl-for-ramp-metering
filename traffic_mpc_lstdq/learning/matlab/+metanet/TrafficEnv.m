@@ -3,7 +3,7 @@ classdef TrafficEnv < handle
     %  applications.
 
     properties (GetAccess = public, SetAccess = protected)
-        episodes (1, 1) double {mustBePositive, mustBeInteger} = 50
+        episodes (1, 1) double {mustBePositive, mustBeInteger} = 10
         sim (1, 1) struct
         model (1, 1) struct
         mpc (1, 1) struct
@@ -18,23 +18,22 @@ classdef TrafficEnv < handle
         %
         r_prev (:, 1) double 
         %
-        k_tot (1, 1) double {mustBePositive,mustBeInteger} = 1 % internal total time counter
+        k_tot (1, 1) double {mustBePositive, mustBeInteger} = 1 % internal total time counter
     end
-    % history.origins.queue{iteration}{episode}(time step in the episode)
 
     properties (Dependent) 
         x (:, 1) double % state but as a vector
         d (:, 1) double % current demand
         %
-        ep (1, 1) double {mustBePositive,mustBeInteger} % internal counter of episode
-        k (1, 1) double {mustBePositive,mustBeInteger} % internal time counter per episode
+        ep (1, 1) double {mustBePositive, mustBeInteger} % internal counter of episode
+        k (1, 1) double {mustBePositive, mustBeInteger} % internal time counter per episode
     end
 
 
     
     methods (Access = public)
         function obj = TrafficEnv(episodes, sim, model, mpc)
-            % TRAFFICENV. Constructs an empty instance of this gym.
+            % TRAFFICENV. Constructs an empty instance of this environment.
             arguments
                 episodes (1, 1) double {mustBePositive, mustBeInteger}
                 sim (1, 1) struct
@@ -55,7 +54,7 @@ classdef TrafficEnv < handle
                                 METANET.get_stage_cost(sim, model, mpc);
         end
 
-        function reset(obj, r)
+        function state = reset(obj, r)
             % RESET. Resets the environment to default, random conditions.
             arguments
                 obj (1, 1) METANET.TrafficEnv
@@ -76,7 +75,8 @@ classdef TrafficEnv < handle
                                        100 * ones(mdl.n_links, 1), ...
                                        r, obj.demand(:, 1), ...
                                        mdl.rho_crit,mdl.a,mdl.v_free);
-            obj.state = struct('w', w, 'rho', rho, 'v', v);
+            state = struct('w', w, 'rho', rho, 'v', v);
+            obj.state = state;
 
             % reset time counter
             obj.k_tot = 1;
@@ -105,7 +105,11 @@ classdef TrafficEnv < handle
             % save as state
             state = struct('w', full(w_next), 'rho', full(rho_next), ...
                 'v', full(v_next));
-            info = struct('q', full(q), 'q_o', full(q_o));
+
+            % create info
+            ep_done = mod(obj.k_tot, obj.sim.K) == 0;
+            info = struct('q', full(q), 'q_o', full(q_o), ...
+                          'ep_done', ep_done);
 
             % is the episode over?
             done = obj.k_tot == obj.sim.K * obj.episodes; % or the previous iter?
@@ -117,22 +121,25 @@ classdef TrafficEnv < handle
         end
     end
 
-
     % PROPERTY GETTERS
     methods
         function x = get.x(obj)
+            % X. Gets the current state as a vector.
             x = cell2mat(struct2cell(obj.state));
         end
 
         function d = get.d(obj)
+            % D. Gets the current demand as a vector.
             d = obj.demand(:, obj.k_tot);
         end
 
         function k = get.k(obj)
+            % K. Gets the current time index for the episode.
             k = mod(obj.k_tot - 1, obj.sim.K) + 1;
         end
 
         function ep = get.ep(obj)
+            % EP. Gets the current episode index.
             ep = ceil(obj.k_tot / obj.sim.K);
         end
     end
