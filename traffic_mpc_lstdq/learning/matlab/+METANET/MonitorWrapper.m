@@ -6,10 +6,15 @@ classdef MonitorWrapper < handle
         env (1, 1) % METANET.TrafficEnv
         %
         iterations (1, 1) double {mustBePositive, mustBeInteger} = 10
-        ni (1, 1) double {mustBePositive, mustBeInteger} = 1 % internal iteration counter 
+        iter (1, 1) double {mustBePositive, mustBeInteger} = 1 % internal iteration counter 
         % 
         origins (1, 1) struct
         links (1, 1) struct
+        exec_times (:, :) double
+    end
+
+    properties (Access = private)
+        last_ep_start (1, 1) uint64 = 0
     end
     
 
@@ -27,6 +32,7 @@ classdef MonitorWrapper < handle
         end
 
         function state = reset(obj, varargin)
+            % just class the wrapped env's reset function
             state = obj.env.reset(varargin{:});
         end
 
@@ -34,26 +40,36 @@ classdef MonitorWrapper < handle
             % Since the dynamics return the next state (k+1) but also some 
             % current quantities (k), first save the state (k), then step 
             % (k->k+1), and then save the other quantities (k).
-
-            i = obj.ni;
+            i = obj.iter;
             e = obj.env.ep;
             k = obj.env.k;
 
+            % check if current episode's has been started
+            if obj.last_ep_start == 0
+                obj.last_ep_start = tic;
+            end
+
             % save current state and demand
-            obj.origins.queue{i}{e}(:, k) = obj.env.state.w;
-            obj.links.density{i}{e}(:, k) = obj.env.state.rho;
-            obj.links.speed{i}{e}(:, k) = obj.env.state.v;
-            obj.origins.demand{i}{e}(:, k) = obj.env.d;
+            obj.origins.queue(i, e, :, k) = obj.env.state.w;
+            obj.links.density(i, e, :, k) = obj.env.state.rho;
+            obj.links.speed(i, e, :, k) = obj.env.state.v;
+            obj.origins.demand(i, e, :, k) = obj.env.d;
 
             % step the system
             [next_state, cost, done, info] = obj.env.step(r);
 
             % save current flows 
-            obj.origins.flow{i}{e}(:, k) = info.q_o; % (a.k.a., control action r itself)
-            obj.links.flow{i}{e}(:, k) = info.q;
+            obj.origins.flow(i, e, :, k) = info.q_o; % (a.k.a., control action r itself)
+            obj.links.flow(i, e, :, k) = info.q;
             
             % increment iteration counter if all the episodes are done
-            obj.ni = obj.ni + done; % done is logical
+            obj.iter = obj.iter + done; % done is logical
+
+            % if current episode is done, save its execution time
+            if info.ep_done
+                obj.exec_times(i, e) = toc(obj.last_ep_start);
+                obj.last_ep_start = tic;
+            end
         end
 
         function clear_history(obj)
@@ -67,35 +83,16 @@ classdef MonitorWrapper < handle
 
             % reset the structures
             obj.origins = struct; 
-            obj.origins.queue = cell(1, I);
-            obj.origins.flow = cell(1, I);
-            obj.origins.demand = cell(1, I);
-
+            obj.origins.queue = nan(I, E, n_origins, K);
+            obj.origins.flow = nan(I, E, n_origins, K);
+            obj.origins.demand = nan(I, E, n_dist, K);
             obj.links = struct;
-            obj.links.flow = cell(1, I);
-            obj.links.density = cell(1, I);
-            obj.links.speed = cell(1, I);
+            obj.links.flow = nan(I, E, n_links, K);
+            obj.links.density = nan(I, E, n_links, K);
+            obj.links.speed = nan(I, E, n_links, K);
 
-            % fill them with nan arrays
-            for i = 1:I
-                obj.origins.queue{i} = cell(1, E);
-                obj.origins.flow{i} = cell(1, E);
-                obj.origins.demand{i} = cell(1, E);
-
-                obj.links.flow{i} = cell(1, E);
-                obj.links.density{i} = cell(1, E);
-                obj.links.speed{i} = cell(1, E);
-
-                for e = 1:E
-                    obj.origins.queue{i}{e} = nan(n_origins, K);
-                    obj.origins.flow{i}{e} = nan(n_origins, K);
-                    obj.origins.demand{i}{e} = nan(n_dist, K);
-
-                    obj.links.flow{i}{e} = nan(n_links, K);
-                    obj.links.density{i}{e} = nan(n_links, K);
-                    obj.links.speed{i}{e} = nan(n_links, K);
-                end
-            end
+            % reset execution time array
+            obj.exec_times = nan(I, E);
         end
 
         function s = state(obj, k)
@@ -103,22 +100,33 @@ classdef MonitorWrapper < handle
             % behaves like a Python index).
             arguments
                 obj (1, 1) METANET.MonitorWrapper
-                k (1, 1) double {mustBeInteger}
+                k (1, 1) double {mustBeInteger} = 0
             end
-            if k == 0
+            k_ = obj.env.k;
+            if k == 0 || k == k_
                 s = obj.env.state;
-            elseif k > 0
-                % pick the state from the start
-                % .....
-            else % k < 0
-                % pick the state from the end
-                % .....
+            else
+                % If positive, pick the state from the start of the current
+                % episode. If negative, pick it backwards from the current 
+                % time in the current episode
+                i = obj.iter;
+                e = obj.env.ep;
+                if k < 0
+                    k = k_ + k;
+                end
+                s = struct( ...
+                        'w', squeeze(obj.origins.queue(i, e, :, k)), ... 
+                        'rho', squeeze(obj.links.density(i, e, :, k)), ...
+                        'v', squeeze(obj.links.speed(i, e, :, k)));
             end
         end
 
         function s = x(obj, k)
             % X. Returns the state as a vector of the system at time step k
             % (k behaves like a Python index).
+            if nargin < 2
+                k = 0;
+            end
             s = cell2mat(struct2cell(obj.state(k)));
         end
 
@@ -139,8 +147,8 @@ classdef MonitorWrapper < handle
             t = (0:step:(I * E * K - 1)) * obj.env.sim.T;
 
             % convert iteration-episode cells to one big array
-            origins_ = util.ncell2mat(obj.origins);
-            links_ = util.ncell2mat(obj.links);
+            origins_ = util.reshape4d(obj.origins);
+            links_ = util.reshape4d(obj.links);
 
             % instantiate figure, layout, axes and legends
             fig = figure;
