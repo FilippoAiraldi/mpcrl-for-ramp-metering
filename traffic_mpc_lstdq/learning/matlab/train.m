@@ -7,8 +7,8 @@ save_freq = 2;                          % checkpoint saving frequency
 
 
 %% Training Environment
-iterations = 2;                         % simulation iterations
-episodes = 5;                          % number of episodes per iteration
+iterations = 1;                         % simulation iterations
+episodes = 75;                          % number of episodes per iteration
 [sim, mdl, mpc] = util.get_pars();
 
 % create gym  environment with monitor
@@ -19,6 +19,11 @@ env = METANET.MonitorWrapper(env, iterations);
 wrong_pars = struct('a', env.env.model.a * 1.3, ...
                     'v_free', env.env.model.v_free * 1.3, ...
                     'rho_crit', env.env.model.rho_crit * 0.7);
+
+
+
+%% Q-Learning Agent
+agent = RL.QAgent(env.env);
 
 
 

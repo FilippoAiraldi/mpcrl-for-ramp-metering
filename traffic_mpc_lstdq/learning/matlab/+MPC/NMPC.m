@@ -2,8 +2,6 @@ classdef NMPC < handle
     % NMPC. Wrapper around casadi.NLPSolver to facilitate solving MPC 
     % problem for the given 3-link metanet problem.
     
-
-
     properties (GetAccess = public, SetAccess = protected)
         %
         name (1, :) char
@@ -38,13 +36,13 @@ classdef NMPC < handle
 
     
     methods (Access = public)
-        function obj = NMPC(name, model, sim, mpc, dyn)
+        function obj = NMPC(name, sim, model, mpc, dyn)
             % NMPC. Builds an instance of an NMPC with the corresponding
             % horizons and dynamics.
             arguments
                 name (1, :) char {mustBeTextScalar}
-                model (1, 1) struct
                 sim (1, 1) struct
+                model (1, 1) struct
                 mpc (1, 1) struct
                 dyn (1, 1) struct
             end
@@ -123,7 +121,7 @@ classdef NMPC < handle
             % ADD_PAR. Adds a parameter to the NMPC instance, with the
             % given name and size.
             arguments
-                obj (1, 1) rlmpc.NMPC
+                obj (1, 1) MPC.NMPC
                 name (1, :) char {mustBeTextScalar}
                 dims (1, 2) double {mustBePositive,mustBeInteger}
             end
@@ -139,7 +137,7 @@ classdef NMPC < handle
             % ADD_VAR. Adds a variable to the NMPC instance, with the
             % given name and size.
             arguments
-                obj (1, 1) rlmpc.NMPC 
+                obj (1, 1) MPC.NMPC 
                 name (1, :) char {mustBeTextScalar}
                 dims (1, 2) double {mustBePositive,mustBeInteger}
                 lb (:, :) double = -inf
@@ -175,7 +173,7 @@ classdef NMPC < handle
             % ADD_CON. Adds a constraint to the NMPC instance. If bounds 
             % are equal, then it is an equality; otherwise inequality.
             arguments
-                obj (1, 1) rlmpc.NMPC 
+                obj (1, 1) MPC.NMPC 
                 name (1, :) char {mustBeTextScalar}
                 g (:, :) casadi.SX
                 lb (:, :) double
@@ -214,16 +212,18 @@ classdef NMPC < handle
         function minimize(obj, objective)
             % MINIMIZE. Sets the objective to minimize.
             arguments
-                obj (1, 1) rlmpc.NMPC 
+                obj (1, 1) MPC.NMPC 
                 objective (1, 1) casadi.SX
             end
             obj.f = objective;
         end
 
         function init_solver(obj, opts)
-            % INIT_SOLVER. Initializes the solver, either ipopt or fmincon.
+            % INIT_SOLVER. Initializes the solver. Has to be done as the 
+            % last thing, after the design of the MPC, and before the first 
+            % run.
             arguments
-                obj (1, 1) rlmpc.NMPC 
+                obj (1, 1) MPC.NMPC 
                 opts (1, 1) struct
             end
 
@@ -259,22 +259,22 @@ classdef NMPC < handle
             % CONCAT_PARS. Concatenates in a single vertical array the NMPC 
             % parameters whose name appears in the list.
             arguments
-                obj (1, 1) rlmpc.NMPC
+                obj (1, 1) MPC.NMPC
                 names (:, 1) cell
             end
             v = cellfun(@(n) obj.pars.(n), names, 'UniformOutput', false);
             v = vertcat(v{:});
         end
 
-        function [sol, info]=solve(obj, pars, vals, shift_vals, multistart)
+        function [sol,info] = solve(obj, pars, vals, shiftvals, multistart)
             % SOLVE. Solve the NMPC problem (can be multiple problems) with
             % the given parameter values and initial conditions for the 
             % variables.
             arguments
-                obj (1, 1) rlmpc.NMPC
+                obj (1, 1) MPC.NMPC
                 pars (:, 1) struct
                 vals (:, 1) struct
-                shift_vals (1, 1) logical = true;
+                shiftvals (1, 1) logical = true;
                 multistart (1, 1) {mustBePositive,mustBeInteger} = 1
             end
             assert(length(pars) == length(vals), ...
@@ -285,13 +285,13 @@ classdef NMPC < handle
                 % by M instants to the left, and pads the right with a 
                 % simulation. This step is independent of the algorithm and
                 % multistart.
-                if shift_vals
-                    vals(i) = obj.shift_vals(pars(i), vals(i), ...
+                if shiftvals
+                    vals(i) = shift_vals(pars(i), vals(i), ...
                                             obj.M, obj.Np, obj.dynamics.f);
                 end
 
                 % help with feasibility issues
-                vals(i) = obj.impose_feasibility(vals(i));
+                vals(i) = impose_feasibility(vals(i));
     
                 % order pars and vars according to the order of creation
                 vals(i) = orderfields(vals(i), obj.vars);
@@ -311,7 +311,7 @@ classdef NMPC < handle
             N = length(pars); % number of multiproblems
             slvr = obj.solver;
             p_ = arrayfun( ...
-                @(i) obj.subsevalf(obj.p, obj.pars, pars(i)), 1:N, ...
+                @(i) subsevalf(obj.p, obj.pars, pars(i)), 1:N, ...
                 'UniformOutput', false);
             lbx_ = obj.lbx;
             ubx_ = obj.ubx;
@@ -322,14 +322,14 @@ classdef NMPC < handle
             % call NLP solver 
             if multistart == 1 && N == 1 
                 % convert to NLP and solve
-                x0 = obj.subsevalf(obj.x, obj.vars, vals);
+                x0 = subsevalf(obj.x, obj.vars, vals);
                 x0 = max(lbx_, min(ubx_, x0));
                 sol = slvr('x0', x0, 'p', p_{1}, 'lbx', lbx_, ...
                           'ubx', ubx_, 'lbg', lbg_, 'ubg', ubg_); 
 
                 % get return status
                 status = slvr.stats.return_status;
-                success = obj.is_nlp_ok(status);
+                success = is_nlp_ok(status);
 
                 % from the unique lam_x, extract lam_lbx and lam_ubx
                 lam_lbx_ = -min(0, sol.lam_x);
@@ -338,7 +338,7 @@ classdef NMPC < handle
                 % build info
                 S = [obj.p; obj.x; obj.lam_g; obj.lam_lbx; obj.lam_ubx];
                 D = [p_{1}; sol.x; sol.lam_g; lam_lbx_; lam_ubx_];
-                get_value = @(o) rlmpc.NMPC.subsevalf(o, S, D);
+                get_value = @(o) subsevalf(o, S, D);
                 info = struct('f', full(sol.f), 'msg', status, ...
                               'success', success, 'get_value', get_value);  
             
@@ -356,7 +356,7 @@ classdef NMPC < handle
             parfor i = 1:(N * multistart)
                 [np, ns] = ind2sub([N, multistart], i);
 
-                vals_ = rlmpc.NMPC.perturb_vals(vals(np), ns - 1);
+                vals_ = perturb_vals(vals(np), ns - 1);
                 x0 = cellfun(@(n) vals_.(n)(:), varnames, ...
                                             'UniformOutput', false);
                 x0 = vertcat(x0{:});
@@ -371,7 +371,7 @@ classdef NMPC < handle
             statuses = reshape(statuses, [N, multistart]);
 
             % do these steps for all problems
-            successes = obj.is_nlp_ok(statuses);
+            successes = is_nlp_ok(statuses);
             for np = 1:N
                 % find best among all solutions
                 for i = 1:multistart
@@ -394,7 +394,7 @@ classdef NMPC < handle
                 % build info
                 S = [obj.p; obj.x; obj.lam_g; obj.lam_lbx; obj.lam_ubx];
                 D = [p_{np}; sol_opt.x; sol_opt.lam_g; lam_lbx_; lam_ubx_];
-                get_value = @(o) rlmpc.NMPC.subsevalf(o, S, D);
+                get_value = @(o) subsevalf(o, S, D);
                 info(np) = struct('f', full(sol_opt.f), 'msg', status, ...
                               'success', success, 'i_opt', i_opt,...
                               'get_value', get_value);  
@@ -409,86 +409,85 @@ classdef NMPC < handle
             return
         end
     end
+end
 
 
 
-    methods (Access = protected, Static)
-        function vals = shift_vals(pars, vals, M, Np, Fdyn)
-            % shift to left, de facto forwarding M instants in time
-            vals.w = [vals.w(:, M + 1:end), nan(size(vals.w, 1), M)];
-            vals.rho = [vals.rho(:, M + 1:end), nan(size(vals.rho, 1), M)];
-            vals.v = [vals.v(:, M + 1:end), nan(size(vals.v, 1), M)];
-        
-            % draw random last action
-            r_rand = min(1, max(0.2, ...
-                    mean(vals.r, 2) + randn(size(vals.r, 1), 1) * 0.1));
-            vals.r = [vals.r(:, 2:end), r_rand];
-            
-            % pad to the erased instants to the right with a simulation
-            if isfield(pars, 'pars_Veq_approx')
-                pars_dyn = {pars.rho_crit, pars.pars_Veq_approx};
-            else
-                pars_dyn = {pars.rho_crit, pars.a, pars.v_free};
-            end
-            for k = M * (Np - 1) + 1:M * Np
-                [~, w_next, ~, rho_next, v_next] = Fdyn( ...
-                            vals.w(:, k), vals.rho(:, k), vals.v(:, k), ...
-                            vals.r(:, end), pars.d(:, k), pars_dyn{:});
-                vals.w(:, k + 1) = full(w_next);
-                vals.rho(:, k + 1) = full(rho_next);
-                vals.v(:, k + 1) = full(v_next);
-            end
-        
-            % slacks are taken care when feasibility is enforced
-        end
+%% local functions
+function vals = shift_vals(pars, vals, M, Np, Fdyn)
+    % shift to left, de facto forwarding M instants in time
+    vals.w = [vals.w(:, M + 1:end), nan(size(vals.w, 1), M)];
+    vals.rho = [vals.rho(:, M + 1:end), nan(size(vals.rho, 1), M)];
+    vals.v = [vals.v(:, M + 1:end), nan(size(vals.v, 1), M)];
 
-        function vals = perturb_vals(vals, std)
-            % perturb initial conditions by some magnitude
-            vals.w = vals.w + randn(size(vals.w)) * std;
-            vals.rho = vals.rho + randn(size(vals.v)) * std * 1.25;
-            vals.v = vals.v + randn(size(vals.v)) * std * 1.5;
-            vals.r = vals.r + randn(size(vals.r)) * std * 2;
-        end
-
-        function vals = impose_feasibility(vals)
-            % for some variables, make sure they are nonnegative
-            vals.w = max(0, vals.w);
-            vals.rho = max(0, vals.rho);
-            vals.v = max(0, vals.v);
-
-            % any slack should start at zero
-            for n = fieldnames(vals)'
-                if startsWith(n{1}, 'slack')
-                    vals.(n{1}) = zeros(size(vals.(n{1})));
-                end
-            end
-        end
+    % draw random last action
+    r_rand = min(1, max(0.2, ...
+            mean(vals.r, 2) + randn(size(vals.r, 1), 1) * 0.1));
+    vals.r = [vals.r(:, 2:end), r_rand];
     
-        function y = subsevalf(expr, old, new, eval)
-            % SUBSEVAL. Substitute in the expression the old variable with
-            % the new, and evaluate the expression if required.
-            y = expr;
-            if isstruct(old)
-                assert(isstruct(new))
-                for n = fieldnames(old)'
-                    y = casadi.substitute(y, old.(n{1}), new.(n{1}));
-                end
-            elseif iscell(old)
-                assert(iscell(new))
-                for n = 1:length(cell)
-                    y = casadi.substitute(y, old{n}, new{n});
-                end
-            else
-                y = casadi.substitute(y, old, new);
-            end
-            if nargin < 4 || eval
-                y = full(evalf(y));
-            end
-        end
+    % pad to the erased instants to the right with a simulation
+    if isfield(pars, 'pars_Veq_approx')
+        pars_dyn = {pars.rho_crit, pars.pars_Veq_approx};
+    else
+        pars_dyn = {pars.rho_crit, pars.a, pars.v_free};
+    end
+    for k = M * (Np - 1) + 1:M * Np
+        [~, w_next, ~, rho_next, v_next] = Fdyn( ...
+                    vals.w(:, k), vals.rho(:, k), vals.v(:, k), ...
+                    vals.r(:, end), pars.d(:, k), pars_dyn{:});
+        vals.w(:, k + 1) = full(w_next);
+        vals.rho(:, k + 1) = full(rho_next);
+        vals.v(:, k + 1) = full(v_next);
+    end
 
-        function ok = is_nlp_ok(status)
-            ok = strcmp(status, 'Solve_Succeeded') | ...
-                strcmp(status, 'Solved_To_Acceptable_Level');
+    % slacks are taken care when feasibility is enforced
+end
+
+function vals = perturb_vals(vals, std)
+    % perturb initial conditions by some magnitude
+    vals.w = vals.w + randn(size(vals.w)) * std;
+    vals.rho = vals.rho + randn(size(vals.v)) * std * 1.25;
+    vals.v = vals.v + randn(size(vals.v)) * std * 1.5;
+    vals.r = vals.r + randn(size(vals.r)) * std * 2;
+end
+
+function vals = impose_feasibility(vals)
+    % for some variables, make sure they are nonnegative
+    vals.w = max(0, vals.w);
+    vals.rho = max(0, vals.rho);
+    vals.v = max(0, vals.v);
+
+    % any slack should start at zero
+    for n = fieldnames(vals)'
+        if startsWith(n{1}, 'slack')
+            vals.(n{1}) = zeros(size(vals.(n{1})));
         end
     end
+end
+
+function y = subsevalf(expr, old, new, eval)
+    % SUBSEVAL. Substitute in the expression the old variable with
+    % the new, and evaluate the expression if required.
+    y = expr;
+    if isstruct(old)
+        assert(isstruct(new))
+        for n = fieldnames(old)'
+            y = casadi.substitute(y, old.(n{1}), new.(n{1}));
+        end
+    elseif iscell(old)
+        assert(iscell(new))
+        for n = 1:length(cell)
+            y = casadi.substitute(y, old{n}, new{n});
+        end
+    else
+        y = casadi.substitute(y, old, new);
+    end
+    if nargin < 4 || eval
+        y = full(evalf(y));
+    end
+end
+
+function ok = is_nlp_ok(status)
+    ok = strcmp(status, 'Solve_Succeeded') | ...
+        strcmp(status, 'Solved_To_Acceptable_Level');
 end

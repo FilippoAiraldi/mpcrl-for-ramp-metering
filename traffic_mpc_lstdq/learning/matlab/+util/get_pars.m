@@ -57,6 +57,11 @@ function [sim, mdl, mpc] = get_pars()
     mpc.rate_var_penalty = 4e-2;            % penalty weight for rate variability
     mpc.con_violation_penalty = 10;         % penalty for constraint violations
 
+    % types of cost terms
+    mpc.cost_type.init = 'affine';
+    mpc.cost_type.stage = 'diag';
+    mpc.cost_type.terminal = 'diag';
+
     % RL parameters and update rules
     mpc.discount = 0.99;                    % rl discount factor
     mpc.lr0 = 1e-3;                         % fixed rl learning rate

@@ -19,98 +19,13 @@ wrong_pars = struct('a', env.model.a * 1.3, ...
                     'v_free', env.model.v_free * 1.3, ...
                     'rho_crit', env.model.rho_crit * 0.7);
 
-% TODO: delete these
-% plot((0:length(D) - 1) * T, (D .* [1; 1; 50])'),
-% legend('O1', 'O2', 'cong_{\times50}'), xlabel('time (h)'), ylabel('demand (h)')
-% ylim([0, 4000])
-
 
 
 %% MPC-based RL
 % TODO: move all of this to some get_agent method (also costs above)
-
-% cost terms
-[Vcost,Lcost,Tcost] = rlmpc.get_mpc_costs(mdl, mpc,'affine','diag','diag');
-
-
-% build mpc-based value function approximators
-for name = ["Q", "V"]
-    % instantiate an MPC
-    ctrl = rlmpc.NMPC(name, mdl, sim, mpc, env.dynamics);
-
-    % grab the names of the slack variables
-    % TODO: get rid of these names
-    slacknames = fieldnames(ctrl.vars)';
-    slacknames = string(slacknames(startsWith(slacknames, 'slack')));
-
-    % create required parameters
-    ctrl.add_par('v_free_tracking', [1, 1]);
-    ctrl.add_par('weight_V', size(Vcost.mx_in( ...
-                find(startsWith(string(Vcost.name_in), 'weight')) - 1)));
-    ctrl.add_par('weight_L', size(Lcost.mx_in( ...
-                find(startsWith(string(Lcost.name_in), 'weight')) - 1)));
-    ctrl.add_par('weight_T', size(Tcost.mx_in( ...
-                find(startsWith(string(Tcost.name_in), 'weight')) - 1)));
-    ctrl.add_par('weight_rate_var', [1, 1]);
-    if isfield(ctrl.vars, 'slack_w_max')
-        ctrl.add_par('weight_slack_w_max', ...
-                                    [numel(ctrl.vars.slack_w_max), 1]);
-    end
-    ctrl.add_par('r_last', [size(ctrl.vars.r, 1), 1]);
-
-    % initial, stage and terminal learnable costs
-    cost = Vcost(ctrl.vars.w(:, 1), ...
-                 ctrl.vars.rho(:, 1), ...
-                 ctrl.vars.v(:, 1), ...
-                 ctrl.pars.weight_V);
-    for k = 2:mpc.M * mpc.Np
-        cost = cost + Lcost(ctrl.vars.rho(:, k), ...
-                            ctrl.vars.v(:, k), ...
-                            ctrl.pars.rho_crit, ...
-                            ctrl.pars.v_free_tracking, ... % ctrl.pars.v_free
-                            ctrl.pars.weight_L);
-    end
-    % terminal cost
-    cost = cost + Tcost(ctrl.vars.rho(:, end), ...
-                        ctrl.vars.v(:, end), ...
-                        ctrl.pars.rho_crit, ...
-                        ctrl.pars.v_free_tracking, ...
-                        ctrl.pars.weight_T);
-    % max queue slack cost and domain slack cost
-    for n = slacknames
-        % w_max slacks are punished less because the weight is learnable
-        if endsWith(n, 'w_max')
-            cost = cost ... 
-                + ctrl.pars.weight_slack_w_max' * ctrl.vars.slack_w_max(:);
-        else
-            cost = cost + sum(con_violation_penalty^2 * ctrl.vars.(n)(:));
-        end
-    end
-    % traffic-related cost
-    cost = cost ...
-        + sum(env.TTS(ctrl.vars.w, ctrl.vars.rho)) ...  % TTS
-        + ctrl.pars.weight_rate_var * ...           % terminal rate variability
-                            env.Rate_Var(ctrl.pars.r_last, ctrl.vars.r);
-
-    % assign cost to opti
-    ctrl.minimize(cost);
-
-    % case-specific modification
-    if strcmp(name, "Q")
-        % Q approximator has additional constraint on first action
-        ctrl.add_par('r0', [size(ctrl.vars.r, 1), 1]);
-        ctrl.add_con('r0_blocked', ctrl.vars.r(:, 1) - ctrl.pars.r0, 0, 0);
-    elseif strcmp(name, "V")
-        % V approximator has perturbation to enhance exploration
-        ctrl.add_par('perturbation', size(ctrl.vars.r(:, 1)));
-        ctrl.minimize(ctrl.f + ctrl.pars.perturbation' * ...
-                            ctrl.vars.r(:, 1) ./ mpc.normalization.r);
-    end
-
-    % save to struct
-    mpc.(name) = ctrl;
-end
-clear ctrl
+agent = RL.QAgent(env);
+mpc.Q = agent.Q;
+mpc.V = agent.V;
 
 
 
@@ -168,10 +83,7 @@ links.density = cell(1, episodes);
 links.speed = cell(1, episodes);
 
 % preallocate containers for miscellaneous quantities
-slacks = struct;
-for n = slacknames
-    slacks.(n) = cell(1, episodes);
-end
+slacks.slack_w_max = cell(1, episodes);
 exec_times = nan(1, episodes);
 
 % initialize mpc last solutions to steady-state
@@ -179,10 +91,8 @@ last_sol = struct( ...
     'w', repmat(env.state.w, 1, mpc.M * mpc.Np + 1), ...
     'rho', repmat(env.state.rho, 1, mpc.M * mpc.Np + 1), ...
     'v', repmat(env.state.v, 1, mpc.M * mpc.Np + 1), ...
-    'r', repmat(env.r_prev, 1, mpc.Nc));
-for n = slacknames
-    last_sol.(n) = zeros(size(mpc.V.vars.(n)));
-end
+    'r', repmat(env.r_prev, 1, mpc.Nc), ...
+    'slack_w_max', zeros(size(mpc.V.vars.slack_w_max)));
 
 % initialize constrained QP RL update maximum lagrangian multiplier
 % lam_inf = 1;
@@ -216,9 +126,7 @@ for ep = 1:episodes
     links.flow{ep} = nan(size(mpc.V.vars.v, 1), K);
     links.density{ep} = nan(size(mpc.V.vars.rho, 1), K);
     links.speed{ep} = nan(size(mpc.V.vars.v, 1), K);
-    for n = slacknames
-        slacks.(n){ep} = nan(numel(mpc.V.vars.(n)), K / M);
-    end
+    slacks.slack_w_max{ep} = nan(numel(mpc.V.vars.slack_w_max), K / M);
     rl_history.g_norm{ep} = nan(1, K / M);
     rl_history.td_error{ep} = nan(1, K / M);
     rl_history.td_error_perc{ep} = nan(1, K / M);
@@ -304,9 +212,7 @@ for ep = 1:episodes
             r = last_sol.r(:, 1);
 
             % save slack variables
-            for n = slacknames
-                slacks.(n){ep}(:, k_mpc) = last_sol.(n)(:);
-            end
+            slacks.slack_w_max{ep}(:, k_mpc) = last_sol.slack_w_max(:);
 
             % save for next transition
             r_prev_prev = r_prev;
