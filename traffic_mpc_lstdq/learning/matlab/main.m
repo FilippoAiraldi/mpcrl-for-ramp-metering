@@ -11,7 +11,7 @@ episodes = 75;                          % number of episodes to repeat
 [sim, mdl, mpc] = util.get_pars();
 
 % create gym 
-env = metanet.TrafficEnv(episodes, sim, mdl);
+env = METANET.TrafficEnv(episodes, sim, mdl, mpc);
 env.reset();
 
 % create known (wrong) model parameters
@@ -30,14 +30,10 @@ wrong_pars = struct('a', env.model.a * 1.3, ...
 % TODO: move all of this to some get_agent method (also costs above)
 
 % cost terms
-[TTS, Rate_var] = metanet.get_mpc_costs(mdl, sim, mpc);
 [Vcost,Lcost,Tcost] = rlmpc.get_mpc_costs(mdl, mpc,'affine','diag','diag');
 
-% TODO: move this to env, need to remove depence on mpc
-Lrl = rlmpc.get_rl_cost(mdl, mpc, TTS, Rate_var); 
 
 % build mpc-based value function approximators
-
 for name = ["Q", "V"]
     % instantiate an MPC
     ctrl = rlmpc.NMPC(name, mdl, sim, mpc, env.dynamics);
@@ -92,9 +88,9 @@ for name = ["Q", "V"]
     end
     % traffic-related cost
     cost = cost ...
-        + sum(TTS(ctrl.vars.w, ctrl.vars.rho)) ...  % TTS
+        + sum(env.TTS(ctrl.vars.w, ctrl.vars.rho)) ...  % TTS
         + ctrl.pars.weight_rate_var * ...           % terminal rate variability
-                                Rate_var(ctrl.pars.r_last, ctrl.vars.r);
+                            env.Rate_Var(ctrl.pars.r_last, ctrl.vars.r);
 
     % assign cost to opti
     ctrl.minimize(cost);
@@ -232,7 +228,6 @@ for ep = 1:episodes
     nb_fail = 0;
     for k = 1:K
         % check if MPCs must be run
-        k = env.k;
         if mod(k, M) == 1
             k_mpc = ceil(k / M); % mpc iteration
 
@@ -272,9 +267,7 @@ for ep = 1:episodes
             if ep > 1 || k_mpc > 5 % skip the first td errors to let them settle
                 if infoV.success && infoQ.success
                     % compute td error
-                    target = full(Lrl(state_prev.w, state_prev.rho, state_prev.v, ...
-                                      r_prev, r_prev_prev)) ...
-                                + mpc.discount * infoV.f;
+                    target = L_prev + mpc.discount * infoV.f;
                     td_err = target - infoQ.f;
 
                     % compute numerical gradients w.r.t. params
@@ -329,7 +322,10 @@ for ep = 1:episodes
         origins.demand{ep}(:, k) = env.d;
 
         % step the environment
-        [~, ~, done, info] = env.step(r);
+        [~, L, done, info] = env.step(r);
+        if mod(k, M) == 1
+            L_prev = L;
+        end
 
         % save current flows
         origins.flow{ep}(:, k) = info.q_o;
@@ -390,9 +386,9 @@ for ep = 1:episodes
     else
         rate_prev = [origins.rate{ep-1}(end), origins.rate{ep}(1:end-1)];
     end
-    ep_Jtot = full(sum(Lrl(origins.queue{ep}, links.density{ep}, ...
+    ep_Jtot = full(sum(env.L(origins.queue{ep}, links.density{ep}, ...
                            links.speed{ep}, origins.rate{ep}, rate_prev)));
-    ep_TTS = full(sum(TTS(origins.queue{ep}, links.density{ep})));
+    ep_TTS = full(sum(env.TTS(origins.queue{ep}, links.density{ep})));
     g_norm_avg = mean(rl_history.g_norm{ep}, 'omitnan');
     p_norm = cell2mat(rl_history.p_norm);
     constr_viol = sum(origins.queue{ep}(2, :) > mdl.max_queue) / K;
