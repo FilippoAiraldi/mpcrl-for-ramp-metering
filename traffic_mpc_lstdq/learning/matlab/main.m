@@ -42,17 +42,6 @@ env.reset(575); % TODO: to be moved inside the iteration loop
 % TODO: can we remove these?
 r_prev = env.env.r_prev;
 
-% compute symbolic derivatives
-deriv = struct;
-for n = ["Q", "V"]
-    % assemble all RL parameters in a single vector for V and Q
-    deriv.(n).rl_pars = agent.w_sym(n);
-
-    % compute derivative of Lagrangian
-    Lagr = mpc.(n).lagrangian;
-    deriv.(n).dL = simplify(jacobian(Lagr, deriv.(n).rl_pars)');
-    deriv.(n).d2L = simplify(hessian(Lagr, deriv.(n).rl_pars));
-end
 
 % TODO: move these to the agent monitor 
 rl_history.lr = {};
@@ -71,7 +60,7 @@ last_sol = struct( ...
     'rho', repmat(env.state.rho, 1, mpc.M * mpc.Np + 1), ...
     'v', repmat(env.state.v, 1, mpc.M * mpc.Np + 1), ...
     'r', repmat(env.env.r_prev, 1, mpc.Nc), ...
-    'slack_w_max', zeros(size(mpc.V.vars.slack_w_max)));
+    'swmax', zeros(size(mpc.V.vars.swmax)));
 
 % initialize constrained QP RL update maximum lagrangian multiplier
 % lam_inf = 1;
@@ -93,18 +82,19 @@ fprintf(['# Fields: [Realtime_tot|Episode_n|Realtime_episode] ', ...
 K = sim.K;
 M = mpc.M;
 Np = mpc.Np;
+rl.pars = agent.weights.value;
+rl.bounds = agent.weights.bound;
 
 start_tot_time = tic;
 for ep = 1:episodes
     % preallocate episode result containers
     % TODO: let the agent class instance save all these variables
-    slacks.slack_w_max{ep} = nan(numel(mpc.V.vars.slack_w_max), K / M);
+    slacks.slack_w_max{ep} = nan(numel(mpc.V.vars.swmax), K / M);
     rl_history.g_norm{ep} = nan(1, K / M);
     rl_history.td_error{ep} = nan(1, K / M);
     rl_history.td_error_perc{ep} = nan(1, K / M);
 
     % simulate episode
-    start_ep_time = tic;
     mpc.V.failures = 0;
     mpc.Q.failures = 0;
     for k = 1:K
@@ -117,9 +107,9 @@ for ep = 1:episodes
                 pars = struct( ...
                     'd', env.env.demand(:, K*(ep-1) + k-M:K*(ep-1) + k-M + M*Np-1), ...
                     'w0', state_prev.w, 'rho0', state_prev.rho, 'v0', state_prev.v, ...
-                    'a', wrong_pars.a, 'r_last', r_prev_prev, 'r0', r_prev); % a(k-2) and a(k-1)
-                for n = fieldnames(rl.pars)'
-                    pars.(n{1}) = rl.pars.(n{1}){end};
+                    'a', known_mdl_pars.a, 'r_last', r_prev_prev, 'r0', r_prev); % a(k-2) and a(k-1)
+                for n = agent.weightnames
+                    pars.(n) = rl.pars.(n);
                 end
                 [last_sol, infoQ] = mpc.Q.solve(pars, last_sol, true, ...
                                                             mpc.multistart);
@@ -137,10 +127,11 @@ for ep = 1:episodes
             % run V(s(k))
             pars = struct( ...
                 'd', env.env.demand(:, K*(ep-1) + k:K*(ep-1) + k + M*Np-1), ...
-                'w0', env.state.w, 'rho0', env.state.rho, 'v0', env.state.v, 'a', wrong_pars.a, ...
+                'w0', env.state.w, 'rho0', env.state.rho, 'v0', env.state.v, ...
+                'a', known_mdl_pars.a, ...
                 'r_last', env.env.r_prev, 'perturbation', pert);
-            for n = fieldnames(rl.pars)'
-                pars.(n{1}) = rl.pars.(n{1}){end};
+            for n = agent.weightnames
+                pars.(n) = rl.pars.(n);
             end
             [last_sol, infoV] = mpc.V.solve(pars, last_sol, true, mpc.multistart);
 
@@ -152,8 +143,8 @@ for ep = 1:episodes
                     td_err = target - infoQ.f;
 
                     % compute numerical gradients w.r.t. params
-                    dQ = infoQ.get_value(deriv.Q.dL);
-                    d2Q = infoQ.get_value(deriv.Q.d2L);
+                    dQ = infoQ.get_value(agent.deriv.dQ);
+                    d2Q = infoQ.get_value(agent.deriv.d2Q);
 
                     % store in memory
                     replaymem.add('td_err', td_err, 'dQ', dQ, ...
@@ -165,7 +156,7 @@ for ep = 1:episodes
                     rl_history.td_error{ep}(k_mpc) = td_err;
                     rl_history.td_error_perc{ep}(k_mpc) = td_err / infoQ.f;
                     % util.info(toc(start_tot_time), ep, ...
-                    %                     toc(start_ep_time), t(k), k, K);
+                    %                     env.current_ep_time, t(k), k, K);
                 else
                     msg = '';
                     if ~infoV.success
@@ -176,10 +167,7 @@ for ep = 1:episodes
                         msg = append(msg, sprintf('Q: %s.', infoQ.msg));
                     end
                     util.info(toc(start_tot_time), ep, ...
-                                    toc(start_ep_time), sim.t(k), k, K, msg);
-                    t1 = toc(start_ep_time);
-                    t2 = env.current_ep_exec_time();
-                    x___ = 5;
+                                    env.current_ep_time, sim.t(k), k, K, msg);
                 end
             end
 
@@ -187,7 +175,7 @@ for ep = 1:episodes
             r = last_sol.r(:, 1);
 
             % save slack variables
-            slacks.slack_w_max{ep}(:, k_mpc) = last_sol.slack_w_max(:);
+            slacks.slack_w_max{ep}(:, k_mpc) = last_sol.swmax(:);
 
             % save for next transition
             % TODO: remove these, ask the monitor for the state at (-k_mpc)
@@ -232,11 +220,11 @@ for ep = 1:episodes
             msg = sprintf('update %i (N=%i, lr=%1.3e, Hmod=%1.3e): ', ...
                           length(rl.pars.rho_crit) - 1, sample.n, ...
                           rl_history.lr{end}, rl_history.H_mod{end});
-            for name = fieldnames(rl.pars)'
-                msg = append(msg, name{1}, '=', ...
-                            mat2str(rl.pars.(name{1}){end}(:)', 6), '; ');
+            for n = agent.weightnames
+                msg = append(msg, n, '=', ...
+                            mat2str(rl.pars.(n)(:)', 6), '; ');
             end
-            util.info(toc(start_tot_time), ep, toc(start_ep_time), ...
+            util.info(toc(start_tot_time), ep, env.current_ep_time, ...
                                                     sim.t(k), k, K, msg);
         end
     end

@@ -15,11 +15,12 @@ classdef TrafficMonitor < handle
     end
 
     properties (Access = private)
-        last_ep_start (1, 1) uint64 = 0
+        last_ep_start (1, 1) uint64 = tic
+        no_tic (1, 1) logical = true
     end
 
     properties (Dependent)
-        current_ep_exec_time (1, 1) double
+        current_ep_time (1, 1) double
     end
     
 
@@ -49,9 +50,10 @@ classdef TrafficMonitor < handle
             e = obj.env.ep;
             k = obj.env.k;
 
-            % check if current episode's has been started
-            if obj.last_ep_start == 0
+            % if time has not already been initialized, do it now
+            if obj.no_tic
                 obj.last_ep_start = tic;
+                obj.no_tic = false;
             end
 
             % save current state and demand
@@ -117,7 +119,7 @@ classdef TrafficMonitor < handle
             % STATE. Returns the state of the system at time step k (k 
             % behaves like a Python index).
             arguments
-                obj (1, 1) METANET.MonitorWrapper
+                obj (1, 1) METANET.TrafficMonitor
                 k (1, 1) double {mustBeInteger} = 0
             end
             k_ = obj.env.k;
@@ -311,7 +313,7 @@ classdef TrafficMonitor < handle
 
     % PROPERTY GETTERS
     methods 
-        function t = get.current_ep_exec_time(obj)
+        function t = get.current_ep_time(obj)
             t = toc(obj.last_ep_start);
         end
     end
