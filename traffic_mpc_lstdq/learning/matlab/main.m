@@ -13,60 +13,40 @@ episodes = 75;                          % number of episodes per iteration
 
 % create gym  environment with monitor
 env = METANET.TrafficEnv(episodes, sim, mdl, mpc);
-env = METANET.MonitorWrapper(env, iterations);
+env = METANET.TrafficMonitor(env, iterations);
 
 % create known (wrong) model parameters
-wrong_pars = struct('a', env.env.model.a * 1.3, ...
-                    'v_free', env.env.model.v_free * 1.3, ...
-                    'rho_crit', env.env.model.rho_crit * 0.7);
+known_mdl_pars = struct('a', env.env.model.a * 1.3, ...
+                        'v_free', env.env.model.v_free * 1.3, ...
+                        'rho_crit', env.env.model.rho_crit * 0.7);
 
 
 
-%% MPC-based RL
-% TODO: move all of this to some get_agent method (also costs above)
-agent = RL.QAgent(env.env);
+%% MPC-based Q-Learning Agent
+agent = RL.QAgent(env.env, known_mdl_pars);
+
+
+
+
+
+
+
+
+%% STILL TO REFACTOR
 mpc.Q = agent.Q;
 mpc.V = agent.V;
 
-
-
-%% Simulation
-% initial conditions
 env.reset(575); % TODO: to be moved inside the iteration loop
+
 
 % TODO: can we remove these?
 r_prev = env.env.r_prev;
-
-% initial learnable Q/V function approxiamtion weights and their bounds
-args = cell(0, 3);
-args(end + 1, :) = {'rho_crit', {wrong_pars.rho_crit}, [10, mdl.rho_max * 0.9]};
-args(end + 1, :) = {'v_free', {wrong_pars.v_free}, [30, 300]};
-args(end + 1, :) = {'v_free_tracking', {wrong_pars.v_free}, [30, 300]};
-args(end + 1, :) = {'weight_V', ...
-                        {ones(size(mpc.V.pars.weight_V))}, [-inf, inf]};
-args(end + 1, :) = {'weight_L', ...
-                        {ones(size(mpc.V.pars.weight_L))}, [0, inf]};
-args(end + 1, :) = {'weight_T', ...
-                        {ones(size(mpc.V.pars.weight_T))}, [0, inf]};
-args(end + 1, :) = {'weight_rate_var', {mpc.rate_var_penalty}, [1e-3, 1e3]};
-args(end+1,:) = {'weight_slack_w_max', ...
-    {ones(size(mpc.V.pars.weight_slack_w_max)) * ...
-                                    mpc.con_violation_penalty}, [0, inf]};
-rl = struct;
-rl.pars = cell2struct(args(:, 2), args(:, 1));
-rl.bounds = cell2struct(args(:, 3), args(:, 1));
-rl_history.lr = {};
-rl_history.p_norm = {};
-rl_history.H_mod = {};
-rl_history.g_norm = cell(1, episodes);
-rl_history.td_error = cell(1, episodes);
-rl_history.td_error_perc = cell(1, episodes); 
 
 % compute symbolic derivatives
 deriv = struct;
 for n = ["Q", "V"]
     % assemble all RL parameters in a single vector for V and Q
-    deriv.(n).rl_pars = mpc.(n).concat_pars(fieldnames(rl.pars));
+    deriv.(n).rl_pars = agent.w_sym(n);
 
     % compute derivative of Lagrangian
     Lagr = mpc.(n).lagrangian;
@@ -74,9 +54,16 @@ for n = ["Q", "V"]
     deriv.(n).d2L = simplify(hessian(Lagr, deriv.(n).rl_pars));
 end
 
+% TODO: move these to the agent monitor 
+rl_history.lr = {};
+rl_history.p_norm = {};
+rl_history.H_mod = {};
+rl_history.g_norm = cell(1, episodes);
+rl_history.td_error = cell(1, episodes);
+rl_history.td_error_perc = cell(1, episodes); 
+
 % preallocate containers for miscellaneous quantities
 slacks.slack_w_max = cell(1, episodes);
-exec_times = nan(1, episodes);
 
 % initialize mpc last solutions to steady-state
 last_sol = struct( ...
@@ -190,6 +177,9 @@ for ep = 1:episodes
                     end
                     util.info(toc(start_tot_time), ep, ...
                                     toc(start_ep_time), sim.t(k), k, K, msg);
+                    t1 = toc(start_ep_time);
+                    t2 = env.current_ep_exec_time();
+                    x___ = 5;
                 end
             end
 
@@ -247,17 +237,16 @@ for ep = 1:episodes
                             mat2str(rl.pars.(name{1}){end}(:)', 6), '; ');
             end
             util.info(toc(start_tot_time), ep, toc(start_ep_time), ...
-                                                        sim.t(k), k, K, msg);
+                                                    sim.t(k), k, K, msg);
         end
     end
-    exec_times(ep) = toc(start_ep_time);
 
 %     % save every episode in a while (exclude some variables)
 %     if mod(ep - 1, save_freq) == 0
 %         warning('off');
 %         save('checkpoint')
 %         warning('on');
-%         util.info(toc(start_tot_time), ep, exec_times(ep), sim.t(end), K, ...
+%         util.info(toc(start_tot_time), ep, env.exec_times(1, ep), sim.t(end), K, ...
 %             K, 'checkpoint saved');
 %     end
 
@@ -266,7 +255,7 @@ for ep = 1:episodes
     ep_Jtot = sum(env.cost.L(1, ep, :));
     ep_TTS = sum(env.cost.TTS(1, ep, :));
     nb_fail = (mpc.V.failures + mpc.Q.failures) / 2;
-    util.info(toc(start_tot_time), ep, exec_times(ep), sim.t(end), K, K, ...
+    util.info(toc(start_tot_time), ep, env.exec_times(1, ep), sim.t(end), K, K, ...
         sprintf('episode %i: J=%.3f, TTS=%.3f, fails=%i(%.1f%%)', ...
         ep, ep_Jtot, ep_TTS, nb_fail, nb_fail / K * M * 100));
 

@@ -13,18 +13,18 @@ episodes = 7;                          % number of episodes per iteration
 
 % create gym  environment with monitor
 env = METANET.TrafficEnv(episodes, sim, mdl, mpc);
-env = METANET.MonitorWrapper(env, iterations);
+env = METANET.TrafficMonitor(env, iterations);
 
 % create known (wrong) model parameters
-wrong_pars = struct('a', env.env.model.a * 1.3, ...
-                    'v_free', env.env.model.v_free * 1.3, ...
-                    'rho_crit', env.env.model.rho_crit * 0.7);
+known_mdl_pars = struct('a', env.env.model.a * 1.3, ...
+                        'v_free', env.env.model.v_free * 1.3, ...
+                        'rho_crit', env.env.model.rho_crit * 0.7);
 
 
 
-%% Q-Learning Agent
-agent = RL.QAgent(env.env);
-
+%% MPC-based Q-Learning Agent
+agent = RL.QAgent(env.env, known_mdl_pars);
+return
 
 
 %% Simulation
