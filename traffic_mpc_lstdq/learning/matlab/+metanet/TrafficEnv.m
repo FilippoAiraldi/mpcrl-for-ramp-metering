@@ -58,12 +58,13 @@ classdef TrafficEnv < handle
             % RESET. Resets the environment to default, random conditions.
             arguments
                 obj (1, 1) METANET.TrafficEnv
-                r (:, 1) double = obj.model.C(2)
+                r (:, 1) double
             end
             mdl = obj.model;
 
             % create random demands for all episodes + 1 to avoid 
             % out-of-bound access
+            % TODO: to be made random
             obj.demand = METANET.get_demands( ...
                                     obj.sim.t, obj.episodes + 1, 'fixed');
             assert(size(obj.demand, 1) == mdl.n_dist)
@@ -74,7 +75,7 @@ classdef TrafficEnv < handle
                                        10 * ones(mdl.n_links, 1), ...
                                        100 * ones(mdl.n_links, 1), ...
                                        r, obj.demand(:, 1), ...
-                                       mdl.rho_crit,mdl.a,mdl.v_free);
+                                       mdl.rho_crit, mdl.a, mdl.v_free);
             state = struct('w', w, 'rho', rho, 'v', v);
             obj.state = state;
 

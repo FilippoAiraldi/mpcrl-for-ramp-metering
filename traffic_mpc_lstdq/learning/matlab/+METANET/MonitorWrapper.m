@@ -32,7 +32,7 @@ classdef MonitorWrapper < handle
         end
 
         function state = reset(obj, varargin)
-            % just class the wrapped env's reset function
+            % just call the wrapped env's reset function
             state = obj.env.reset(varargin{:});
         end
 
