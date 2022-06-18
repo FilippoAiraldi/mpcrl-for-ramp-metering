@@ -1,4 +1,4 @@
-function [Q, V] = get_mpcs(sim, model, mpc, dynamics, TTS, Rate_Var)
+function [Q, V] = get_mpcs(sim, model, mpc, dynamics, TTS, RV)
     % GET_MPCS. Builds the NMPC problems Q and V. 
     arguments
         sim (1, 1) struct
@@ -6,7 +6,7 @@ function [Q, V] = get_mpcs(sim, model, mpc, dynamics, TTS, Rate_Var)
         mpc (1, 1) struct
         dynamics (1, 1) struct
         TTS (1, 1) casadi.Function
-        Rate_Var (1, 1) casadi.Function
+        RV (1, 1) casadi.Function
     end
 
     % get the objective function components
@@ -51,8 +51,8 @@ function [Q, V] = get_mpcs(sim, model, mpc, dynamics, TTS, Rate_Var)
         J = J + C.pars.weight_slack_w_max' * C.vars.slack_w_max(:);
         % traffic-related cost
         J = J ...
-            + sum(TTS(C.vars.w, C.vars.rho)) ...                            % TTS
-            + C.pars.weight_rate_var * Rate_Var(C.pars.r_last, C.vars.r);   % terminal rate variability
+            + sum(TTS(C.vars.w, C.vars.rho)) ...                    % TTS
+            + C.pars.weight_rate_var * RV(C.pars.r_last, C.vars.r); % terminal rate variability
 
         % assign cost to opti
         C.minimize(J);

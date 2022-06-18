@@ -19,7 +19,7 @@ classdef (Abstract) MPCAgentBase < handle
             % create the NMPC instances for Q(s,a) and V(s)
             obj.env = env;
             [obj.Q, obj.V] = MPC.get_mpcs(env.sim, env.model, env.mpc, ...
-                                    env.dynamics, env.TTS, env.Rate_Var);
+                                          env.dynamics, env.TTS, env.RV);
 
             % compute symbolical derivatives
             % ...

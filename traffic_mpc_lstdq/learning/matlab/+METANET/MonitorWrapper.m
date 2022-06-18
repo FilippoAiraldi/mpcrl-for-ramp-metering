@@ -10,6 +10,7 @@ classdef MonitorWrapper < handle
         % 
         origins (1, 1) struct
         links (1, 1) struct
+        cost (1, 1) struct
         exec_times (:, :) double
     end
 
@@ -62,6 +63,12 @@ classdef MonitorWrapper < handle
             obj.origins.flow(i, e, :, k) = info.q_o; % (a.k.a., control action r itself)
             obj.links.flow(i, e, :, k) = info.q;
             
+            % save costs
+            obj.cost.L(i, e, k) = cost;
+            obj.cost.TTS(i, e, k) = info.TTS;
+            obj.cost.RV(i, e, k) = info.RV;
+            obj.cost.CV(i, e, k) = info.CV;
+
             % increment iteration counter if all the episodes are done
             obj.iter = obj.iter + done; % done is logical
 
@@ -81,7 +88,7 @@ classdef MonitorWrapper < handle
             n_origins = obj.env.model.n_origins;
             n_dist = obj.env.model.n_dist;
 
-            % reset the structures
+            % reset traffic structures
             obj.origins = struct; 
             obj.origins.queue = nan(I, E, n_origins, K);
             obj.origins.flow = nan(I, E, n_origins, K);
@@ -90,6 +97,13 @@ classdef MonitorWrapper < handle
             obj.links.flow = nan(I, E, n_links, K);
             obj.links.density = nan(I, E, n_links, K);
             obj.links.speed = nan(I, E, n_links, K);
+            
+            % reset cost structure
+            obj.cost = struct;
+            obj.cost.L = nan(I, E, K);
+            obj.cost.TTS = nan(I, E, K); 
+            obj.cost.RV = nan(I, E, K);
+            obj.cost.CV = nan(I, E, K);
 
             % reset execution time array
             obj.exec_times = nan(I, E);
@@ -130,10 +144,10 @@ classdef MonitorWrapper < handle
             s = cell2mat(struct2cell(obj.state(k)));
         end
 
-        function [fig, layout, axs, lgds] = plot(obj, title, step)
-            % PLOT. PLots the origins and links traffic-related quantities. 
-            % A step size can be provided to reduce the number of 
-            % datapoints plotted.
+        function [fig, layout, axs, lgds] = plot_traffic(obj, title, step)
+            % PLOT_TRAFFIC. PLots the origins and links traffic-related 
+            % quantities. A step size can be provided to reduce the number 
+            % of datapoints plotted.
             arguments
                 obj (1, 1) METANET.MonitorWrapper
                 title (1, :) char {mustBeTextScalar} = char.empty
@@ -146,12 +160,12 @@ classdef MonitorWrapper < handle
             % create the time array
             t = (0:step:(I * E * K - 1)) * obj.env.sim.T;
 
-            % convert iteration-episode cells to one big array
-            origins_ = util.reshape4d(obj.origins);
-            links_ = util.reshape4d(obj.links);
+            % flatten arrays
+            origins_ = util.flatten(obj.origins);
+            links_ = util.flatten(obj.links);
 
             % instantiate figure, layout, axes and legends
-            fig = figure;
+            fig = figure('Visible', 'off');
             layout = tiledlayout(fig, 4, 2, 'Padding', 'none', ...
                                        'TileSpacing', 'compact');
             if ~isempty(title)
@@ -188,8 +202,11 @@ classdef MonitorWrapper < handle
                 axs(i) = nexttile(i);
                 plot(axs(i), t, data(:, 1:step:end)');
                 lgds(i) = legend(axs(i), names{:});
+                xlabel(axs(i), 'time (h)')
                 ylabel(axs(i), ylbl);
+                axs(i).XAxis.Limits = [t(1), t(end)];
             end
+            linkaxes(axs, 'x')
             
             % further customizations
             % change color of 7 to second default color
@@ -204,6 +221,87 @@ classdef MonitorWrapper < handle
             plot(axs(8), [t(1), t(end)], [1, 1] * max_queue, '-.k')
             hold(axs(8), 'off');
             lgds(8).String{end} = 'max \omega';
+
+            % finally show figure
+            fig.Visible = 'on';
+        end
+
+        function [fig, layout, axs] = plot_cost(obj, title, step)
+            % PLOT_COST. PLots traffic costs. A step size can be provided 
+            % to reduce the number of datapoints plotted.
+            arguments
+                obj (1, 1) METANET.MonitorWrapper
+                title (1, :) char {mustBeTextScalar} = char.empty
+                step (1, 1) double {mustBePositive, mustBeInteger} = 1
+            end
+            I = obj.iterations;     % number of learning iterations
+            E = obj.env.episodes;   % number of episodes per iteration
+            K = obj.env.sim.K;      % number of timesteps per episode
+
+            % create the step array
+            k = 0:step:(I * E * K - 1);
+            ep = linspace(k(1), k(end), I * E); % no stepping here
+
+            % compute the episode-average of total cost 
+            J = util.flatten(sum(obj.cost.L, 3));
+
+            % instantiate figure, layout, axes and legends
+            fig = figure('Visible', 'off');
+            layout = tiledlayout(fig, 4, 2, 'Padding', 'none', ...
+                                       'TileSpacing', 'compact');
+            if ~isempty(title)
+                sgtitle(layout, title, 'Interpreter', 'none')
+            end
+            axs = matlab.graphics.axis.Axes.empty;      
+
+            % plot each quantity
+            items = { ...
+                'L', obj.cost.L; ...
+                'TTS', obj.cost.TTS; ...
+                'Rate Variability', obj.cost.RV; ...
+                'Constr. Violation', obj.cost.CV; ...
+            };
+            for i = 1:size(items, 1)
+                ylbl = items{i, 1};
+                data = items{i, 2};
+
+                % plot continuous cost
+                data_cont = util.flatten(data);
+                axs(i, 1) = nexttile(2 * i - 1);
+                plot(axs(i, 1), k, data_cont(:, 1:step:end)', ...
+                    'Color', axs(i, 1).ColorOrder(i, :));
+                xlabel(axs(i, 1), 'step')
+                ylabel(axs(i, 1), ylbl);
+                axs(i, 1).XAxis.Limits = [k(1), k(end)];
+                
+                % plot episode-average cost
+                data_avg = util.flatten(sum(data, 3));
+                axs(i, 2) = nexttile(2 * i);
+                plot(axs(i, 2), ep, data_avg, '-o', ...
+                    'Color', axs(i, 1).ColorOrder(i, :));
+                ylabel(axs(i, 2), ylbl);
+                
+                % as percentage of the total cost as well
+                if i > 1
+                    yyaxis(axs(i, 2), 'right')
+                    plot(axs(i, 2), ep, data_avg ./ J * 100, '-o', ...
+                        'Color', [axs(i, 1).ColorOrder(i, :), 0.25], ...
+                        'Markersize', 2);
+                    axs(i, 2).YAxis(2).Color = axs(i, 2).YAxis(1).Color;
+                    ylabel(axs(i, 2), '%');
+                end
+                
+                % for both axis
+                step_xticks = floor(length(ep) / 4);
+                axs(i, 2).XTick = ep(1:step_xticks:end);
+                axs(i, 2).XTickLabel = 0:step_xticks:(I * E - 1);
+                xlabel(axs(i, 2), 'episode')
+                axs(i, 2).XAxis.Limits = [k(1), k(end)];
+            end
+            linkaxes(axs, 'x')
+
+            % finally show figure
+            fig.Visible = 'on';
         end
     end
 end

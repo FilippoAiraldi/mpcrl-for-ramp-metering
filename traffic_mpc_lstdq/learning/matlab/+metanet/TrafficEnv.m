@@ -9,9 +9,11 @@ classdef TrafficEnv < handle
         mpc (1, 1) struct
         %
         dynamics (1, 1) struct
+        %
         L (1, 1) casadi.Function
         TTS (1, 1) casadi.Function
-        Rate_Var(1, 1) casadi.Function
+        RV(1, 1) casadi.Function % rate var
+        cumcost (1, 1) struct
         %
         state (1, 1) struct
         demand (:, :) double {mustBeNonnegative}
@@ -50,7 +52,7 @@ classdef TrafficEnv < handle
             obj.dynamics = METANET.get_dynamics(sim, model);
 
             % create stage-cost function
-            [obj.L, obj.TTS, obj.Rate_Var] = ...
+            [obj.L, obj.TTS, obj.RV] = ...
                                 METANET.get_stage_cost(sim, model, mpc);
         end
 
@@ -82,6 +84,13 @@ classdef TrafficEnv < handle
             % reset time counter
             obj.k_tot = 1;
             obj.r_prev = r;
+
+            % reset cumulative costs - one for each term, each weighted
+            % J is the total cumulative cost
+            % TTS is the cumulative cost term due to TTS
+            % RV is the cumulative cost term due to rate variability
+            % CV is the cumulative cost term due to constraint violation
+            obj.cumcost = struct('J', 0, 'TTS', 0, 'RV', 0, 'CV', 0);
         end
 
         function [state, cost, done, info] = step(obj, r)
@@ -94,8 +103,12 @@ classdef TrafficEnv < handle
             assert(size(r, 1) == obj.model.n_ramps)
             
             % compute cost of being in the current state
-            cost = full(obj.L(obj.state.w, obj.state.rho, obj.state.v, ...
-                              r, obj.r_prev));
+            [cost, TTS_term, RV_term, CV_term] = obj.L( ...
+                obj.state.w, obj.state.rho, obj.state.v, r, obj.r_prev);
+            cost = full(cost); % a.k.a., L
+            TTS_term = full(TTS_term);
+            RV_term = full(RV_term);
+            CV_term = full(CV_term);
 
             % step the dynamics (according to the true parameters)
             [q_o, w_next, q, rho_next, v_next] = obj.dynamics.f(...
@@ -108,14 +121,20 @@ classdef TrafficEnv < handle
                 'v', full(v_next));
 
             % create info
-            ep_done = mod(obj.k_tot, obj.sim.K) == 0;
-            info = struct('q', full(q), 'q_o', full(q_o), ...
-                          'ep_done', ep_done);
+            info = struct('ep_done', mod(obj.k_tot, obj.sim.K) == 0, ...
+                          'q', full(q), 'q_o', full(q_o), ...
+                          'TTS', TTS_term, 'RV', RV_term, 'CV', CV_term);
+
+            % increment cost cumulative totals
+            obj.cumcost.J = obj.cumcost.J + cost;
+            obj.cumcost.TTS = obj.cumcost.TTS + TTS_term;
+            obj.cumcost.RV = obj.cumcost.RV + RV_term;
+            obj.cumcost.CV = obj.cumcost.CV + CV_term;
 
             % is the episode over?
-            done = obj.k_tot == obj.sim.K * obj.episodes; % or the previous iter?
+            done = obj.k_tot == obj.sim.K * obj.episodes;
             
-            % save quantities for next iteration
+            % increment/save quantities for next iteration
             obj.k_tot = obj.k_tot + 1;
             obj.r_prev = r;
             obj.state = state;
