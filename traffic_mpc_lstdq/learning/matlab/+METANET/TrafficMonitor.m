@@ -1,5 +1,5 @@
-classdef MonitorWrapper < handle
-    % MONITORWRAPPER. OpenAI-like gym environment wrapper for the recording
+classdef TrafficMonitor < handle
+    % TRAFFICMONITOR. OpenAI-like gym environment wrapper for the recording
     % and plotting of traffic quantities.
 
     properties (GetAccess = public, SetAccess = protected)
@@ -17,12 +17,16 @@ classdef MonitorWrapper < handle
     properties (Access = private)
         last_ep_start (1, 1) uint64 = 0
     end
+
+    properties (Dependent)
+        current_ep_exec_time (1, 1) double
+    end
     
 
 
     methods (Access = public)
-        function obj = MonitorWrapper(env, iterations)
-            % MONITORWRAPPER. Constructs an instance of this environment.
+        function obj = TrafficMonitor(env, iterations)
+            % TRAFFICMONITOR. Constructs an instance of this environment.
             arguments
                 env (1, 1) METANET.TrafficEnv
                 iterations (1, 1) double {mustBePositive, mustBeInteger}
@@ -302,6 +306,13 @@ classdef MonitorWrapper < handle
 
             % finally show figure
             fig.Visible = 'on';
+        end
+    end
+
+    % PROPERTY GETTERS
+    methods 
+        function t = get.current_ep_exec_time(obj)
+            t = toc(obj.last_ep_start);
         end
     end
 end
