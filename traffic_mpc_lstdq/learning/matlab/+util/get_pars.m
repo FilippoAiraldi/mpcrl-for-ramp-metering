@@ -54,8 +54,8 @@ function [sim, mdl, mpc] = get_pars()
 
     % objective weights
     mpc.perturb_mag = 100;                  % magnitude of exploratory perturbation
-    mpc.rate_var_penalty = 4e-2;            % penalty weight for rate variability
-    mpc.con_violation_penalty = 10;         % penalty for constraint violations
+    mpc.RV_penalty = 4e-2;                  % penalty weight for rate variability
+    mpc.CV_penalty = 10;                    % penalty for constraint violations
 
     % types of cost terms
     mpc.cost_type.init = 'affine';
@@ -70,10 +70,10 @@ function [sim, mdl, mpc] = get_pars()
     mpc.mem_cap = sim.K / mpc.M * 10;       % RL experience replay capacity
     mpc.mem_sample = sim.K / mpc.M * 5;     % RL experience replay sampling size
     mpc.mem_last = sim.K / mpc.M;           % percentage of last experiences to include in sample
-    mpc.normalization.w = mdl.max_queue;
-    mpc.normalization.rho = mdl.rho_max;
-    mpc.normalization.v = mdl.v_free * 1.3;
-    mpc.normalization.r = mdl.C(2);
+    mpc.norm.w = mdl.max_queue;             % values to normalize each quantity
+    mpc.norm.rho = mdl.rho_max;
+    mpc.norm.v = mdl.v_free * 1.3;
+    mpc.norm.r = mdl.C(2);
 
     % solver options
     mpc.multistart = 1; %4 * 4;             % multistarting NMPC solver

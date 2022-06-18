@@ -18,41 +18,41 @@ function [Q, V] = get_mpcs(sim, model, mpc, dynamics, TTS, RV)
         C = MPC.NMPC(name, sim, model, mpc, dynamics);
 
         % create required parameters
-        C.add_par('v_free_tracking', [1, 1]);
-        C.add_par('weight_V', size(Vcost.mx_in( ...
+        C.add_par('v_free_track', [1, 1]);
+        C.add_par('w_V', size(Vcost.mx_in( ...
                   find(startsWith(string(Vcost.name_in), 'weight')) - 1)));
-        C.add_par('weight_L', size(Lcost.mx_in( ...
+        C.add_par('w_L', size(Lcost.mx_in( ...
                   find(startsWith(string(Lcost.name_in), 'weight')) - 1)));
-        C.add_par('weight_T', size(Tcost.mx_in( ...
+        C.add_par('w_T', size(Tcost.mx_in( ...
                   find(startsWith(string(Tcost.name_in), 'weight')) - 1)));
-        C.add_par('weight_rate_var', [1, 1]);
-        C.add_par('weight_slack_w_max', [numel(C.vars.slack_w_max), 1]);
+        C.add_par('w_RV', [1, 1]);
+        C.add_par('w_swmax', [numel(C.vars.swmax), 1]);
         C.add_par('r_last', [size(C.vars.r, 1), 1]);
 
         % initial, stage and terminal learnable costs
         J = Vcost(C.vars.w(:, 1), ...
                   C.vars.rho(:, 1), ...
                   C.vars.v(:, 1), ...
-                  C.pars.weight_V);
+                  C.pars.w_V);
         for k = 2:mpc.M * mpc.Np
             J = J + Lcost(C.vars.rho(:, k), ...
                           C.vars.v(:, k), ...
                           C.pars.rho_crit, ...
-                          C.pars.v_free_tracking, ... % C.pars.v_free
-                          C.pars.weight_L);
+                          C.pars.v_free_track, ...
+                          C.pars.w_L);
         end
         % terminal cost
         J = J + Tcost(C.vars.rho(:, end), ...
                       C.vars.v(:, end), ...
                       C.pars.rho_crit, ...
-                      C.pars.v_free_tracking, ...
-                      C.pars.weight_T);
+                      C.pars.v_free_track, ...
+                      C.pars.w_T);
         % max queue slack cost
-        J = J + C.pars.weight_slack_w_max' * C.vars.slack_w_max(:);
+        J = J + C.pars.w_swmax' * C.vars.swmax(:);
         % traffic-related cost
         J = J ...
             + sum(TTS(C.vars.w, C.vars.rho)) ...                    % TTS
-            + C.pars.weight_rate_var * RV(C.pars.r_last, C.vars.r); % terminal rate variability
+            + C.pars.w_RV * RV(C.pars.r_last, C.vars.r); % terminal rate variability
 
         % assign cost to opti
         C.minimize(J);
@@ -69,7 +69,7 @@ function [Q, V] = get_mpcs(sim, model, mpc, dynamics, TTS, RV)
             % V approximator has perturbation to enhance exploration
             C.add_par('perturbation', size(C.vars.r(:, 1)));
             C.minimize(C.f + C.pars.perturbation' * ...
-                                C.vars.r(:, 1) ./ mpc.normalization.r);
+                                C.vars.r(:, 1) ./ mpc.norm.r);
 
             % assign to output
             V = C;
@@ -96,9 +96,9 @@ function [init_cost, stage_cost, terminal_cost] = get_costs(model, mpc)
     v = casadi.SX.sym('v', n_links, 1);
     rho_crit = casadi.SX.sym('rho_crit', 1, 1);
     v_free = casadi.SX.sym('v_free', 1, 1);
-    w_norm = mpc.normalization.w;
-    rho_norm = mpc.normalization.rho;
-    v_norm = mpc.normalization.v;
+    w_norm = mpc.norm.w;
+    rho_norm = mpc.norm.rho;
+    v_norm = mpc.norm.v;
 
 
 

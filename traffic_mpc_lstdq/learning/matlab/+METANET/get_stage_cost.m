@@ -18,8 +18,8 @@ function [L, TTS, RV] = get_stage_cost(sim, model, mpc)
     %
     T = sim.T;
     %
-    rate_var_penalty = mpc.rate_var_penalty;
-    con_violation = mpc.con_violation_penalty;
+    RV_penalty = mpc.RV_penalty;
+    CV_penalty = mpc.CV_penalty;
     Nc = mpc.Nc;
 
     % create symbolic arguments
@@ -40,10 +40,10 @@ function [L, TTS, RV] = get_stage_cost(sim, model, mpc)
         {r_prev, r}, {J_RV}, {'r_last', 'r'}, {'RV'});
 
     % compute Stage Cost
-    J_TTS = TTS(w, rho); % already computed; just to be on the safe side
-    J_RV = rate_var_penalty * RV(r_prev, r(:, 1)); % just on current r
-    J_con = con_violation * max(0, w(2, :) - max_queue);
-    %         + con_violation^2 * ( ...
+    J_TTS = TTS(w, rho);                        % already computed; just to be on the safe side
+    J_RV = RV_penalty * RV(r_prev, r(:, 1));    % just on current r
+    J_con = CV_penalty * max(0, w(2, :) - max_queue);
+    %         + CV_penalty * ( ...
     %               sum(max(0, -w), 1) ...
     %             + sum(max(0, -rho), 1) ...
     %             + sum(max(0, -v), 1)) ...

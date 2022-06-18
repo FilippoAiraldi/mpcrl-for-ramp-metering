@@ -63,7 +63,7 @@ classdef NMPC < handle
             w = obj.add_var('w', [dyn.states.w.size(1), M * Np + 1], 0);
             rho = obj.add_var('rho', [dyn.states.v.size(1), M*Np+1], 0);
             v = obj.add_var('v', [dyn.states.v.size(1), M * Np + 1], 0);
-            slack_w_max = obj.add_var('slack_w_max', [1, M * Np + 1], 0);
+            slack_w_max = obj.add_var('swmax', [1, M * Np + 1], 0);
             
             % create control action (flow of ramp O2)
             r = obj.add_var('r', [size(dyn.input.r, 1), Nc], 2e2, C(2));
@@ -256,17 +256,6 @@ classdef NMPC < handle
                 + obj.lam_g' * obj.g ...
                 + obj.lam_lbx' * (obj.lbx - obj.x) ...
                 + obj.lam_ubx' * (obj.x - obj.ubx);
-        end
-
-        function v = concat_pars(obj, names)
-            % CONCAT_PARS. Concatenates in a single vertical array the NMPC 
-            % parameters whose name appears in the list.
-            arguments
-                obj (1, 1) MPC.NMPC
-                names (:, 1) cell
-            end
-            v = cellfun(@(n) obj.pars.(n), names, 'UniformOutput', false);
-            v = vertcat(v{:});
         end
 
         function [sol,info] = solve(obj, pars, vals, shiftvals, multistart)
