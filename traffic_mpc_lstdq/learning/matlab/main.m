@@ -112,7 +112,7 @@ if ~soft_domain_constraints && ~max_in_and_out(2)
 end
 %
 discount = 0.99;                        % rl discount factor
-% lr = 1e-1;                              % fixed rl learning rate (no line search)
+lr = 1e-3;                              % fixed rl learning rate (no line search)
 grad_desc_version = 1;                  % type of gradient descent/hessian modification (1 is the only one working out)
 max_delta = 1 / 5;                      % percentage of maximum parameter change in a single update
 con_violation_penalty = 10;             % penalty for constraint violations
@@ -241,7 +241,8 @@ clear ctrl
 
 %% Simulation
 % initial conditions
-r = mpc.V.r_bnd{2};                     % metering rate/flow
+r_min = 575;                            % minimum rate that does not cause queues
+r = r_min;                              % metering rate/flow
 r_prev = r;                             % previous rate
 [w, rho, v] = util.steady_state(dynamics.real.f, ...
     zeros(n_origins, 1), 10 * ones(n_links, 1), 100 * ones(n_links, 1), ...
@@ -487,6 +488,14 @@ for ep = start_ep:episodes
         links.flow{ep}(:, k) = full(q);
         links.density{ep}(:, k) = full(rho);
         links.speed{ep}(:, k) = full(v);
+ 
+%         if k == 1
+%             L_cum = 0;
+%             r__ = r_min;
+%         else
+%             r__ = origins.rate{ep}(:, k - 1);
+%         end
+%         L_cum = L_cum + full(Lrl(w, rho, v, r, r__));
 
         % set next state as current
         w = full(w_next);
@@ -553,7 +562,7 @@ for ep = start_ep:episodes
 
     % log intermediate results
     if ep == 1
-        rate_prev = [origins.rate{ep}(1), origins.rate{ep}(1:end-1)];
+        rate_prev = [r_min, origins.rate{ep}(1:end-1)];
     else
         rate_prev = [origins.rate{ep-1}(end), origins.rate{ep}(1:end-1)];
     end
