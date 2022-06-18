@@ -13,6 +13,7 @@ function [pars, deltas, lam_inf] = constr_update(pars, bnd, p, max_delta)
     parnames = string(fieldnames(pars)');
     lb = struct;
     ub = struct;
+    % TODO: can we do this with a structfun that loops over each name?
     for name = parnames
         rel_delta = abs(pars.(name){end} * max_delta);
         rel_delta = max(rel_delta, 1e-1); % avoids parameters close to 0 not growing
