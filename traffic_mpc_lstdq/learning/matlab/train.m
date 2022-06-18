@@ -7,8 +7,8 @@ save_freq = 2;                          % checkpoint saving frequency
 
 
 %% Training Environment
-iterations = 1;                         % simulation iterations
-episodes = 75;                          % number of episodes per iteration
+iterations = 3;                         % simulation iterations
+episodes = 7;                          % number of episodes per iteration
 [sim, mdl, mpc] = util.get_pars();
 
 % create gym  environment with monitor
@@ -30,16 +30,19 @@ agent = RL.QAgent(env.env);
 %% Simulation
 for i = 1:iterations
     % reset initial conditions and demand
-    env.reset();
+    env.reset(575);
     done = false;
 
     % simulate all episodes
     while ~done
         % choose control actiobn
-        r = max(0, 1500 + 100 * randn);
+        r = max(575, 900 + 100 * randn);
 
         % step the system
         [state, cost, done, info] = env.step(r);
+        if ~done
+            assert(i == env.iter);
+        end
 
         % check if the single episode is done
         if info.ep_done

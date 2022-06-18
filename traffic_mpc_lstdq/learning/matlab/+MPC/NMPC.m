@@ -33,6 +33,9 @@ classdef NMPC < handle
         dynamics (1, 1) struct
     end
 
+    properties (Access = public)
+        failures (1, 1) double {mustBeNonnegative} = 0
+    end
 
     
     methods (Access = public)
@@ -300,6 +303,9 @@ classdef NMPC < handle
 
             % run nlp
             [sol, info] = obj.solve_nlp(pars, vals, multistart);
+
+            % accumulate failure counter
+            obj.failures = obj.failures + ~info.success;
         end
     end
 

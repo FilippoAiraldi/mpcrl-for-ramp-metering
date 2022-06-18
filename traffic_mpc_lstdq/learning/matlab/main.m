@@ -6,24 +6,25 @@ save_freq = 2;                          % checkpoint saving frequency
 
 
 
-%% Instanciate environment
-episodes = 75;                          % number of episodes to repeat
+%% Training Environment
+iterations = 1;                         % simulation iterations
+episodes = 75;                          % number of episodes per iteration
 [sim, mdl, mpc] = util.get_pars();
 
-% create gym 
+% create gym  environment with monitor
 env = METANET.TrafficEnv(episodes, sim, mdl, mpc);
-env.reset();
+env = METANET.MonitorWrapper(env, iterations);
 
 % create known (wrong) model parameters
-wrong_pars = struct('a', env.model.a * 1.3, ...
-                    'v_free', env.model.v_free * 1.3, ...
-                    'rho_crit', env.model.rho_crit * 0.7);
+wrong_pars = struct('a', env.env.model.a * 1.3, ...
+                    'v_free', env.env.model.v_free * 1.3, ...
+                    'rho_crit', env.env.model.rho_crit * 0.7);
 
 
 
 %% MPC-based RL
 % TODO: move all of this to some get_agent method (also costs above)
-agent = RL.QAgent(env);
+agent = RL.QAgent(env.env);
 mpc.Q = agent.Q;
 mpc.V = agent.V;
 
@@ -31,8 +32,10 @@ mpc.V = agent.V;
 
 %% Simulation
 % initial conditions
+env.reset(575); % TODO: to be moved inside the iteration loop
+
 % TODO: can we remove these?
-r_prev = env.r_prev;
+r_prev = env.env.r_prev;
 
 % initial learnable Q/V function approxiamtion weights and their bounds
 args = cell(0, 3);
@@ -46,11 +49,9 @@ args(end + 1, :) = {'weight_L', ...
 args(end + 1, :) = {'weight_T', ...
                         {ones(size(mpc.V.pars.weight_T))}, [0, inf]};
 args(end + 1, :) = {'weight_rate_var', {mpc.rate_var_penalty}, [1e-3, 1e3]};
-if isfield(mpc.V.vars, 'slack_w_max')
-    args(end+1,:) = {'weight_slack_w_max', ...
-        {ones(size(mpc.V.pars.weight_slack_w_max)) * ...
-                                        mpc.con_violation_penalty}, [0, inf]};
-end
+args(end+1,:) = {'weight_slack_w_max', ...
+    {ones(size(mpc.V.pars.weight_slack_w_max)) * ...
+                                    mpc.con_violation_penalty}, [0, inf]};
 rl = struct;
 rl.pars = cell2struct(args(:, 2), args(:, 1));
 rl.bounds = cell2struct(args(:, 3), args(:, 1));
@@ -73,15 +74,6 @@ for n = ["Q", "V"]
     deriv.(n).d2L = simplify(hessian(Lagr, deriv.(n).rl_pars));
 end
 
-% preallocate containers for traffic data (don't use struct(var, cells))
-origins.queue = cell(1, episodes);
-origins.flow = cell(1, episodes);
-origins.rate = cell(1, episodes);
-origins.demand = cell(1, episodes);
-links.flow = cell(1, episodes);
-links.density = cell(1, episodes);
-links.speed = cell(1, episodes);
-
 % preallocate containers for miscellaneous quantities
 slacks.slack_w_max = cell(1, episodes);
 exec_times = nan(1, episodes);
@@ -91,7 +83,7 @@ last_sol = struct( ...
     'w', repmat(env.state.w, 1, mpc.M * mpc.Np + 1), ...
     'rho', repmat(env.state.rho, 1, mpc.M * mpc.Np + 1), ...
     'v', repmat(env.state.v, 1, mpc.M * mpc.Np + 1), ...
-    'r', repmat(env.r_prev, 1, mpc.Nc), ...
+    'r', repmat(env.env.r_prev, 1, mpc.Nc), ...
     'slack_w_max', zeros(size(mpc.V.vars.slack_w_max)));
 
 % initialize constrained QP RL update maximum lagrangian multiplier
@@ -106,7 +98,7 @@ replaymem = rlmpc.ReplayMem(mpc.mem_cap, 'none', 'td_err', 'dQ', ...
                             'd2Q', 'target', 'solQ', 'parsQ', 'last_solQ');
 
 % start logging
-diary(strcat(runname, '_log.txt'))
+% diary(strcat(runname, '_log.txt'))
 fprintf(['# Fields: [Realtime_tot|Episode_n|Realtime_episode] ', ...
     '- [Sim_time|Sim_iter|Sim_perc] - Message\n'])
 
@@ -118,14 +110,7 @@ Np = mpc.Np;
 start_tot_time = tic;
 for ep = 1:episodes
     % preallocate episode result containers
-    % TODO: let the monitor class instance save all these variables
-    origins.queue{ep} = nan(size(mpc.V.vars.w, 1), K);
-    origins.flow{ep} = nan(size(mpc.V.vars.w, 1), K);
-    origins.rate{ep} = nan(size(mpc.V.vars.r, 1), K);
-    origins.demand{ep} = nan(size(mpc.V.pars.d, 1), K);
-    links.flow{ep} = nan(size(mpc.V.vars.v, 1), K);
-    links.density{ep} = nan(size(mpc.V.vars.rho, 1), K);
-    links.speed{ep} = nan(size(mpc.V.vars.v, 1), K);
+    % TODO: let the agent class instance save all these variables
     slacks.slack_w_max{ep} = nan(numel(mpc.V.vars.slack_w_max), K / M);
     rl_history.g_norm{ep} = nan(1, K / M);
     rl_history.td_error{ep} = nan(1, K / M);
@@ -133,7 +118,8 @@ for ep = 1:episodes
 
     % simulate episode
     start_ep_time = tic;
-    nb_fail = 0;
+    mpc.V.failures = 0;
+    mpc.Q.failures = 0;
     for k = 1:K
         % check if MPCs must be run
         if mod(k, M) == 1
@@ -142,7 +128,7 @@ for ep = 1:episodes
             % run Q(s(k-1), a(k-1)) (condition excludes very first iteration)
             if ep > 1 || k_mpc > 1
                 pars = struct( ...
-                    'd', env.demand(:, K*(ep-1) + k-M:K*(ep-1) + k-M + M*Np-1), ...
+                    'd', env.env.demand(:, K*(ep-1) + k-M:K*(ep-1) + k-M + M*Np-1), ...
                     'w0', state_prev.w, 'rho0', state_prev.rho, 'v0', state_prev.v, ...
                     'a', wrong_pars.a, 'r_last', r_prev_prev, 'r0', r_prev); % a(k-2) and a(k-1)
                 for n = fieldnames(rl.pars)'
@@ -163,9 +149,9 @@ for ep = 1:episodes
 
             % run V(s(k))
             pars = struct( ...
-                'd', env.demand(:, K*(ep-1) + k:K*(ep-1) + k + M*Np-1), ...
+                'd', env.env.demand(:, K*(ep-1) + k:K*(ep-1) + k + M*Np-1), ...
                 'w0', env.state.w, 'rho0', env.state.rho, 'v0', env.state.v, 'a', wrong_pars.a, ...
-                'r_last', env.r_prev, 'perturbation', pert);
+                'r_last', env.env.r_prev, 'perturbation', pert);
             for n = fieldnames(rl.pars)'
                 pars.(n{1}) = rl.pars.(n{1}){end};
             end
@@ -194,7 +180,6 @@ for ep = 1:episodes
                     % util.info(toc(start_tot_time), ep, ...
                     %                     toc(start_ep_time), t(k), k, K);
                 else
-                    nb_fail = nb_fail + 1;
                     msg = '';
                     if ~infoV.success
                         msg = append(msg, sprintf('V: %s. ', infoV.msg));
@@ -215,27 +200,17 @@ for ep = 1:episodes
             slacks.slack_w_max{ep}(:, k_mpc) = last_sol.slack_w_max(:);
 
             % save for next transition
+            % TODO: remove these, ask the monitor for the state at (-k_mpc)
             r_prev_prev = r_prev;
             r_prev = r;
             state_prev = env.state;
         end
-
-        % save current state, input, and demand
-        origins.queue{ep}(:, k) = env.state.w;
-        links.density{ep}(:, k) = env.state.rho;
-        origins.rate{ep}(:, k) = r;
-        links.speed{ep}(:, k) = env.state.v;
-        origins.demand{ep}(:, k) = env.d;
 
         % step the environment
         [~, L, done, info] = env.step(r);
         if mod(k, M) == 1
             L_prev = L;
         end
-
-        % save current flows
-        origins.flow{ep}(:, k) = info.q_o;
-        links.flow{ep}(:, k) = info.q;
 
         % perform RL updates
         if mod(k, mpc.update_freq) == 0 && ep > 1
@@ -277,30 +252,27 @@ for ep = 1:episodes
     end
     exec_times(ep) = toc(start_ep_time);
 
-    % save every episode in a while (exclude some variables)
-    if mod(ep - 1, save_freq) == 0
-        warning('off');
-        save('checkpoint')
-        warning('on');
-        util.info(toc(start_tot_time), ep, exec_times(ep), sim.t(end), K, ...
-            K, 'checkpoint saved');
-    end
+%     % save every episode in a while (exclude some variables)
+%     if mod(ep - 1, save_freq) == 0
+%         warning('off');
+%         save('checkpoint')
+%         warning('on');
+%         util.info(toc(start_tot_time), ep, exec_times(ep), sim.t(end), K, ...
+%             K, 'checkpoint saved');
+%     end
 
     % log intermediate results
-    if ep == 1
-        rate_prev = [origins.rate{ep}(1), origins.rate{ep}(1:end-1)];
-    else
-        rate_prev = [origins.rate{ep-1}(end), origins.rate{ep}(1:end-1)];
-    end
-    ep_Jtot = full(sum(env.L(origins.queue{ep}, links.density{ep}, ...
-                           links.speed{ep}, origins.rate{ep}, rate_prev)));
-    ep_TTS = full(sum(env.TTS(origins.queue{ep}, links.density{ep})));
+    % TODO: move printing of episode stats to a method
+    ep_Jtot = sum(env.cost.L(1, ep, :));
+    ep_TTS = sum(env.cost.TTS(1, ep, :));
+    nb_fail = (mpc.V.failures + mpc.Q.failures) / 2;
+    util.info(toc(start_tot_time), ep, exec_times(ep), sim.t(end), K, K, ...
+        sprintf('episode %i: J=%.3f, TTS=%.3f, fails=%i(%.1f%%)', ...
+        ep, ep_Jtot, ep_TTS, nb_fail, nb_fail / K * M * 100));
+
     g_norm_avg = mean(rl_history.g_norm{ep}, 'omitnan');
     p_norm = cell2mat(rl_history.p_norm);
-    constr_viol = sum(origins.queue{ep}(2, :) > mdl.max_queue) / K;
-    util.info(toc(start_tot_time), ep, exec_times(ep), sim.t(end), K, K, ...
-        sprintf('episode %i: Jtot=%.3f, TTS=%.3f, fails=%i(%.1f%%)', ...
-        ep, ep_Jtot, ep_TTS, nb_fail, nb_fail / K * M * 100));
+    constr_viol = sum(env.origins.queue(1, ep, 2, :) > mdl.max_queue) / K;
 
     % plot performance
     if ~exist('ph_J', 'var') || ~isvalid(ph_J)
