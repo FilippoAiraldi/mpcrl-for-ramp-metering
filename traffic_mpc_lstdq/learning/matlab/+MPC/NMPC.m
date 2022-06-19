@@ -271,6 +271,7 @@ classdef NMPC < handle
             end
             assert(length(pars) == length(vals), ...
                                     'pars and vals with different sizes')
+            assert(~isnumeric(obj.solver), 'NLP solver uninitialized.')
             
             for i = length(pars)
                 % if requested, shifts the initial conditions for the MPC 
@@ -416,9 +417,7 @@ function vals = shift_vals(pars, vals, M, Np, Fdyn)
     vals.v = [vals.v(:, M + 1:end), nan(size(vals.v, 1), M)];
 
     % draw random last action
-    r_rand = min(1, max(0.2, ...
-            mean(vals.r, 2) + randn(size(vals.r, 1), 1) * 0.1));
-    vals.r = [vals.r(:, 2:end), r_rand];
+    vals.r = [vals.r(:, 2:end), mean(vals.r, 2)];
     
     % pad to the erased instants to the right with a simulation
     if isfield(pars, 'pars_Veq_approx')
