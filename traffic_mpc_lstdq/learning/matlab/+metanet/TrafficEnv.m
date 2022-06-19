@@ -19,8 +19,8 @@ classdef TrafficEnv < handle
         demand (:, :) double {mustBeNonnegative}
         %
         r_prev (:, 1) double 
-        %
         k_tot (1, 1) double {mustBePositive, mustBeInteger} = 1 % internal total time counter
+        is_done (1, 1) logical = false
     end
 
     properties (Dependent) 
@@ -56,7 +56,7 @@ classdef TrafficEnv < handle
                                 METANET.get_stage_cost(sim, model, mpc);
         end
 
-        function state = reset(obj, r)
+        function [state, errormsg] = reset(obj, r)
             % RESET. Resets the environment to default, random conditions.
             arguments
                 obj (1, 1) METANET.TrafficEnv
@@ -72,12 +72,13 @@ classdef TrafficEnv < handle
             assert(size(obj.demand, 1) == mdl.n_dist)
 
             % compute initial state (at steady-state)
-            [w, rho, v] = METANET.steady_state(obj.dynamics.f, ...
-                                       zeros(mdl.n_origins, 1), ...
-                                       10 * ones(mdl.n_links, 1), ...
-                                       100 * ones(mdl.n_links, 1), ...
-                                       r, obj.demand(:, 1), ...
-                                       mdl.rho_crit, mdl.a, mdl.v_free);
+            [w, rho, v, ~, ~, errormsg] = METANET.steady_state( ...
+                                        obj.dynamics.f, ...
+                                        zeros(mdl.n_origins, 1), ...
+                                        10 * ones(mdl.n_links, 1), ...
+                                        100 * ones(mdl.n_links, 1), ...
+                                        r, obj.demand(:, 1), ...
+                                        mdl.rho_crit, mdl.a, mdl.v_free);
             state = struct('w', w, 'rho', rho, 'v', v);
             obj.state = state;
 
@@ -100,7 +101,8 @@ classdef TrafficEnv < handle
                 obj (1, 1) METANET.TrafficEnv
                 r (:, 1) double % numerical or symbolical
             end
-            assert(size(r, 1) == obj.model.n_ramps)
+            assert(size(r, 1) == obj.model.n_ramps && ~obj.is_done, ...
+                  'Invalid input shape, or environment is done.')
             
             % compute cost of being in the current state
             [cost, TTS_term, RV_term, CV_term] = obj.L( ...
@@ -133,6 +135,7 @@ classdef TrafficEnv < handle
 
             % is the episode over?
             done = obj.k_tot == obj.sim.K * obj.episodes;
+            obj.is_done = obj.is_done | done;
             
             % increment/save quantities for next iteration
             obj.k_tot = obj.k_tot + 1;

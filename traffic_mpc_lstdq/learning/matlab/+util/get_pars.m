@@ -83,4 +83,9 @@ function [sim, mdl, mpc] = get_pars()
                                             'max_iter', 3e3, ...
                                             'tol',1e-8, ...
                                             'barrier_tol_factor', 10));
+
+
+
+    %% some checks
+    assert(mod(sim.K, mpc.M) == 0)
 end

@@ -15,6 +15,7 @@ classdef (Abstract) AgentBase < handle
         weightnames (1, :) string
     end
 
+    
 
     methods (Access = public)
         function obj = AgentBase(env, known_mdl_pars)
