@@ -1,13 +1,13 @@
-classdef QAgent < RL.AgentBase
-    % QAGENT. MPC-based RL agent for Q learning for traffic control.
+classdef QLAgent < RL.AgentBase
+    % QLAGENT. MPC-based RL agent for Q learning for traffic control.
     
     properties (GetAccess = public, SetAccess = protected)
         deriv (1, 1) struct
     end
 
     methods (Access = public)
-        function obj = QAgent(env, known_mdl_pars)
-            % QAGENT. Constructs an instance of the MPC-based Q learning 
+        function obj = QLAgent(env, known_mdl_pars)
+            % QLAGENT. Constructs an instance of the MPC-based Q learning 
             % agent.
             arguments
                 env (1, 1) METANET.TrafficEnv

@@ -23,30 +23,39 @@ known_mdl_pars = struct('a', env.env.model.a * 1.3, ...
 
 
 %% MPC-based Q-Learning Agent
-agent = RL.QAgent(env.env, known_mdl_pars);
-return
+agent = RL.QLAgent(env.env, known_mdl_pars);
+
 
 
 %% Simulation
+r = 575; % first action
 for i = 1:iterations
     % reset initial conditions and demand
-    env.reset(575);
+    state = env.reset(r);
     done = false;
+    k_mpc = 1;
 
-    % simulate all episodes
-    while ~done
-        % choose control actiobn
-        r = max(575, 900 + 100 * randn);
+    % simulate all episodes in current iteration
+    while ~done % 
+        % compute Q(s, a)
+        % .....
 
-        % step the system
-        [state, cost, done, info] = env.step(r);
-        if ~done
-            assert(i == env.iter);
+        % step dynamics to next mpc iteration
+        for m = 1:mpc.M
+            [state_next, cost, done, info] = env.step(r);
+            if done 
+                break
+            end
         end
 
-        % check if the single episode is done
-        if info.ep_done
-            fprintf('ep=%i, k=%i, k_tot=%i\n', env.env.ep, env.env.k, env.env.k_tot);
-        end
+        % compute V(s+)
+        % .....
+        r_next = max(575, 900 + 100 * randn);
+        
+
+        % increment/save for next timestep
+        k_mpc = k_mpc + 1;
+        state = state_next;
+        r = r_next;
     end
 end
