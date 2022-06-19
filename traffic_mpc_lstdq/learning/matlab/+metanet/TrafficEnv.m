@@ -26,6 +26,7 @@ classdef TrafficEnv < handle
     properties (Dependent) 
         x (:, 1) double % state but as a vector
         d (:, 1) double % current demand
+        d_future (:, :) double % future demands
         %
         ep (1, 1) double {mustBePositive, mustBeInteger} % internal counter of episode
         k (1, 1) double {mustBePositive, mustBeInteger} % internal time counter per episode
@@ -154,6 +155,13 @@ classdef TrafficEnv < handle
         function d = get.d(obj)
             % D. Gets the current demand as a vector.
             d = obj.demand(:, obj.k_tot);
+        end
+
+        function d = get.d_future(obj)
+            % D. Gets the future demands (starting from the current 
+            % timestep) as a matrix.
+            k_fin = obj.k_tot + obj.mpc.M * obj.mpc.Np - 1;
+            d = obj.demand(:, obj.k_tot:k_fin);
         end
 
         function k = get.k(obj)

@@ -37,9 +37,8 @@ classdef TrafficMonitor < handle
             obj.clear_history();
         end
 
-        function state = reset(obj, varargin)
-            % just call the wrapped env's reset function
-            state = obj.env.reset(varargin{:});
+        function varargout = reset(obj, varargin)
+            [varargout{1:nargout}] = obj.env.reset(varargin{:});
         end
 
         function [next_state, cost, done, info] = step(obj, r)
