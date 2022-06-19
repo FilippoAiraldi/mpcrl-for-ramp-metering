@@ -1,4 +1,4 @@
-function [w_ss, rho_ss, v_ss, err, k] = steady_state( ...
+function [w_ss, rho_ss, v_ss, err, k, errormsg] = steady_state( ...
                                                 F, w0, rho0, v0, r, d, ...
                                                 rho_crit, a, v_free, ...
                                                 tol, maxiter)
@@ -12,6 +12,7 @@ function [w_ss, rho_ss, v_ss, err, k] = steady_state( ...
         maxiter (1, 1) double {mustBeNonnegative,mustBeInteger} = 5e2
     end
 
+    errormsg = char.empty;
     k = 0;
     err_prev = inf;
     err = inf;
@@ -29,7 +30,7 @@ function [w_ss, rho_ss, v_ss, err, k] = steady_state( ...
             return
         end
         if err >= err_prev
-            warning('stopping steady-state search; non-decreasing error')
+            errormsg = 'steady-state stopped (non-decreasing error)';
             return 
         end
 
@@ -40,5 +41,5 @@ function [w_ss, rho_ss, v_ss, err, k] = steady_state( ...
         k = k + 1;
         err_prev = err;
     end
-    warning('steady-state not reached; stopped at max iterations')
+    errormsg = 'steady-state stopped (max iterations reached)';
 end
