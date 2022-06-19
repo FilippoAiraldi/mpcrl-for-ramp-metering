@@ -29,6 +29,7 @@ agent = RL.QLAgent(env.env, known_pars);
 
 
 %% Simulation
+logger = util.Logger(env, runname, false);
 r = 575;        % first action
 r_prev = r;     % action before that
 for i = 1:iterations
@@ -62,13 +63,10 @@ for i = 1:iterations
         
         % if both are success, save transition quantities to replay memory
         % (skip a couple of first transitions)
-        if k_mpc > 1
-            if infoQ.success && infoV.success
-                % ... TODO: save transition to replay mem ...
-            else
-                % ... TODO: log errors ...
-            end
+        if k_mpc > 1 && infoQ.success && infoV.success
+            % ... TODO: save transition to replay mem ...
         end
+        logger.log_mpc_status(infoV, infoQ);
 
         % perform RL update, if it is time
         % ... TODO ...
