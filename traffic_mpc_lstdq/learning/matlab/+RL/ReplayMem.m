@@ -10,7 +10,7 @@ classdef ReplayMem < handle
     end
 
     properties (GetAccess = public, SetAccess = public)
-        reduce (1, :) char {mustBeTextScalar} = 'none'
+        reduce (1, :) char = 'none'
     end
     
 
@@ -21,8 +21,8 @@ classdef ReplayMem < handle
             % given capacity, reduction method (applied after sampling),
             % and the given headers (in varargin)
             arguments
-                capacity (1, 1) double {mustBePositive,mustBeInteger}
-                reduce (1, :) char {mustBeTextScalar} = 'none'
+                capacity (1, 1) double {mustBePositive, mustBeInteger}
+                reduce (1, :) char = 'none'
             end
             arguments (Repeating)
                 varargin (1, :) char {mustBeTextScalar}
@@ -40,8 +40,10 @@ classdef ReplayMem < handle
         end
 
         function set.reduce(obj, val) 
-            assert(ismember(val, {'sum', 'mean', 'none'}), ...
-                'invalid reduce method');
+            arguments
+                obj (1, 1) RL.ReplayMem
+                val {mustBeMember(val, {'sum', 'mean', 'none'})}
+            end
             obj.reduce = val;
         end
 
@@ -49,7 +51,7 @@ classdef ReplayMem < handle
             % CLEAR. Clears the buffer memory completely. Reinitializes the
             % headers as well, if provided.
             arguments
-                obj (1, 1) rlmpc.ReplayMem
+                obj (1, 1) RL.ReplayMem
             end
             arguments (Repeating)
                 varargin (1, :) char {mustBeTextScalar}
@@ -91,10 +93,10 @@ classdef ReplayMem < handle
             % SAMPLE. Extracts from the buffer a sample of given size at
             % random. If given, forcibly includes also the last N items.
             arguments
-                obj (1, 1) rlmpc.ReplayMem
-                n (1, 1) double {mustBeNonnegative,mustBeFinite}
+                obj (1, 1) RL.ReplayMem
+                n (1, 1) double {mustBeNonnegative, mustBeFinite}
                 include_last_n ...
-                    (1, 1) double {mustBeNonnegative,mustBeFinite} = 0
+                    (1, 1) double {mustBeNonnegative, mustBeFinite} = 0
             end
 
             % check if percentage

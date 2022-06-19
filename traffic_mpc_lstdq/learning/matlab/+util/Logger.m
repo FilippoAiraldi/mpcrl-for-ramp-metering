@@ -38,6 +38,10 @@ classdef Logger < handle
         
         function m = log(obj, msg)
             % LOG. Prints an information message to the command window.
+            arguments
+                obj (1, 1) util.Logger
+                msg (1, :) char = char.empty
+            end
             if isempty(msg)
                 m = char.empty;
                 return
@@ -70,8 +74,13 @@ classdef Logger < handle
             fprintf('%s\n', m)
         end
     
-        function m = log_mpc_status(obj, infoV, infoQ)
+        function m = log_mpc_status(obj, infoQ, infoV)
             % LOG_MPC_STATUS. Logs status related to solving V and Q mpcs.
+            arguments
+                obj (1, 1) util.Logger
+                infoQ (1, 1) struct
+                infoV (1, 1) struct
+            end
             if infoV.success
                 msg = '';
             else
@@ -81,6 +90,20 @@ classdef Logger < handle
                 msg = sprintf('%sQ: %s.', msg, infoQ.msg);
             end
             m = obj.log(msg);
+        end
+
+        function m = log_ep_recap(obj, agent, ep)
+            % LOG_EP_RECAP. Logs the recap of the episode just done.
+            arguments
+                obj (1, 1) util.Logger
+                agent (1, 1) RL.AgentBase
+                ep (1, 1) double {mustBeInteger, mustBePositive} = ...  
+                                                            obj.env.env.ep;
+            end
+            fails = agent.Q.failures + agent.V.failures;
+            m = obj.log(sprintf( ...
+                'episode %i done: J=%.3f, TTS=%.3f, failures=%i', ...
+                ep, obj.env.env.cumcost.J,obj.env.env.cumcost.TTS, fails));
         end
     end
 

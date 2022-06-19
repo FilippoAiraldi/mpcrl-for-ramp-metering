@@ -24,8 +24,11 @@ known_pars = struct('a', env.env.model.a * 1.3, ...
 
 %% MPC-based Q-Learning Agent
 agent = RL.QLAgent(env.env, known_pars);
-% TODO: ... create a monitor for the agent's quantities ...
-% TODO: ... replay memory ...
+% TODO: ... create a monitor for the agent's quantities...
+%       1. saves Qf and Qv for each MPC solving
+%       2. saves transition quantities
+%       3. saves update quantities
+replaymem = RL.ReplayMem(mpc.mem_cap, 'sum', 'g', 'H');
 
 
 %% Simulation
@@ -40,33 +43,31 @@ for i = 1:iterations
 
     % simulate all episodes in current iteration
     while ~done
-        ep = env.env.ep; 
+        ep = env.env.ep;
 
         % compute Q(s, a)
         pars = struct('a', known_pars.a, 'r_last', r_prev, 'r0', r);
-        [Qf, ~, ~, infoQ] = agent.solve_Q(pars, state);
+        [~, ~, infoQ] = agent.solve_Q(pars, state);
 
         % step dynamics to next mpc iteration
         L = 0;
         for m = 1:mpc.M
-            [state_next, cost, done] = env.step(r);
+            [state_next, cost, done, info_env] = env.step(r);
             L = L + cost;
-            if done 
-                break
-            end
+            if done; break; end
         end
 
         % compute V(s+)
         p = agent.rand_perturbation((i - 1) * episodes + ep);
         pars = struct('a', known_pars.a, 'r_last', r, 'perturbation', p);
-        [Vf, r_next, ~, infoV] = agent.solve_V(pars, state_next);
+        [r_next, ~, infoV] = agent.solve_V(pars, state_next);
         
         % if both are success, save transition quantities to replay memory
         % (skip a couple of first transitions)
-        if k_mpc > 1 && infoQ.success && infoV.success
-            % ... TODO: save transition to replay mem ...
+        if k_mpc > 1
+            agent.save_transition(replaymem, L, infoQ, infoV);
         end
-        logger.log_mpc_status(infoV, infoQ);
+        logger.log_mpc_status(infoQ, infoV);
 
         % perform RL update, if it is time
         % ... TODO ...
@@ -77,7 +78,11 @@ for i = 1:iterations
         r_prev = r;
         r = r_next;
 
-        % if episode is done, print summary
-        % ... TODO ...
+        % episode is done, so print summary and live-plot 
+        if info_env.ep_done
+            logger.log_ep_recap(agent, ep);
+            agent.Q.failures = 0;
+            agent.V.failures = 0;
+        end
     end
 end

@@ -47,7 +47,7 @@ classdef (Abstract) AgentBase < handle
             obj.init_pars(known_mdl_pars); 
         end
     
-        function [f, r0_opt, sol, info] = solve_mpc( ...
+        function [r0_opt, sol, info] = solve_mpc( ...
                             obj, name, pars, state, demand, rlpars, sol0)
             % SOLVE_MPC. Computes the value function V(s) or Q(s,a).
             arguments
@@ -112,7 +112,6 @@ classdef (Abstract) AgentBase < handle
             opts = obj.(strcat(name, 'opts'));
             [sol, info] = obj.(name).solve( ...
                         pars, sol0, opts.shiftvals, env_.mpc.multistart);
-            f = info.f;
             r0_opt = sol.r(:, 1);
 
             % save last solution
@@ -144,6 +143,10 @@ classdef (Abstract) AgentBase < handle
         end
     end
 
+    methods (Abstract)
+        save_transition
+%         update
+    end
 
 
     % PROPERTY GETTERS
