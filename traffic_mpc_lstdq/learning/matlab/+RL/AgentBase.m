@@ -119,18 +119,6 @@ classdef (Abstract) AgentBase < handle
             obj.last_info = info;
         end
 
-        function varargout = solve_V(obj, varargin)
-            % SOLVE_V. Computes the value function V(s). See SOLVE_MPC
-            % for more details.
-            [varargout{1:nargout}] = obj.solve_mpc('V', varargin{:});
-        end
-
-        function varargout = solve_Q(obj, varargin)
-            % SOLVE_Q. Computes the value function Q(s,a). See SOLVE_MPC 
-            % for more details.
-            [varargout{1:nargout}] = obj.solve_mpc('Q', varargin{:});
-        end
-
         function m = rand_perturbation(obj, ep)
             % RAND_PERTURBATION. Returns a random perturbation value based 
             % on the episode (probability of perturbation decreases per 
