@@ -129,9 +129,9 @@ classdef AgentMonitor < handle
             % norms of gradients and search directions
             axs(end + 1) = nexttile;
             clrs = axs(end).ColorOrder(1:2, :);
-            do_plot(axs(end), k_mpc, g_norm, 'Color', clrs(1, :))
+            do_pobj.lot(axs(end), k_mpc, g_norm, 'Color', clrs(1, :))
             ylabel(axs(end), '||g||');
-            xlabel(axs(end), 'transition')
+            xlabel(axs(end), 'transition');
             axs(end).XAxis.Limits = [k_mpc(1), k_mpc(end)];
             axs(end).XColor = clrs(1, :);
             axs(end).YColor = clrs(1, :);
@@ -144,7 +144,7 @@ classdef AgentMonitor < handle
             axs(end - 1).Box = 'off';
             axs(end).Box = 'off';
             ylabel(axs(end), '||p||');
-            xlabel(axs(end), 'update')
+            xlabel(axs(end), 'update');
             axs(end).XAxis.Limits = [k_up(1), k_up(end)];
             axs(end).XColor = clrs(2, :);
             axs(end).YColor = clrs(2, :);
@@ -157,7 +157,7 @@ classdef AgentMonitor < handle
             yyaxis(axs(end), 'right')
             plot(axs(end), k_mpc, td_err_perc)
             ylabel(axs(end), '%');
-            xlabel(axs(end), 'transition')
+            xlabel(axs(end), 'transition');
             axs(end).XAxis.Limits = [k_mpc(1), k_mpc(end)];
 
             % Model parameters learnt via RL

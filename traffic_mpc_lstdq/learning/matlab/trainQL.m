@@ -30,9 +30,13 @@ replaymem = RL.ReplayMem(mpc.mem_cap, 'sum', 'g', 'H');
 
 
 %% Simulation
-logger = util.Logger(env, agent.agent, runname, false);
+% prepare for simulation
+logger = util.Logger(env, agent, runname, false);
+plotter = util.TrainLivePlot(env, agent);
 r = 575;        % first action
 r_prev = r;     % action before that
+
+% start simulation
 for i = 1:iterations
     % reset initial conditions and demand
     state = env.reset(r);
@@ -76,7 +80,8 @@ for i = 1:iterations
         % episode is done, so print summary, live-plot, reset quantites
         if info_env.ep_done
             % log and plot
-            logger.log_ep_recap(ep);
+            logger.log_ep_summary(ep);
+            plotter.plot_episode_summary(i, ep);
 
             % reset
             agent.agent.Q.failures = 0;

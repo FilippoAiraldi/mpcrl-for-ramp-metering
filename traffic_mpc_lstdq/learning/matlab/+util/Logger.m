@@ -111,13 +111,12 @@ classdef Logger < handle
             m = obj.log(msg);
         end
 
-        function m = log_ep_recap(obj, ep)
-            % LOG_EP_RECAP. Logs the recap of the episode just over 
+        function m = log_ep_summary(obj, ep)
+            % LOG_EP_SUMMARY. Logs a recap of the episode just finished 
             % (assumes the agent has not been yet reset).
             arguments
                 obj (1, 1) util.Logger
-                ep (1, 1) double {mustBeInteger, mustBePositive} = ...  
-                                                            obj.env.env.ep;
+                ep (1, 1) double {mustBeInteger, mustBePositive}
             end
             a = obj.agent.agent;
 
