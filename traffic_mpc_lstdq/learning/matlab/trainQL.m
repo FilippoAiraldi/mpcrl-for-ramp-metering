@@ -7,8 +7,8 @@ save_freq = 2;                          % checkpoint saving frequency
 
 
 %% Training Environment
-iterations = 3;                         % simulation iterations
-episodes = 7;                          % number of episodes per iteration
+iterations = 2;                         % simulation iterations
+episodes = 5;                          % number of episodes per iteration
 [sim, mdl, mpc] = util.get_pars();
 
 % create gym  environment with monitor
@@ -32,7 +32,7 @@ replaymem = RL.ReplayMem(mpc.mem_cap, 'sum', 'g', 'H');
 
 
 %% Simulation
-logger = util.Logger(env, runname, false);
+logger = util.Logger(env, agent, runname, false);
 r = 575;        % first action
 r_prev = r;     % action before that
 for i = 1:iterations
@@ -58,7 +58,7 @@ for i = 1:iterations
         end
 
         % compute V(s+)
-        p = agent.rand_perturbation((i - 1) * episodes + ep);
+        p = 0 * agent.rand_perturbation((i - 1) * episodes + ep);
         pars = struct('a', known_pars.a, 'r_last', r, 'perturbation', p);
         [r_next, ~, infoV] = agent.solve_V(pars, state_next);
         
@@ -69,20 +69,27 @@ for i = 1:iterations
         end
         logger.log_mpc_status(infoQ, infoV);
 
-        % perform RL update, if it is time
-        % ... TODO ...
+        % perform RL update (do not update in the very first episode)
+        if ~mod(k_mpc, mpc.update_freq) && (i > 1 || ep > 1)
+            % ... TODO ...
+            logger.log_agent_update(1, 2, 3, 4);
+        end
+
+        % episode is done, so print summary, live-plot, reset quantites
+        if info_env.ep_done
+            % log and plot
+            logger.log_ep_recap(ep);
+
+            % reset
+            agent.Q.failures = 0;
+            agent.V.failures = 0;
+            env.env.reset_cumcost();
+        end
 
         % increment/save for next timestep
         k_mpc = k_mpc + 1;
         state = state_next;
         r_prev = r;
-        r = r_next;
-
-        % episode is done, so print summary and live-plot 
-        if info_env.ep_done
-            logger.log_ep_recap(agent, ep);
-            agent.Q.failures = 0;
-            agent.V.failures = 0;
-        end
+        r = r_next;        
     end
 end

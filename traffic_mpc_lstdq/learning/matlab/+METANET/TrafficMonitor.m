@@ -154,7 +154,7 @@ classdef TrafficMonitor < handle
             % quantities. A step size can be provided to reduce the number 
             % of datapoints plotted.
             arguments
-                obj (1, 1) METANET.MonitorWrapper
+                obj (1, 1) METANET.TrafficMonitor
                 title (1, :) char {mustBeTextScalar} = char.empty
                 step (1, 1) double {mustBePositive, mustBeInteger} = 3
             end
@@ -235,7 +235,7 @@ classdef TrafficMonitor < handle
             % PLOT_COST. PLots traffic costs. A step size can be provided 
             % to reduce the number of datapoints plotted.
             arguments
-                obj (1, 1) METANET.MonitorWrapper
+                obj (1, 1) METANET.TrafficMonitor
                 title (1, :) char {mustBeTextScalar} = char.empty
                 step (1, 1) double {mustBePositive, mustBeInteger} = 1
             end

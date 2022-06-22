@@ -87,11 +87,20 @@ classdef TrafficEnv < handle
             obj.k_tot = 1;
             obj.r_prev = r;
 
-            % reset cumulative costs - one for each term, each weighted
-            % J is the total cumulative cost
-            % TTS is the cumulative cost term due to TTS
-            % RV is the cumulative cost term due to rate variability
-            % CV is the cumulative cost term due to constraint violation
+            % reset other stats
+            obj.is_done = false;
+            obj.reset_cumcost()
+        end
+
+        function reset_cumcost(obj)
+            arguments
+                obj (1, 1) METANET.TrafficEnv
+            end
+            % RESET_CUMCOST. Resets cumulative costs - one for each term:
+            %   - J is the total cumulative cost
+            %   - TTS is the cumulative cost term due to TTS
+            %   - RV is the cumulative cost term due to rate variability
+            %   - CV is the cumulative cost term due to constraint violation
             obj.cumcost = struct('J', 0, 'TTS', 0, 'RV', 0, 'CV', 0);
         end
 

@@ -2,7 +2,8 @@ classdef Logger < handle
     % LOGGER. Class for logging purposes.
     
     properties (GetAccess = public, SetAccess = protected)
-        env (1, 1) % METANET.TrafficMonitor
+        env (1, 1)      % METANET.TrafficMonitor
+        agent (1, 1)    % RL.AgentBase
     end
 
     properties
@@ -10,14 +11,16 @@ classdef Logger < handle
     end
 
     methods (Access = public)
-        function obj = Logger(env, runname, savetodiary)
+        function obj = Logger(env, agent, runname, savetodiary)
             % LOGGER. Instantiates the logger class.
             arguments
                 env (1, 1) METANET.TrafficMonitor
+                agent (1, 1) RL.AgentBase
                 runname (1, :) char {mustBeTextScalar} = char.empty
                 savetodiary (1, 1) logical = true
             end
             obj.env = env;
+            obj.agent = agent;
             obj.clock = tic;
 
             % start diary logging
@@ -61,7 +64,7 @@ classdef Logger < handle
             time_sim = duration(time_sim, 0, 0, 'Format', 'hh:mm:ss');
         
             % assemble log string
-            m = sprintf('[%s|%i|%i|%s] - [%s|%i|%.1f%%]', ...
+            m = sprintf('[%s|%i|%i|%s] - [%s|%i|%.0f%%]', ...
                         time_tot, i, e, time_ep, ...
                         time_sim, k, k / K * 100);
         
@@ -92,23 +95,47 @@ classdef Logger < handle
             m = obj.log(msg);
         end
 
-        function m = log_ep_recap(obj, agent, ep)
-            % LOG_EP_RECAP. Logs the recap of the episode just done.
+        function m = log_ep_recap(obj, ep)
+            % LOG_EP_RECAP. Logs the recap of the episode just over 
+            % (assumes the agent has not been yet reset).
             arguments
                 obj (1, 1) util.Logger
-                agent (1, 1) RL.AgentBase
                 ep (1, 1) double {mustBeInteger, mustBePositive} = ...  
                                                             obj.env.env.ep;
             end
-            fails = agent.Q.failures + agent.V.failures;
+            fails = obj.agent.Q.failures + obj.agent.V.failures;
             m = obj.log(sprintf( ...
                 'episode %i done: J=%.3f, TTS=%.3f, failures=%i', ...
                 ep, obj.env.env.cumcost.J,obj.env.env.cumcost.TTS, fails));
+        end
+
+        function m = log_agent_update(obj, nb_update, Nsamples, lr, Hmod)
+            % LOG_AGENT_UPDATE. Logs the agent's weights after a new 
+            % update.
+            arguments
+                obj (1, 1) util.Logger
+                nb_update (1, 1) double
+                Nsamples (1, 1) double
+                lr (1, 1) double
+                Hmod (1, 1) double
+            end
+
+            names = fieldnames(obj.agent.weights.value);
+            values = cellfun(@(v) mat2str(v(:)', 6), ...
+                             struct2cell(obj.agent.weights.value), ...
+                             'UniformOutput', false);
+            fmt = ['update %i (N=%i, lr=%1.3e, Hmod=%1.3e):', ...
+                   repmat(' %s=%s;', 1, length(names))];
+            rlargs = reshape([names, values]', [], 1);
+            msg = sprintf(fmt, nb_update, Nsamples, lr, Hmod, rlargs{:});
+
+            m = obj.log(msg);
         end
     end
 
     methods (Static)
         function h = log_headers()
+            % LOG_HEADERS. Logs the headers of each column.
             h = '[Time_tot|Iter|Ep|Time_ep] - [Time_sim|k|Perc] - Message';
             fprintf(strcat(h, '\n'));
         end
