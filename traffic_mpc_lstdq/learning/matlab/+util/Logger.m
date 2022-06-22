@@ -109,14 +109,13 @@ classdef Logger < handle
                 ep, obj.env.env.cumcost.J,obj.env.env.cumcost.TTS, fails));
         end
 
-        function m = log_agent_update(obj, nb_update, Nsamples, lr, Hmod)
+        function m = log_agent_update(obj, nb_update, Nsamples, Hmod)
             % LOG_AGENT_UPDATE. Logs the agent's weights after a new 
             % update.
             arguments
                 obj (1, 1) util.Logger
                 nb_update (1, 1) double
                 Nsamples (1, 1) double
-                lr (1, 1) double
                 Hmod (1, 1) double
             end
 
@@ -124,10 +123,10 @@ classdef Logger < handle
             values = cellfun(@(v) mat2str(v(:)', 6), ...
                              struct2cell(obj.agent.weights.value), ...
                              'UniformOutput', false);
-            fmt = ['update %i (N=%i, lr=%1.3e, Hmod=%1.3e):', ...
+            fmt = ['update %i (N=%i, Hmod=%1.3e):', ...
                    repmat(' %s=%s;', 1, length(names))];
             rlargs = reshape([names, values]', [], 1);
-            msg = sprintf(fmt, nb_update, Nsamples, lr, Hmod, rlargs{:});
+            msg = sprintf(fmt, nb_update, Nsamples, Hmod, rlargs{:});
 
             m = obj.log(msg);
         end

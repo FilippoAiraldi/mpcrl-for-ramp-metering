@@ -70,9 +70,9 @@ for i = 1:iterations
         logger.log_mpc_status(infoQ, infoV);
 
         % perform RL update (do not update in the very first episode)
-        if ~mod(k_mpc, mpc.update_freq) && (i > 1 || ep > 1)
-            % ... TODO ...
-            logger.log_agent_update(1, 2, 3, 4);
+        if ~mod(k_mpc, mpc.update_freq) % && (i > 1 || ep > 1)
+            [n, ~, Hmod] = agent.update(replaymem);
+            logger.log_agent_update(-1, n, Hmod);
         end
 
         % episode is done, so print summary, live-plot, reset quantites

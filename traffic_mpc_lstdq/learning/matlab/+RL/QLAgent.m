@@ -62,6 +62,29 @@ classdef QLAgent < RL.AgentBase
                        'td_err_perc', td_err / infoQ.f, ...
                        'g', g); 
         end
+
+        function [n, p, Hmod, deltas] = update(obj, replaymem)
+            arguments   
+                obj (1, 1) RL.QLAgent
+                replaymem (1, 1) RL.ReplayMem
+            end
+            mem_sample = obj.env.mpc.mem_sample;
+            mem_last = obj.env.mpc.mem_last;
+            lr = obj.env.mpc.lr0;
+            max_delta = obj.env.mpc.max_delta;
+
+            % draw a sample batch of transitions
+            sample = replaymem.sample(mem_sample, mem_last);
+            n = sample.n;
+
+            % compute descend direction
+            [p, Hmod] = rlmpc.descent_direction(sample.g, sample.H, 1);
+
+            % perform constrained update and save its maximum multiplier
+            [obj.weights.value, deltas] = rlmpc.constr_update( ...
+                            obj.weights.value, obj.weights.bound, ...
+                            p, lr, max_delta);
+        end
     end
 end
 

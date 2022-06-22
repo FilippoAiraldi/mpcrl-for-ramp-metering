@@ -145,7 +145,7 @@ classdef (Abstract) AgentBase < handle
 
     methods (Abstract)
         save_transition
-%         update
+        update
     end
 
 

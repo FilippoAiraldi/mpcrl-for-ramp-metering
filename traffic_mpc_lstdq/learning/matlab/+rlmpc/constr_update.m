@@ -1,4 +1,5 @@
-function [new_pars, deltas, lam_inf] = constr_update(pars, bnd, p, max_delta)
+function [new_pars, deltas, lam_inf] = constr_update( ...
+                                            pars, bnd, p, lr, max_delta)
     % CONSTR_UPDATE. Performs the update of the learnable
     % parameters via a Linear Constrained Quadratic Programming problem,
     % ensuring that the parameter bounds are not compromised
@@ -6,6 +7,7 @@ function [new_pars, deltas, lam_inf] = constr_update(pars, bnd, p, max_delta)
         pars (1, 1) struct
         bnd (1, 1) struct
         p (:, 1) double
+        lr (1, 1) double
         max_delta (1, 1) double
     end
 
@@ -26,6 +28,7 @@ function [new_pars, deltas, lam_inf] = constr_update(pars, bnd, p, max_delta)
 
     % solve constrained lcqp
     H = 0.5 * eye(length(p));
+    p = lr * p;
     [deltas, ~, exitflag, ~, lambda] = quadprog(H, -p, [], [], [], [], ...
         lb, ub, p, optimoptions('quadprog', 'Display', 'off', ...
                                     'Algorithm', 'interior-point-convex'));
@@ -44,5 +47,7 @@ function [new_pars, deltas, lam_inf] = constr_update(pars, bnd, p, max_delta)
     end
 
     % compute infinity norm of multipliers
-    lam_inf = norm([lambda.upper; lambda.lower], 'inf');
+    if nargout > 2
+        lam_inf = norm([lambda.upper; lambda.lower], 'inf');
+    end
 end
