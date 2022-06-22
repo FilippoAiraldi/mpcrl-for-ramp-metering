@@ -47,7 +47,7 @@ for i = 1:iterations
 
         % compute Q(s, a)
         pars = struct('a', known_pars.a, 'r_last', r_prev, 'r0', r);
-        [~, ~, infoQ] = agent.solve_Q(pars, state);
+        [~, ~, infoQ] = agent.solve_mpc('Q', pars, state);
 
         % step dynamics to next mpc iteration
         L = 0;
@@ -58,9 +58,9 @@ for i = 1:iterations
         end
 
         % compute V(s+)
-        p = 0 * agent.rand_perturbation((i - 1) * episodes + ep);
-        pars = struct('a', known_pars.a, 'r_last', r, 'perturbation', p);
-        [r_next, ~, infoV] = agent.solve_V(pars, state_next);
+        pars = struct('a', known_pars.a, 'r_last', r, 'perturbation', ...
+            agent.agent.rand_perturbation((i - 1) * episodes + ep));
+        [r_next, ~, infoV] = agent.solve_mpc('V', pars, state_next);
         
         % if both are success, save transition quantities to replay memory
         % (skip a couple of first transitions)
@@ -70,9 +70,9 @@ for i = 1:iterations
         logger.log_mpc_status(infoQ, infoV);
 
         % perform RL update (do not update in the very first episode)
-        if ~mod(k_mpc, mpc.update_freq) % && (i > 1 || ep > 1)
-            [n, ~, Hmod] = agent.update(replaymem);
-            logger.log_agent_update(-1, n, Hmod);
+        if ~mod(k_mpc, mpc.update_freq) && (i > 1 || ep > 1)
+            nb_samples = agent.update(replaymem);
+            logger.log_agent_update(nb_samples);
         end
 
         % episode is done, so print summary, live-plot, reset quantites
@@ -81,8 +81,8 @@ for i = 1:iterations
             logger.log_ep_recap(ep);
 
             % reset
-            agent.Q.failures = 0;
-            agent.V.failures = 0;
+            agent.agent.Q.failures = 0;
+            agent.agent.V.failures = 0;
             env.env.reset_cumcost();
         end
 

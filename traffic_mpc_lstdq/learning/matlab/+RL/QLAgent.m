@@ -1,5 +1,6 @@
 classdef QLAgent < RL.AgentBase
-    % QLAGENT. MPC-based RL agent for Q learning for traffic control.
+    % QLAGENT. OpenAI-like gym MPC-based RL agent for Q learning for 
+    % traffic control.
     
     properties (GetAccess = public, SetAccess = protected)
         deriv (1, 1) struct
@@ -63,7 +64,7 @@ classdef QLAgent < RL.AgentBase
                        'g', g); 
         end
 
-        function [n, p, Hmod, deltas] = update(obj, replaymem)
+        function [n, deltas, s] = update(obj, replaymem)
             arguments   
                 obj (1, 1) RL.QLAgent
                 replaymem (1, 1) RL.ReplayMem
@@ -84,6 +85,10 @@ classdef QLAgent < RL.AgentBase
             [obj.weights.value, deltas] = rlmpc.constr_update( ...
                             obj.weights.value, obj.weights.bound, ...
                             p, lr, max_delta);
+            
+            % build a struct with some information on the update. These 
+            % will most likely be saved to a log history
+            s = struct('n', n, 'p', p, 'Hmod', Hmod);
         end
     end
 end

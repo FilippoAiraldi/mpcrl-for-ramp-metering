@@ -3,7 +3,7 @@ classdef Logger < handle
     
     properties (GetAccess = public, SetAccess = protected)
         env (1, 1)      % METANET.TrafficMonitor
-        agent (1, 1)    % RL.AgentBase
+        agent (1, 1)    % RL.AgentMonitor
     end
 
     properties
@@ -15,7 +15,7 @@ classdef Logger < handle
             % LOGGER. Instantiates the logger class.
             arguments
                 env (1, 1) METANET.TrafficMonitor
-                agent (1, 1) RL.AgentBase
+                agent (1, 1) RL.AgentMonitor
                 runname (1, :) char {mustBeTextScalar} = char.empty
                 savetodiary (1, 1) logical = true
             end
@@ -103,30 +103,32 @@ classdef Logger < handle
                 ep (1, 1) double {mustBeInteger, mustBePositive} = ...  
                                                             obj.env.env.ep;
             end
-            fails = obj.agent.Q.failures + obj.agent.V.failures;
+            a = obj.agent.agent;
+
+            fails = a.Q.failures + a.V.failures;
             m = obj.log(sprintf( ...
                 'episode %i done: J=%.3f, TTS=%.3f, failures=%i', ...
                 ep, obj.env.env.cumcost.J,obj.env.env.cumcost.TTS, fails));
         end
 
-        function m = log_agent_update(obj, nb_update, Nsamples, Hmod)
+        function m = log_agent_update(obj, Nsamples)
             % LOG_AGENT_UPDATE. Logs the agent's weights after a new 
             % update.
             arguments
                 obj (1, 1) util.Logger
-                nb_update (1, 1) double
                 Nsamples (1, 1) double
-                Hmod (1, 1) double
             end
+            a = obj.agent.agent;
 
-            names = fieldnames(obj.agent.weights.value);
+            nb_update = obj.agent.nb_updates + 1;
+            names = fieldnames(a.weights.value);
             values = cellfun(@(v) mat2str(v(:)', 6), ...
-                             struct2cell(obj.agent.weights.value), ...
+                             struct2cell(a.weights.value), ...
                              'UniformOutput', false);
-            fmt = ['update %i (N=%i, Hmod=%1.3e):', ...
+            fmt = ['update %i (N=%i):', ...
                    repmat(' %s=%s;', 1, length(names))];
             rlargs = reshape([names, values]', [], 1);
-            msg = sprintf(fmt, nb_update, Nsamples, Hmod, rlargs{:});
+            msg = sprintf(fmt, nb_update, Nsamples, rlargs{:});
 
             m = obj.log(msg);
         end
