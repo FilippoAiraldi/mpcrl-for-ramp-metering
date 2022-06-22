@@ -79,10 +79,10 @@ classdef QLAgent < RL.AgentBase
             n = sample.n;
 
             % compute descend direction
-            [p, Hmod] = rlmpc.descent_direction(sample.g, sample.H, 1);
+            [p, Hmod] = RL.descent_direction(sample.g, sample.H, 1);
 
             % perform constrained update and save its maximum multiplier
-            [obj.weights.value, deltas] = rlmpc.constr_update( ...
+            [obj.weights.value, deltas] = RL.constr_update( ...
                             obj.weights.value, obj.weights.bound, ...
                             p, lr, max_delta);
             
