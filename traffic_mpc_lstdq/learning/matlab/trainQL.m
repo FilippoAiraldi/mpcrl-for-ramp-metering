@@ -24,15 +24,13 @@ known_pars = struct('a', env.env.model.a * 1.3, ...
 
 %% MPC-based Q-Learning Agent
 agent = RL.QLAgent(env.env, known_pars);
-% TODO: ... create a monitor for the agent's quantities...
-%       1. saves Qf and Qv for each MPC solving
-%       2. saves transition quantities
-%       3. saves update quantities
+agent = RL.AgentMonitor(agent);
 replaymem = RL.ReplayMem(mpc.mem_cap, 'sum', 'g', 'H');
 
 
+
 %% Simulation
-logger = util.Logger(env, agent, runname, false);
+logger = util.Logger(env, agent.agent, runname, false);
 r = 575;        % first action
 r_prev = r;     % action before that
 for i = 1:iterations
