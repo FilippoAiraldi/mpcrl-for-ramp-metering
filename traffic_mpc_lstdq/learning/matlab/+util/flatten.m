@@ -12,14 +12,17 @@ function f = flatten(m)
         for n = fieldnames(m)'
             f.(n{1}) = util.flatten(m.(n{1}));
         end
-    elseif ndims(m) == 4
-        N = size(m, 3);
-        f = reshape(permute(m, [3, 4, 2, 1]), N, []);
-    elseif ndims(m) == 3
-        f = reshape(permute(m, [3, 2, 1]), 1, []);
-    elseif ndims(m) == 2
-        f = reshape(permute(m, [2, 1]), 1, []);
     else
-        error('invalid datatype or matrix dimension')
+        switch ndims(m)
+            case 4
+                N = size(m, 3);
+                f = reshape(permute(m, [3, 4, 2, 1]), N, []);
+            case 3
+                f = reshape(permute(m, [3, 2, 1]), 1, []);
+            case 2
+                f = reshape(permute(m, [2, 1]), 1, []);
+            otherwise
+                error('invalid matrix dimension')
+        end
     end
 end
