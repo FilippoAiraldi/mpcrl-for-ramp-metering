@@ -10,6 +10,12 @@ classdef Logger < handle
        clock (1, 1) uint64 
     end
 
+    properties (Access = private)
+        max_headers_len (1, 1) double 
+    end
+
+
+
     methods (Access = public)
         function obj = Logger(env, agent, runname, savetodiary)
             % LOGGER. Instantiates the logger class.
@@ -32,6 +38,15 @@ classdef Logger < handle
                 end
             end
             obj.log_headers();
+
+            % compute max length of a log
+            obj.max_headers_len = ...
+                length('hh:mm:ss') * 3 + ...         % all time formats
+                ceil(log10(env.iterations)) + ...    % integers
+                ceil(log10(env.env.episodes)) + ...
+                ceil(log10(env.env.sim.K)) + ...
+                4 + ...                              % percentage 100%
+                length('[|||] - [||]');              % separators
         end
 
         function delete(~)
@@ -70,7 +85,8 @@ classdef Logger < handle
         
             % add optional message
             if nargin > 1
-                m = sprintf('%s - %s', m, msg);
+                filler = repmat('-', 1, obj.max_headers_len - length(m));
+                m = sprintf('%s -%s %s', m, filler, msg);
             end
         
             % finally print
