@@ -38,7 +38,11 @@ classdef Logger < handle
                     diary on
                 end
             end
-            obj.log_headers();
+            persistent header_logged
+            if isempty(header_logged)
+                obj.log_headers();
+                header_logged = false;
+            end
 
             % compute max length of the log headers
             obj.max_headers_len = ...

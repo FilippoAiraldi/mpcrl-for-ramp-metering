@@ -1,5 +1,5 @@
 % made with MATLAB 2021b
-clc, clearvars, close all, diary off, warning('on')
+clc, clear all, close all, diary off, warning('on') %#ok<CLALL>
 rng(42)
 runname = datestr(datetime, 'yyyymmdd_HHMMSS_train');
 
