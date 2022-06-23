@@ -1,7 +1,7 @@
 classdef (Abstract) AgentBase < handle
     % AGENTBASE. An abstract base class for RL agents for traffic control 
     % with an MPC scheme as function approximator. 
-    
+
     properties (GetAccess = public, SetAccess = protected)
         env (1, 1) % METANET.TrafficEnv 
         Q (1, 1) % MPC.NMPC
@@ -11,6 +11,8 @@ classdef (Abstract) AgentBase < handle
         % 
         last_sol = [] % (1, 1) struct
         last_info = [] % (1, 1) struct
+        %
+        name (1, :) = char.empty
     end
 
     properties (Access = public)
@@ -23,14 +25,16 @@ classdef (Abstract) AgentBase < handle
         weightnames (1, :) string
     end
 
-    
+
 
     methods (Access = public)
-        function obj = AgentBase(env, known_mdl_pars)
+        function obj = AgentBase(env, known_mdl_pars, agentname)
             arguments
                 env (1, 1) METANET.TrafficEnv
                 known_mdl_pars (1, 1) struct
+                agentname (1, :) = char.empty
             end
+            obj.name = agentname;
             
             % create the NMPC instances for Q(s,a) and V(s)
             obj.env = env;
@@ -46,7 +50,7 @@ classdef (Abstract) AgentBase < handle
             % initialize learnable parameters/weights
             obj.init_pars(known_mdl_pars); 
         end
-    
+
         function [r0_opt, sol, info] = solve_mpc( ...
                             obj, name, pars, state, demand, rlpars, sol0)
             % SOLVE_MPC. Computes the value function V(s) or Q(s,a).
@@ -129,13 +133,19 @@ classdef (Abstract) AgentBase < handle
                 m = 0;
             end
         end
+
+        function set_weight_values(obj, val)
+            for n = obj.weightnames
+                assert(isequal(size(obj.weights.value.(n)), size(val.(n))))
+                obj.weights.value.(n) = val.(n);
+            end
+        end
     end
 
     methods (Abstract)
         save_transition
         update
     end
-
 
     % PROPERTY GETTERS
     methods 
@@ -188,9 +198,9 @@ classdef (Abstract) AgentBase < handle
             % create also the symbolical weights struct
             obj.weights.sym.Q = struct;
             obj.weights.sym.V = struct;
-            for name = pars(:, 1)'
-                obj.weights.sym.Q.(name{1}) = obj.Q.pars.(name{1});
-                obj.weights.sym.V.(name{1}) = obj.V.pars.(name{1});
+            for n = pars(:, 1)'
+                obj.weights.sym.Q.(n{1}) = obj.Q.pars.(n{1});
+                obj.weights.sym.V.(n{1}) = obj.V.pars.(n{1});
             end
         end
     end

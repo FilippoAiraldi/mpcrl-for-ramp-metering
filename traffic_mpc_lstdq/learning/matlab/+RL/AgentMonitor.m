@@ -86,7 +86,7 @@ classdef AgentMonitor < handle
             % plotted.
             arguments
                 obj (1, 1) RL.AgentMonitor
-                title (1, :) char {mustBeTextScalar} = char.empty
+                title (1, :) char {mustBeTextScalar} = obj.agent.agentname
                 step (1, 1) double {mustBePositive, mustBeInteger} = 1
                 logscale (1, 1) logical = false
             end

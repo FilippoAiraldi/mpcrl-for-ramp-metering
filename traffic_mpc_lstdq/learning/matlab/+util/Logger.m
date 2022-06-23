@@ -11,6 +11,7 @@ classdef Logger < handle
     end
 
     properties (Access = private)
+        logname (1, :) char = char.empty;
         max_headers_len (1, 1) double 
     end
 
@@ -39,7 +40,7 @@ classdef Logger < handle
             end
             obj.log_headers();
 
-            % compute max length of a log
+            % compute max length of the log headers
             obj.max_headers_len = ...
                 length('hh:mm:ss') * 3 + ...         % all time formats
                 ceil(log10(env.iterations)) + ...    % integers
@@ -58,11 +59,7 @@ classdef Logger < handle
             % LOG. Prints an information message to the command window.
             arguments
                 obj (1, 1) util.Logger
-                msg (1, :) char = char.empty
-            end
-            if isempty(msg)
-                m = char.empty;
-                return
+                msg (1, :) char
             end
 
             time_tot = toc(obj.clock);
@@ -82,13 +79,16 @@ classdef Logger < handle
             m = sprintf('[%s|%i|%i|%s] - [%s|%i|%.0f%%]', ...
                         time_tot, i, e, time_ep, ...
                         time_sim, k, k / K * 100);
-        
-            % add optional message
-            if nargin > 1
-                filler = repmat('-', 1, obj.max_headers_len - length(m));
+       
+            % add agent's name (optional) and the message
+            filler = repmat('-', 1, obj.max_headers_len - length(m));
+            n = obj.agent.agent.name;
+            if isempty(n)
                 m = sprintf('%s -%s %s', m, filler, msg);
+            else
+                m = sprintf('%s -%s %s - %s', m, filler, n, msg);
             end
-        
+                    
             % finally print
             fprintf('%s\n', m)
         end
