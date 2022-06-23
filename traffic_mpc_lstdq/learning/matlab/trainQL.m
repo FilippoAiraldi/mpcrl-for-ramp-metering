@@ -1,8 +1,7 @@
 % made with MATLAB 2021b
 clc, clearvars, close all, diary off, warning('on')
 rng(42)
-runname = datestr(datetime, 'yyyymmdd_HHMMSS');
-save_freq = 2;                          % checkpoint saving frequency
+runname = datestr(datetime, 'yyyymmdd_HHMMSS_train');
 
 
 
@@ -11,7 +10,7 @@ iterations = 1;                         % simulation iterations
 episodes = 75;                          % number of episodes per iteration
 [sim, mdl, mpc] = util.get_pars();
 
-% create gym  environment with monitor
+% create gym environment with monitor
 env = METANET.TrafficEnv(episodes, sim, mdl, mpc);
 env = METANET.TrafficMonitor(env, iterations);
 
@@ -81,7 +80,7 @@ for i = 1:iterations
             logger.log_ep_summary(ep);
             plotter.plot_episode_summary(i, ep);
 
-            % reset
+            % reset episode quantities
             agent.agent.Q.failures = 0;
             agent.agent.V.failures = 0;
             env.env.reset_cumcost();
@@ -98,11 +97,9 @@ end
 
 
 %% Saving and plotting
-delete checkpoint.mat
 warning('off');
 save(strcat(runname, '_data.mat'));
 warning('on');
-
 env.plot_traffic(runname)
 env.plot_cost(runname)
 agent.plot_learning(runname)

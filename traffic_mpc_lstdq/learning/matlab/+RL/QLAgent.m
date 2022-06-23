@@ -7,16 +7,10 @@ classdef QLAgent < RL.AgentBase
     end
 
     methods (Access = public)
-        function obj = QLAgent(env, known_mdl_pars)
+        function obj = QLAgent(varargin)
             % QLAGENT. Constructs an instance of the MPC-based Q learning 
             % agent.
-            arguments
-                env (1, 1) METANET.TrafficEnv
-                known_mdl_pars (1, 1) struct
-            end
-            
-            % call superclass constructor
-            obj = obj@RL.AgentBase(env, known_mdl_pars);
+            obj = obj@RL.AgentBase(varargin{:});
 
             % compute derivative and approx. hessian of Q
             w = obj.w_sym('Q');

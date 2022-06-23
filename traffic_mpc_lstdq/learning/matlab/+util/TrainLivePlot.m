@@ -87,15 +87,21 @@ classdef TrainLivePlot < handle
         function create_plots(obj, iter, ep)
             [J, TTS, g_norm, p_norm, CV] = obj.get_data_to_plot( ...
                                                     1, iter, 1, ep, 1, 1);
+            a = obj.agent;
 
             % save the last index that has been plotting
-            obj.last_tr = length(obj.agent.transitions);
-            obj.last_up = length(obj.agent.updates);
+            obj.last_tr = length(a.transitions);
+            obj.last_up = length(a.updates);
     
             % create figure
             obj.fig = figure('Visible', 'on');
             layout = tiledlayout(obj.fig, 4, 1, 'Padding', 'none', ...
                         'TileSpacing', 'compact');
+            if ~isempty(a.agent.name)
+                sgtitle(layout, a.agent.name, 'Interpreter', 'none')
+            end
+            
+            % structure containing plots
             obj.plots = struct;
 
             % cost terms
