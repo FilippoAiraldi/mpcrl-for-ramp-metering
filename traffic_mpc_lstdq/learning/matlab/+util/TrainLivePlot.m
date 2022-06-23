@@ -69,13 +69,13 @@ classdef TrainLivePlot < handle
             TTS = util.flatten(sum(e.cost.TTS(it1:it2, ep1:ep2, :), 3));
             CV = util.flatten( ...
                     sum(e.origins.queue(it1:it2, ep1:ep2, 2, :) > ...
-                            ee.model.max_queue, 4)) / ee.sim.K;
+                            ee.model.max_queue, 4)) / ee.sim.K * 100;
 
             % for these two, pay attention if the structs are empty
             if isempty(a.transitions)
                 g_norm = nan;
             else
-                g_norm = vecnorm([a.transitions(tr1:end).g], 2, 1);
+                g_norm = mean(vecnorm([a.transitions(tr1:end).g], 2, 1));
             end
             if isempty(a.updates)
                 p_norm = nan;
@@ -111,8 +111,8 @@ classdef TrainLivePlot < handle
             % g norm
             ax = nexttile(layout); 
             obj.plots.g_norm = obj.plot(ax, g_norm);
-            ylabel(ax, '||g||');
-            xlabel(ax, 'transition');
+            ylabel(ax, '||g|| (averaged)');
+            xlabel(ax, 'episode');
 
             % p norm
             ax = nexttile(layout); 
@@ -125,6 +125,7 @@ classdef TrainLivePlot < handle
             obj.plots.CV = area(ax, CV);
             ylabel(ax, 'Constr. violation');
             xlabel(ax, 'episode');
+            ytickformat(ax, 'percentage');
         end
 
         function add_to_plots(obj, iter, ep)

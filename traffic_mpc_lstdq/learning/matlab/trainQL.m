@@ -7,8 +7,8 @@ save_freq = 2;                          % checkpoint saving frequency
 
 
 %% Training Environment
-iterations = 2;                         % simulation iterations
-episodes = 5;                          % number of episodes per iteration
+iterations = 1;                         % simulation iterations
+episodes = 75;                          % number of episodes per iteration
 [sim, mdl, mpc] = util.get_pars();
 
 % create gym  environment with monitor
@@ -30,18 +30,16 @@ replaymem = RL.ReplayMem(mpc.mem_cap, 'sum', 'g', 'H');
 
 
 %% Simulation
-% prepare for simulation
-logger = util.Logger(env, agent, runname, false);
+logger = util.Logger(env, agent, runname);
 plotter = util.TrainLivePlot(env, agent);
-r = 575;        % first action
-r_prev = r;     % action before that
 
-% start simulation
 for i = 1:iterations
-    % reset initial conditions and demand
-    state = env.reset(r);
-    done = false;
-    k_mpc = 1;
+    % reset initial conditions
+    r = 575;                % first action
+    r_prev = r;             % action before that
+    state = env.reset(r);   % reset steady-state and demands
+    done = false;           % flag to stop simulation
+    k_mpc = 1;              % mpc iteration
 
     % simulate all episodes in current iteration
     while ~done
@@ -96,3 +94,15 @@ for i = 1:iterations
         r = r_next;        
     end
 end
+
+
+
+%% Saving and plotting
+delete checkpoint.mat
+warning('off');
+save(strcat(runname, '_data.mat'));
+warning('on');
+
+env.plot_traffic(runname)
+env.plot_cost(runname)
+agent.plot_learning(runname)
