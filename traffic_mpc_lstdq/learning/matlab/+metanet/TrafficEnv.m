@@ -67,7 +67,7 @@ classdef TrafficEnv < handle
             % create random demands for all episodes + 1 to avoid 
             % out-of-bound access
             obj.demand = METANET.get_demands( ...
-                                    obj.sim.t, obj.episodes + 1, mld.demand_type);
+                            obj.sim.t, obj.episodes + 1, mdl.demand_type);
             assert(size(obj.demand, 1) == mdl.n_dist)
 
             % compute initial state (at steady-state)

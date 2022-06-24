@@ -25,7 +25,7 @@ function [sim, mdl, mpc] = get_pars()
     mdl.n_dist = 3;                     % number of disturbances/demands
 	
 	% demand type
-	mld.demand_type = 'fixed';			% either 'random' or 'fixed'
+	mdl.demand_type = 'fixed';			% either 'random' or 'fixed'
 
     % segments
     mdl.L = 1;                          % length of links (km)

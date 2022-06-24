@@ -75,7 +75,8 @@ classdef TrainLivePlot < handle
             if isempty(a.transitions)
                 g_norm = nan;
             else
-                g_norm = mean(vecnorm([a.transitions(tr1:end).g], 2, 1));
+                g_norm = mean( ...
+                    vecnorm([a.transitions(tr1:end).g], 2, 1), 'omitnan');
             end
             if isempty(a.updates)
                 p_norm = nan;
