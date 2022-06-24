@@ -86,7 +86,7 @@ classdef AgentMonitor < handle
             % plotted.
             arguments
                 obj (1, 1) RL.AgentMonitor
-                title (1, :) char {mustBeTextScalar} = obj.agent.agentname
+                title (1, :) char {mustBeTextScalar} = obj.agent.name
                 step (1, 1) double {mustBePositive, mustBeInteger} = 1
                 logscale (1, 1) logical = false
             end
@@ -129,7 +129,7 @@ classdef AgentMonitor < handle
             % norms of gradients and search directions
             axs(end + 1) = nexttile;
             clrs = axs(end).ColorOrder(1:2, :);
-            do_pobj.lot(axs(end), k_mpc, g_norm, 'Color', clrs(1, :))
+            do_plot(axs(end), k_mpc, g_norm, 'Color', clrs(1, :))
             ylabel(axs(end), '||g||');
             xlabel(axs(end), 'transition');
             axs(end).XAxis.Limits = [k_mpc(1), k_mpc(end)];

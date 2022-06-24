@@ -28,26 +28,22 @@ a = mdl.a * 1.3; % a is fixed to the wrong value
 %% Agents
 % load each agent's class and weights, then instantiate it
 agents = RL.AgentMonitor.empty(0, Na);
-warning('off');
 for i = 1:Na - 1
     % load
     agentname = eval_agents{1, 1};
+    warning('off');
     agentdata = load(eval_agents{i, 2}, 'agent').agent.agent;
+    warning('on');
 
     % get class and weights
     cls = str2func(class(agentdata));
     w = agentdata.weights.value;
 
     % instantiate and set weights
-    if i == 2 % TODO: remove this
-        mdl_pars = struct('a', a, 'v_free', w.v_free * 1.2, 'rho_crit', w.rho_crit);
-    else
-        mdl_pars = struct('a', a, 'v_free', w.v_free, 'rho_crit', w.rho_crit);
-    end
+    mdl_pars = struct('a', a, 'v_free', w.v_free, 'rho_crit', w.rho_crit);
     agents(i) = RL.AgentMonitor(cls(envs(i).env, mdl_pars, agentname));
     agents(i).agent.set_weight_values(w);
 end
-warning('on');
 
 % instantiate baseline, perfect information agent
 % .... TODO .....
@@ -109,6 +105,5 @@ end
 warning('off');
 save(strcat(runname, '_data.mat'));
 warning('on');
-% env.plot_traffic(runname)
-% env.plot_cost(runname)
-% agent.plot_learning(runname)
+envs.plot_traffic(runname);
+envs.plot_cost(runname);
