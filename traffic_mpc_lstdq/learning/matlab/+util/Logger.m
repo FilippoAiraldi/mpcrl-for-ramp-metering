@@ -101,18 +101,19 @@ classdef Logger < handle
             % LOG_MPC_STATUS. Logs status related to solving V and Q mpcs.
             arguments
                 obj (1, 1) util.Logger
-                infoQ (1, 1) struct
-                infoV (1, 1) struct
+                infoQ = [] % (1, 1) struct
+                infoV = [] % (1, 1) struct
             end
-            if infoV.success
-                msg = '';
-            else
-                msg = sprintf('V: %s. ', infoV.msg);
+            msg = char.empty;
+            if ~isempty(infoQ) && ~infoQ.success
+                msg = sprintf('Q: %s. ', infoQ.msg);
             end
-            if ~infoQ.success
-                msg = sprintf('%sQ: %s.', msg, infoQ.msg);
+            if ~isempty(infoV) && ~infoV.success
+                msg = sprintf('%sV: %s.', msg, infoV.msg);
             end
-            m = obj.log(msg);
+            if ~isempty(msg)
+                m = obj.log(msg);
+            end
         end
 
         function m = log_ep_summary(obj, ep)

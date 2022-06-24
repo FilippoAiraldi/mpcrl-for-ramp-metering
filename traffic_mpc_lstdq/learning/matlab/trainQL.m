@@ -74,7 +74,7 @@ for i = 1:iterations
             logger.log_agent_update(nb_samples);
         end
 
-        % episode is done, so print summary, live-plot, reset quantites
+        % if episode is done, print summary, live-plot, reset quantites
         if info_env.ep_done
             % log and plot
             logger.log_ep_summary(ep);
