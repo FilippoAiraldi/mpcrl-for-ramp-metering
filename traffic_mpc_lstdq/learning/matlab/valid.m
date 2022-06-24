@@ -2,7 +2,7 @@
 clc, clear all, close all, diary off, warning('on') %#ok<CLALL>
 rng(69)
 runname = [datestr(datetime, 'yyyymmdd_HHMMSS'), '_valid'];
-eval_agents = {           % paths to the agents to evaluate
+eval_agents = {           % paths to the agents to validate
     'QL', 'test_for_trainplots.mat'; ...
     % 'DPG', 'test_for_trainplots.mat'; ...
 };  
@@ -52,7 +52,7 @@ agents(end + 1) = RL.AgentMonitor(RL.PIAgent(envs(end).env, 'PI'));
 
 %% Simulation
 loggers = arrayfun(@(i) util.Logger( ...
-        envs(i), agents(i), [runname, '_', agents(i).agent.name]), 1:Na);
+        envs(i), agents(i), runname, i == Na), 1:Na);
 
 pars = struct('a', a, 'r_last', [], 'perturbation', 0);
 for i = 1:iterations
