@@ -22,7 +22,6 @@ classdef TrafficEnv < handle
         k_tot (1, 1) double {mustBePositive, mustBeInteger} = 1 % internal total time counter
         is_done (1, 1) logical = false
     end
-
     properties (Dependent) 
         x (:, 1) double % state but as a vector
         d (:, 1) double % current demand
@@ -151,6 +150,21 @@ classdef TrafficEnv < handle
             obj.k_tot = obj.k_tot + 1;
             obj.r_prev = r;
             obj.state = state;
+        end
+
+        function sync(obj, other)
+            % SYNC. Syncs the current env with the other's state and 
+            % demand, as well as internal variables.
+            arguments
+                obj (1, 1) METANET.TrafficEnv
+                other (1, 1) METANET.TrafficEnv
+            end
+            obj.demand = other.demand;
+            obj.state = other.state;
+            obj.k_tot = other.k_tot;
+            obj.r_prev = other.r_prev;
+            obj.is_done = other.is_done;
+            obj.cumcost = other.cumcost;
         end
     end
 
