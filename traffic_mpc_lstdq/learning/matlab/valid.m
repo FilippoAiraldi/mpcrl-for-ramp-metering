@@ -3,8 +3,8 @@ clc, clear all, close all, diary off, warning('on') %#ok<CLALL>
 rng(69)
 runname = [datestr(datetime, 'yyyymmdd_HHMMSS'), '_valid'];
 eval_agents = {           % paths to the agents to evaluate
-    'QL', 'test_for_validation.mat'; ...
-    'DPG', 'test_for_validation.mat'; ...
+    'QL', 'test_for_trainplots.mat'; ...
+    % 'DPG', 'test_for_trainplots.mat'; ...
 };  
 Na = size(eval_agents, 1) + 1; % add baseline agent
 
@@ -12,7 +12,7 @@ Na = size(eval_agents, 1) + 1; % add baseline agent
 
 %% Evalution Environments
 iterations = 2;                         % simulation iterations
-episodes = 3;                           % number of episodes per iteration
+episodes = 10;                          % number of episodes per iteration
 [sim, mdl, mpc] = util.get_pars();
 mpc.multistart = 1; %2 * 4;                 % make sure we are using multistart
 
@@ -46,17 +46,13 @@ for i = 1:Na - 1
 end
 
 % instantiate baseline, perfect information agent
-% .... TODO .....
-agents(end + 1) = RL.AgentMonitor( ...
-    cls(envs(end).env, struct('a', mdl.a, ... % true model parameters
-                              'v_free', mdl.v_free, ...
-                              'rho_crit', mdl.rho_crit), 'PI'));
+agents(end + 1) = RL.AgentMonitor(RL.PIAgent(envs(end).env, 'PI'));
 
 
 
 %% Simulation
 loggers = arrayfun(@(i) util.Logger( ...
-        envs(i), agents(i), [runname, '_', agents(i).agent.name], false), 1:Na); % TODO: restore diary logging
+        envs(i), agents(i), [runname, '_', agents(i).agent.name]), 1:Na);
 
 pars = struct('a', a, 'r_last', [], 'perturbation', 0);
 for i = 1:iterations
