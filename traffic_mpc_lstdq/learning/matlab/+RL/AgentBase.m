@@ -142,7 +142,7 @@ classdef (Abstract) AgentBase < handle
         end
     end
 
-    methods (Abstract)
+    methods (Access = public, Abstract)
         save_transition
         update
     end

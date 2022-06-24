@@ -216,7 +216,7 @@ classdef TrafficMonitor < handle
             };
             for i = 1:size(items, 1)
                 ylbl = items{i, 1};
-                names = items{i, 2};s
+                names = items{i, 2};
                 data = items{i, 3};
                 axs(i) = nexttile(i);
                 hold(axs(i), 'on');
