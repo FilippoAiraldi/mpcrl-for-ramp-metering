@@ -154,20 +154,27 @@ classdef TrafficMonitor < handle
             % quantities. A step size can be provided to reduce the number 
             % of datapoints plotted.
             arguments
-                obj (1, 1) METANET.TrafficMonitor
+                obj (1, :) METANET.TrafficMonitor
                 title (1, :) char {mustBeTextScalar} = char.empty
                 step (1, 1) double {mustBePositive, mustBeInteger} = 3
             end
-            I = obj.iterations;     % number of learning iterations
-            E = obj.env.episodes;   % number of episodes per iteration
-            K = obj.env.sim.K;      % number of timesteps per episode
+            % if multiple envs are passed, it is assumed they share the 
+            % same constants.   
+            Ne = length(obj);          % number of envs to plot on same figure
+            assert(Ne < 4, 'cannot handle more than 3 envs in same plot.')
+            I = obj(1).iterations;     % number of learning iterations
+            E = obj(1).env.episodes;   % number of episodes per iteration
+            K = obj(1).env.sim.K;      % number of timesteps per episode
 
             % create the time array
-            t = (0:step:(I * E * K - 1)) * obj.env.sim.T;
+            t = (0:step:(I * E * K - 1)) * obj(1).env.sim.T;
+
+            % utility function
+            afun = @(f, x) arrayfun(f, x, 'UniformOutput', false);
 
             % flatten arrays
-            origins_ = util.flatten(obj.origins);
-            links_ = util.flatten(obj.links);
+            origins_ = arrayfun(@(o) util.flatten(o.origins), obj);
+            links_ = arrayfun(@(o) util.flatten(o.links), obj);
 
             % instantiate figure, layout, axes and legends
             fig = figure('Visible', 'off');
@@ -178,34 +185,46 @@ classdef TrafficMonitor < handle
             end
             axs = matlab.graphics.axis.Axes.empty;
             lgds = matlab.graphics.illustration.Legend.empty;
+            fmts = { 
+                'LineStyle', '-',  'LineWidth', 0.5;
+                'LineStyle', '--', 'LineWidth', 0.5;
+                'LineStyle', ':',  'LineWidth', 1;
+            };
 
             % plot each quantity
             items = { ...
                 'speed (km/h)', ...
-                        {'v_{L1}', 'v_{L2}', 'v_{L3}'}, links_.speed; ...
+                        {'v_{L1}', 'v_{L2}', 'v_{L3}'}, {links_.speed};
                 'flow (veh/h)', ...
-                        {'q_{L1}', 'q_{L2}', 'q_{L3}'}, links_.flow; ...
+                        {'q_{L1}', 'q_{L2}', 'q_{L3}'}, {links_.flow};
                 'density (veh/km/lane)', ...
                         {'\rho_{L1}', '\rho_{L2}', '\rho_{L3}'}, ...
-                                links_.density; ...
+                                {links_.density}; ...
                 'origin 1 flow (veh/h)', ...
-                        {'q_{O1}'}, origins_.flow(1, :); ...
+                        {'q_{O1}'}, afun(@(o) o.flow(1, :), origins_);
                 'origin demand (veh/h)', ...
-                        {'d_{O1}', 'd_{O2}'}, origins_.demand(1:2, :); ...
-                'origin 2 flow (veh/h)', {'q_{O2}'}, origins_.flow(2, :);
+                        {'d_{O1}', 'd_{O2}'}, ...
+                            afun(@(o) o.demand(1:2, :), origins_);
+                'origin 2 flow (veh/h)', {'q_{O2}'}, ...
+                            afun(@(o) o.flow(2, :), origins_);
                 'boundary downstream\newlinecongestion (veh/km/lane)', ...
                         {'d_{cong}'}, ...
-                                    origins_.demand(3, :); ...
+                            afun(@(o) o.demand(3, :), origins_);
                 'queue length (veh)', ...
-                        {'\omega_{O1}', '\omega_{O2}'}, origins_.queue; ...
+                        {'\omega_{O1}', '\omega_{O2}'}, {origins_.queue}; 
                 
             };
             for i = 1:size(items, 1)
                 ylbl = items{i, 1};
-                names = items{i, 2};
+                names = items{i, 2};s
                 data = items{i, 3};
                 axs(i) = nexttile(i);
-                plot(axs(i), t, data(:, 1:step:end)');
+                hold(axs(i), 'on');
+                for e = 1:Ne
+                    axs(i).ColorOrderIndex = 1;
+                    plot(axs(i), t, data{e}(:, 1:step:end)', fmts{e, :});
+                end
+                hold(axs(i), 'off');
                 lgds(i) = legend(axs(i), names{:});
                 xlabel(axs(i), 'time (h)')
                 ylabel(axs(i), ylbl);
@@ -215,13 +234,15 @@ classdef TrafficMonitor < handle
             
             % further customizations
             % change color of 7 to second default color
-            axs(6).Children.Color = axs(6).ColorOrder(2, :);
-
-            % change color of 7 to third default color
-            axs(7).Children.Color = axs(7).ColorOrder(3, :);
+            for e = 1:Ne
+                axs(6).Children(e).Color = axs(6).ColorOrder(2, :);            
+    
+                % change color of 7 to third default color
+                axs(7).Children(e).Color = axs(7).ColorOrder(3, :);
+            end
 
             % add max queue to 8
-            max_queue = obj.env.model.max_queue;
+            max_queue = obj(1).env.model.max_queue;
             hold(axs(8), 'on');
             plot(axs(8), [t(1), t(end)], [1, 1] * max_queue, '-.k')
             hold(axs(8), 'off');
@@ -235,20 +256,28 @@ classdef TrafficMonitor < handle
             % PLOT_COST. PLots traffic costs. A step size can be provided 
             % to reduce the number of datapoints plotted.
             arguments
-                obj (1, 1) METANET.TrafficMonitor
+                obj (1, :) METANET.TrafficMonitor
                 title (1, :) char {mustBeTextScalar} = char.empty
                 step (1, 1) double {mustBePositive, mustBeInteger} = 1
             end
-            I = obj.iterations;     % number of learning iterations
-            E = obj.env.episodes;   % number of episodes per iteration
-            K = obj.env.sim.K;      % number of timesteps per episode
+            % if multiple envs are passed, it is assumed they share the 
+            % same constants.   
+            Ne = length(obj);          % number of envs to plot on same figure
+            assert(Ne < 4, 'cannot handle more than 3 envs in same plot.')
+            I = obj(1).iterations;     % number of learning iterations
+            E = obj(1).env.episodes;   % number of episodes per iteration
+            K = obj(1).env.sim.K;      % number of timesteps per episode
 
             % create the step array
             k = 0:step:(I * E * K - 1);
             ep = linspace(k(1), k(end), I * E); % no stepping here
 
+            % utility functions
+            afun = @(f, x) arrayfun(f, x, 'UniformOutput', false);
+            cfun = @(f, x) cellfun(f, x, 'UniformOutput', false);
+
             % compute the episode-average of total cost 
-            J = util.flatten(sum(obj.cost.L, 3));
+            J = afun(@(o) util.flatten(sum(o.cost.L, 3)), obj); 
 
             % instantiate figure, layout, axes and legends
             fig = figure('Visible', 'off');
@@ -257,41 +286,61 @@ classdef TrafficMonitor < handle
             if ~isempty(title)
                 sgtitle(layout, title, 'Interpreter', 'none')
             end
-            axs = matlab.graphics.axis.Axes.empty;      
+            axs = matlab.graphics.axis.Axes.empty;
+            fmts = { 
+                'LineStyle', '-',  'LineWidth', 0.5;
+                'LineStyle', '--', 'LineWidth', 0.5;
+                'LineStyle', ':',  'LineWidth', 1;
+            };
 
             % plot each quantity
             items = { ...
-                'L', obj.cost.L; ...
-                'TTS', obj.cost.TTS; ...
-                'Rate Variability', obj.cost.RV; ...
-                'Constr. Violation', obj.cost.CV; ...
+                'L', afun(@(o) o.cost.L, obj); ...
+                'TTS', afun(@(o) o.cost.TTS, obj); ...
+                'Rate Variability', afun(@(o) o.cost.RV, obj); ...
+                'Constr. Violation', afun(@(o) o.cost.CV, obj); ...
             };
             for i = 1:size(items, 1)
                 ylbl = items{i, 1};
                 data = items{i, 2};
-
+                
                 % plot continuous cost
-                data_cont = util.flatten(data);
+                data_cont = cfun(@(d) util.flatten(d), data);
                 axs(i, 1) = nexttile(2 * i - 1);
-                plot(axs(i, 1), k, data_cont(:, 1:step:end)', ...
-                    'Color', axs(i, 1).ColorOrder(i, :));
+                clr = axs(i, 1).ColorOrder(i, :);
+                hold(axs(i, 1), 'on');
+                for e = 1:Ne
+                    plot(axs(i, 1), k, data_cont{e}(:, 1:step:end)', ...
+                         'Color', clr, fmts{e, :});
+                end
+                hold(axs(i, 1), 'off');
                 xlabel(axs(i, 1), 'step')
                 ylabel(axs(i, 1), ylbl);
                 axs(i, 1).XAxis.Limits = [k(1), k(end)];
                 
                 % plot episode-average cost
-                data_avg = util.flatten(sum(data, 3));
+                data_avg = cfun(@(d) util.flatten(sum(d, 3)), data);
                 axs(i, 2) = nexttile(2 * i);
-                plot(axs(i, 2), ep, data_avg, '-o', ...
-                    'Color', axs(i, 1).ColorOrder(i, :));
+                hold(axs(i, 2), 'on');
+                for e = 1:Ne
+                    plot(axs(i, 2), ep, data_avg{e}, 'Color', clr, ...
+                        'Marker', 'o', fmts{e, :});
+                end
+                hold(axs(i, 2), 'off');
                 ylabel(axs(i, 2), ylbl);
                 
                 % as percentage of the total cost as well
                 if i > 1
                     yyaxis(axs(i, 2), 'right')
-                    plot(axs(i, 2), ep, data_avg ./ J * 100, '-o', ...
-                        'Color', [axs(i, 1).ColorOrder(i, :), 0.25], ...
-                        'Markersize', 2);
+                    clra = [clr, 0.5];
+                    hold(axs(i, 2), 'on');
+                    for e = 1:Ne
+                        plot(axs(i, 2), ep, data_avg{e} ./ J{e} * 100, ...
+                            'Color', clra, 'Marker', '^', ...
+                            'Markersize', 3, 'MarkerFaceColor', clr, ...
+                            fmts{e, :});
+                    end
+                    hold(axs(i, 2), 'off');
                     axs(i, 2).YAxis(2).Color = axs(i, 2).YAxis(1).Color;
                     ylabel(axs(i, 2), '%');
                 end
