@@ -140,9 +140,9 @@ function [init_cost, stage_cost, terminal_cost] = get_costs(model, mpc)
         otherwise
             error('Invalid stage type (''full'', ''diag'', ''posdef'')')
     end
-
-    Jk = ((rho - rho_crit)' * Q_rho * (rho - rho_crit)) / rho_norm^2 ...
-                    + ((v - v_free)' * Q_v * (v - v_free)) / v_norm^2;
+    drho = (rho - rho_crit) / rho_norm;
+    dv = (v - v_free) / v_norm;
+    Jk = drho' * Q_rho * drho + dv' * Q_v * dv;
 
     stage_cost = casadi.Function('stage_cost', ...
         {rho, v, rho_crit, v_free, [weight_rho; weight_v]}, ...
@@ -172,9 +172,9 @@ function [init_cost, stage_cost, terminal_cost] = get_costs(model, mpc)
         otherwise
             error('Invalid final type (''full'', ''diag'', ''posdef'')')
     end
-
-    JN = ((rho - rho_crit)' * Q_rho * (rho - rho_crit)) / rho_norm^2 ...
-                    + ((v - v_free)' * Q_v * (v - v_free)) / v_norm^2;
+    drho = (rho - rho_crit) / rho_norm;
+    dv = (v - v_free) / v_norm;
+    JN = drho' * Q_rho * drho + dv' * Q_v * dv;
 
     terminal_cost = casadi.Function('terminal_cost', ...
         {rho, v, rho_crit, v_free, [weight_rho; weight_v]}, ...

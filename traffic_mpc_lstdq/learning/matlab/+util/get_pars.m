@@ -57,7 +57,7 @@ function [sim, mdl, mpc] = get_pars()
 
     % objective weights
     mpc.perturb_mag = 100;                  % magnitude of exploratory perturbation
-    mpc.RV_penalty = 4e-2;                  % penalty weight for rate variability
+    mpc.RV_penalty = 4e-2 * 2000^2;                   % penalty weight for rate variability
     mpc.CV_penalty = 10;                    % penalty for constraint violations
 
     % types of cost terms

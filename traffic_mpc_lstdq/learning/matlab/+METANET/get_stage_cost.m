@@ -35,7 +35,7 @@ function [L, TTS, RV] = get_stage_cost(sim, model, mpc)
         {w, rho}, {J_TTS}, {'w', 'rho'}, {'TTS'});
 
     % compute Rate Variability
-    J_RV = sum(sum(diff([r_prev, r], 1, 2).^2, 2), 1);
+    J_RV = sum(sum(diff([r_prev, r] / mpc.norm.r, 1, 2).^2, 2), 1);
     RV = casadi.Function('rate_var_cost', ...
         {r_prev, r}, {J_RV}, {'r_last', 'r'}, {'RV'});
 
