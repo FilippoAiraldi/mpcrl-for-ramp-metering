@@ -66,7 +66,6 @@ function [sim, mdl, mpc] = get_pars()
     mpc.cost_type.terminal = 'diag';
 
     % RL parameters and update rules
-    mpc.discount = 0.99;                    % rl discount factor
     mpc.lr0 = 1e-1;                         % fixed rl learning rate
     mpc.max_delta = 1 / 5;                  % percentage of maximum parameter change in a single update
     mpc.update_freq = sim.K / mpc.M / 2;    % when rl should update

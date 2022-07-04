@@ -36,7 +36,7 @@ classdef QLAgent < RL.AgentBase
                 g = nan(size(obj.deriv.dQ));
             else
                 % compute td error
-                target = L + obj.env.mpc.discount * infoV.f;
+                target = L + infoV.f;
                 td_err = target - infoQ.f;
     
                 % compute numerical gradients w.r.t. params
