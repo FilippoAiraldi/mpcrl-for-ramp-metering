@@ -1,2 +1,2 @@
-sym-metanet[all]==1.0.1
 matplotlib
+sym-metanet[all]==1.0.1
