@@ -1,5 +1,4 @@
-from dataclasses import dataclass
-from typing import Iterator, Literal, Optional
+from typing import Literal, Optional
 
 import numpy as np
 import numpy.typing as npt
@@ -8,18 +7,21 @@ from numpy._typing import _ArrayLikeFloat_co
 from scipy.signal import butter, filtfilt
 
 
-@dataclass(repr=False)
 class Demands:
     """Class containing the demands of the highway stretch at the mainstream origin O1,
     on-ramp O2, and the congestion at destination D1."""
 
-    demands: npt.NDArray[np.floating]
+    __slots__ = ("demands", "_it", "_cnt")
 
-    def __post_init__(self):
-        assert (
-            self.demands.ndim == 2 and self.demands.shape[1] == 3
-        ), "Invalid demands array."
+    def __init__(self, demands: npt.NDArray[np.floating]):
+        assert demands.ndim == 2 and demands.shape[1] == 3, "Invalid demands array."
+        self.demands = demands
+        self.reset_iter()
+
+    def reset_iter(self) -> None:
+        """Resets the demands iterator."""
         self._it = iter(self.demands)
+        self._cnt = 0
 
     @property
     def O1(self) -> npt.NDArray[np.floating]:
@@ -36,13 +38,16 @@ class Demands:
         """Gets the demands (congestion) for the destination D1."""
         return self.demands[:, 2]
 
+    @property
+    def exhausted(self) -> bool:
+        """Gets whether the whole demands have been iterated through."""
+        return self._cnt >= self.demands.shape[0]
+
     def __getitem__(self, idx) -> npt.NDArray[np.floating]:
         return self.demands[idx]
 
-    def __iter__(self) -> Iterator[npt.NDArray[np.floating]]:
-        return iter(self.demands)
-
     def __next__(self) -> npt.NDArray[np.floating]:
+        self._cnt += 1
         return next(self._it)
 
     def __repr__(self) -> str:
