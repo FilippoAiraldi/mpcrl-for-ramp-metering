@@ -1,20 +1,52 @@
 from dataclasses import dataclass
-from typing import Literal, Optional
+from typing import Iterator, Literal, Optional
 
 import numpy as np
 import numpy.typing as npt
+from mpcrl.util.math import summarize_array
 from numpy._typing import _ArrayLikeFloat_co
 from scipy.signal import butter, filtfilt
 
 
-@dataclass(frozen=True)
+@dataclass(repr=False)
 class Demands:
     """Class containing the demands of the highway stretch at the mainstream origin O1,
     on-ramp O2, and the congestion at destination D1."""
 
-    O1: npt.NDArray[np.floating]
-    O2: npt.NDArray[np.floating]
-    D1: npt.NDArray[np.floating]
+    demands: npt.NDArray[np.floating]
+
+    def __post_init__(self):
+        assert (
+            self.demands.ndim == 2 and self.demands.shape[1] == 3
+        ), "Invalid demands array."
+        self._it = iter(self.demands)
+
+    @property
+    def O1(self) -> npt.NDArray[np.floating]:
+        """Gets the demands for the main origin O1."""
+        return self.demands[:, 0]
+
+    @property
+    def O2(self) -> npt.NDArray[np.floating]:
+        """Gets the demands for the on-ramp O2."""
+        return self.demands[:, 1]
+
+    @property
+    def D1(self) -> npt.NDArray[np.floating]:
+        """Gets the demands (congestion) for the destination D1."""
+        return self.demands[:, 2]
+
+    def __iter__(self) -> Iterator[npt.NDArray[np.floating]]:
+        return iter(self.demands)
+
+    def __next__(self) -> npt.NDArray[np.floating]:
+        return next(self._it)
+
+    def __repr__(self) -> str:
+        o1 = summarize_array(self.O1)
+        o2 = summarize_array(self.O2)
+        d1 = summarize_array(self.D1)
+        return f"{self.__class__.__name__}(O1: {o1}, O2: {o2}, D1: {d1})"
 
 
 def create_demand(
@@ -129,4 +161,4 @@ def create_demands(
     b, a = butter(3, 0.1)
     D = filtfilt(b, a, D + np_random.normal(scale=noise, size=D.shape), axis=0)
     D = np.maximum(0, D)
-    return Demands(D[:, 0], D[:, 1], D[:, 2])
+    return Demands(D)
