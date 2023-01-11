@@ -1,5 +1,4 @@
-from functools import partial
-from typing import Any, ClassVar, Literal, Optional
+from typing import Any, ClassVar, Literal, Optional, SupportsFloat
 
 import casadi as cs
 import gymnasium as gym
@@ -43,9 +42,13 @@ class HighwayTrafficEnv(
         "realpars",
         "dynamics",
         "n_scenarios",
-        "time_vec",
+        "time",
         "state",
         "demands",
+        "reward_range",
+        "observation_space",
+        "action_space",
+        "_np_random",
     )
 
     def __init__(
@@ -57,7 +60,7 @@ class HighwayTrafficEnv(
         gym.Env.__init__(self)
         SupportsDeepcopyAndPickle.__init__(self)
         self.n_scenarios = n_scenarios
-        self.time_vec = np.arange(0.0, scenario_duration, Constants.T)
+        self.time = np.arange(0.0, scenario_duration, Constants.T)
 
         # create dynamics
         self.network, sympars = get_network(
@@ -67,7 +70,6 @@ class HighwayTrafficEnv(
             rho_max=Constants.rho_max,
             sym_type=sym_type,
         )
-        self.realpars = {n: getattr(Constants, n) for n in sympars}
         self.network.step(
             init_conditions={self.network.origins_by_name["O1"]: {"r": 1}},
             T=Constants.T,
@@ -84,6 +86,7 @@ class HighwayTrafficEnv(
             force_positive_speed=True,
             compact=2,
         )
+        self.realpars = np.asarray([getattr(Constants, n) for n in sympars])
         # NOTE: the dynamics are of the form
         #           Function(F:(x[8],u,d[3],p[3])->(x+[8],q[5])
         # where the inputs are
@@ -98,7 +101,8 @@ class HighwayTrafficEnv(
         # set reward/cost ranges, and observation and action spaces
         self.reward_range = (0.0, float("inf"))
         self.observation_space = Box(0.0, np.inf, (self.ns,), np.float64)
-        self.action_space = Box(0.0, np.inf, (self.na,), np.float64)
+        na = self.na
+        self.action_space = Box(0.0, np.inf, () if na == 1 else (na,), np.float64)
 
     @property
     def ns(self) -> int:
@@ -123,7 +127,7 @@ class HighwayTrafficEnv(
 
         # create demands
         self.demands = create_demands(
-            self.time_vec,
+            self.time,
             self.n_scenarios,
             kind=options.get("demands_kind", "constant"),
             noise=options.get("demands_noise", (100.0, 100.0, 2.5)),
@@ -131,17 +135,19 @@ class HighwayTrafficEnv(
         )
 
         # compute initial state
-        u = options.get("steady_state_u", 575)
-        d = self.demands[0]
-        p = self.realpars.values()
-        f = lambda x: self.dynamics(x, u, d, p)[0]
         x0: np.ndarray = options.get(
             "steady_state_x0", np.asarray([10, 10, 10, 100, 100, 100, 0, 0])
         )
-        self.state, _, _ = get_steady_state(
+        u = options.get("steady_state_u", 1e3)  # fully open on-ramp O2
+        d = self.demands[0]
+        p = self.realpars
+        f = lambda x: self.dynamics(x, u, d, p)[0].full().reshape(-1)
+        state, _, _ = get_steady_state(
             f=f,
             x0=x0,
             tol=options.get("steady_state_tol", 1e-3),
             maxiter=options.get("steady_state_maxiter", 500),
         )
-        return self.state, {}
+        assert self.observation_space.contains(state), "Invalid reset state."
+        self.state = state
+        return state, {}
