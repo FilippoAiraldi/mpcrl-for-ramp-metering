@@ -36,6 +36,9 @@ class Demands:
         """Gets the demands (congestion) for the destination D1."""
         return self.demands[:, 2]
 
+    def __getitem__(self, idx) -> npt.NDArray[np.floating]:
+        return self.demands[idx]
+
     def __iter__(self) -> Iterator[npt.NDArray[np.floating]]:
         return iter(self.demands)
 
