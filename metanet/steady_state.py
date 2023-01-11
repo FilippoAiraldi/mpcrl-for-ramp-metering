@@ -4,15 +4,11 @@ from warnings import warn
 import numpy as np
 
 Tx = TypeVar("Tx")
-Tu = TypeVar("Tu")
-Td = TypeVar("Td")
 
 
 def get_steady_state(
-    F: Callable[[Tx, Tu, Td], Tx],
+    f: Callable[[Tx], Tx],
     x0: Tx,
-    u: Tu,
-    d: Td,
     tol: float = 1e-3,
     maxiter: int = 500,
 ) -> tuple[Tx, float, int]:
@@ -20,19 +16,15 @@ def get_steady_state(
 
     Parameters
     ----------
-    F : Callable[[Tx, Tu, Td], Tx]
-        The dynamics function of the form `x+ = F(x, u, d)`, where `x` is the state, `u`
-        the action, `d` the disturbance.
+    f : Callable[[Tx], Tx]
+        The dynamics function of the form `x+ = f(x)`, where `x` is the state and `x+`
+        the state at the next time instant.
     x0 : Tx
         The initial steady-state guess. The type must be compatible with numpy.
-    u : Tu
-        The action at which to find the steady-state.
-    d : Td
-        The disturbance at which to find the steady-state.
     tol : float, optional
-        Error tolerance for convergence, by default 1e-3
+        Error tolerance for convergence, by default 1e-3.
     maxiter : int, optional
-        Maximum iterations, by default 500
+        Maximum iterations, by default 500.
 
     Returns
     -------
@@ -46,14 +38,14 @@ def get_steady_state(
     """
     err_previous = float("inf")
     for k in range(maxiter):
-        x0_ss = F(x0, u, d)
+        x0_ss = f(x0)
         err = float(np.linalg.norm(x0_ss - x0))  # type: ignore[operator]
         if err < tol:
             return x0_ss, err, k
-        elif err >= err_previous:
+        elif err > err_previous:
             warn(
                 "Increasing error encountered in steady-state search "
-                f"({err} >= {err_previous})."
+                f"({err} > {err_previous})."
             )
             return x0_ss, err, k
 
