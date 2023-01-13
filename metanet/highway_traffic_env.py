@@ -133,6 +133,36 @@ class HighwayTrafficEnv(
         Parameters
         ----------
         seed : int, optional
+            RNG seed.
+        options : dict, optional
+            A dict with optional indications for resetting
+
+             - `demands_kind`: the type of demand to generate (`'constant'` or
+             `'random'`). Defaults to `'random'`.
+
+             - `demands_noise`: a 3-tuple indicating the noise levels for demands at O1,
+             O2 and D1. Defaults to `(100, 100, 2.5)`.
+
+             - `steady_state_x0`: the initial state for which to search the steady-state
+             for the newly generated demand. Defaults to the previous result of the same
+             function.
+
+             - `steady_state_u`: the action for which to compute the steady-state.
+             Defaults to `1000` (ramps are fully opened)
+
+             - `steady_state_tol`: tolerance for steady-state, `1e-3` by default.
+
+             - `steady_state_maxiter`: maximum iterations for steady-state, `500` by
+             default.
+
+             - `last_action`: the last action, i.e., before the env reset. Used only in
+             the first computation of the stage cost.
+
+        Returns
+        -------
+        tuple of array and dict[str, Any]
+            A tuple containing the initial state/observation and some info.
+        """
         if options is None:
             options = {}
 
