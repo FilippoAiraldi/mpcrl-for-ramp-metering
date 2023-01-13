@@ -10,7 +10,7 @@ from gymnasium.spaces import Box
 
 from metanet.demands import create_demands
 from metanet.network import get_network, steady_state
-from metanet.steady_state import get_steady_state
+from metanet.costs import get_stage_cost
 
 
 class Constants:
@@ -49,8 +49,8 @@ class HighwayTrafficEnv(
         "demands",
         "state",
         "_last_initial_state",
-        "action_space",
-        "_np_random",
+        "stage_cost",
+        "_last_action",
     )
 
     def __init__(
@@ -100,8 +100,18 @@ class HighwayTrafficEnv(
         #           x+[8] = ...same as x...
         #           q[5] = [q[3], q_o[2]]           (3 segments, 2 origins)
 
-        # set reward/cost ranges, and observation and action spaces
+        # set reward/cost ranges and function
         self.reward_range = (0.0, float("inf"))
+        self.stage_cost = get_stage_cost(
+            network=self.network,
+            n_actions=self.dynamics.size1_in(1),
+            T=Constants.T,
+        )
+        assert all(
+            self.stage_cost.size1_in(i) == self.dynamics.size1_in(i) for i in range(2)
+        ), "Invalid shapes in stage cost"
+
+        # set observation and action spaces
         self.observation_space = Box(0.0, np.inf, (self.ns,), np.float64)
         na = self.na
         self.action_space = Box(0.0, np.inf, () if na == 1 else (na,), np.float64)
@@ -199,3 +209,35 @@ class HighwayTrafficEnv(
         # get last action
         self._last_action = options.get("last_action", None)
         return state, {"steady_state_error": err, "steady_state_iters": iters}
+
+    def step(
+        self,
+        action: npt.NDArray[np.floating],
+    ) -> tuple[npt.NDArray[np.floating], SupportsFloat, bool, bool, dict[str, Any]]:
+        assert self.action_space.contains(action), "Invalid action passed to step."
+        s = self.state
+        a = action.item()
+
+        # compute cost of current state L(s,a)
+        a_last = self._last_action if self._last_action is not None else a
+        tts_cost, var_cost = self.stage_cost(s, a, a_last)
+        # TODO: compute constraint violations
+        cost = tts_cost + var_cost
+
+        # step the dynamics
+        d = next(self.demands)
+        s_next, flow = self.dynamics(s, a, d, self.realpars)
+        s_next = s_next.full().reshape(-1)
+        flow = flow.full().reshape(-1)
+        assert self.observation_space.contains(s_next), "Invalid state after step."
+
+        # add other information in dict
+        info: dict[str, Any] = {
+            "q": flow,
+            # TODO: add cost terms
+        }
+
+        # save some variables and return
+        self.state = s_next
+        self._last_action = a
+        return s_next, cost, False, self.demands.exhausted, info
