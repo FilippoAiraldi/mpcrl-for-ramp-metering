@@ -9,7 +9,7 @@ from csnlp.util.io import SupportsDeepcopyAndPickle
 from gymnasium.spaces import Box
 
 from metanet.demands import create_demands
-from metanet.network import get_network
+from metanet.network import get_network, steady_state
 from metanet.steady_state import get_steady_state
 
 
@@ -38,15 +38,17 @@ class HighwayTrafficEnv(
     SupportsDeepcopyAndPickle,
 ):
     __slots__ = (
+        "reward_range",
+        "observation_space",
+        "action_space",
         "network",
         "realpars",
         "dynamics",
         "n_scenarios",
         "time",
-        "state",
         "demands",
-        "reward_range",
-        "observation_space",
+        "state",
+        "_last_initial_state",
         "action_space",
         "_np_random",
     )
@@ -104,6 +106,14 @@ class HighwayTrafficEnv(
         na = self.na
         self.action_space = Box(0.0, np.inf, () if na == 1 else (na,), np.float64)
 
+        # create initial solution to steady-state search (used in reset)
+        n_segments = sum(link.N for _, _, link in self.network.links)
+        n_origins = len(self.network.origins)
+        rho0, v0, w0 = 10, 100, 0
+        self._last_initial_state = np.asarray(
+            [rho0] * n_segments + [v0] * n_segments + [w0] * n_origins
+        )
+
     @property
     def ns(self) -> int:
         """Gets the number of states/observations in the environment."""
@@ -117,6 +127,12 @@ class HighwayTrafficEnv(
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[dict[str, Any]] = None
     ) -> tuple[npt.NDArray[np.floating], dict[str, Any]]:
+        """Resets the environment to an initial internal state, returning an initial
+        observation and info.
+
+        Parameters
+        ----------
+        seed : int, optional
         if options is None:
             options = {}
 
@@ -129,20 +145,18 @@ class HighwayTrafficEnv(
         self.demands = create_demands(
             self.time,
             self.n_scenarios,
-            kind=options.get("demands_kind", "constant"),
+            kind=options.get("demands_kind", "random"),
             noise=options.get("demands_noise", (100.0, 100.0, 2.5)),
             np_random=self.np_random,
         )
 
         # compute initial state
-        x0: np.ndarray = options.get(
-            "steady_state_x0", np.asarray([10, 10, 10, 100, 100, 100, 0, 0])
-        )
-        u = options.get("steady_state_u", 1e3)  # fully open on-ramp O2
+        x0: np.ndarray = options.get("steady_state_x0", self._last_initial_state)
+        u = options.get("steady_state_u", 1e3 * np.ones(self.na))  # fully open O2
         d = self.demands[0]
         p = self.realpars
         f = lambda x: self.dynamics(x, u, d, p)[0].full().reshape(-1)
-        state, _, _ = get_steady_state(
+        state, err, iters = steady_state(
             f=f,
             x0=x0,
             tol=options.get("steady_state_tol", 1e-3),
@@ -150,4 +164,8 @@ class HighwayTrafficEnv(
         )
         assert self.observation_space.contains(state), "Invalid reset state."
         self.state = state
-        return state, {}
+        self._last_initial_state = state  # save to warmstart next reset steady-state
+
+        # get last action
+        self._last_action = options.get("last_action", None)
+        return state, {"steady_state_error": err, "steady_state_iters": iters}
