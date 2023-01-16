@@ -40,7 +40,30 @@ class Demands:
     @property
     def exhausted(self) -> bool:
         """Gets whether the whole demands have been iterated through."""
-        return self._cnt >= self.demands.shape[0]
+        return self.t >= self.demands.shape[0]
+
+    def forecast(self, length: int) -> npt.NDArray[np.floating]:
+        """Gets the forecast of the demands from the current time up to the horizon of
+        specified length. The forecast is flawless, and forecasted demands are padded to
+        always have the expected size.
+
+        Parameters
+        ----------
+        length : int
+            Length of the forecast.
+
+        Returns
+        -------
+        array of floats
+            The future demands.
+        """
+        future_demands = self.demands[self.t : self.t + length]
+        if future_demands.shape[0] < length:
+            gap = length - future_demands.shape[0]
+            future_demands = np.append(
+                future_demands, np.tile(future_demands[-1, None], (gap, 1)), axis=0
+            )
+        return future_demands
 
     def __getitem__(self, idx) -> npt.NDArray[np.floating]:
         return self.demands[idx]

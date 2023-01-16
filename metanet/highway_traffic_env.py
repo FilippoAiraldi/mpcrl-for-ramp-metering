@@ -47,12 +47,12 @@ class HighwayTrafficEnv(
         "dynamics",
         "n_scenarios",
         "time",
-        "current_demand",
+        "demand",
+        "demands",
         "state",
         "_last_initial_state",
         "stage_cost",
         "_last_action",
-        "demands",
     )
 
     def __init__(
@@ -194,7 +194,7 @@ class HighwayTrafficEnv(
         self.action_space.seed(seed)
 
         # create demands (and record them in storage)
-        self.current_demand = create_demands(
+        self.demand = create_demands(
             self.time,
             self.n_scenarios,
             kind=options.get("demands_kind", "random"),
@@ -202,12 +202,12 @@ class HighwayTrafficEnv(
             np_random=self.np_random,
         )
         if self.demands is not None:
-            self.demands.append(self.current_demand)
+            self.demands.append(self.demand)
 
         # compute initial state
         x0: np.ndarray = options.get("steady_state_x0", self._last_initial_state)
         u = options.get("steady_state_u", 1e3 * np.ones(self.na))  # fully open O2
-        d = self.current_demand[0]
+        d = self.demand[0]
         p = self.realpars
         f = lambda x: self.dynamics(x, u, d, p)[0].full().reshape(-1)
         state, err, iters = steady_state(
@@ -239,7 +239,7 @@ class HighwayTrafficEnv(
         cost = tts_cost + var_cost
 
         # step the dynamics
-        d = next(self.current_demand)
+        d = next(self.demand)
         s_next, flow = self.dynamics(s, a, d, self.realpars)
         s_next = s_next.full().reshape(-1)
         assert self.observation_space.contains(s_next), "Invalid state after step."
