@@ -126,7 +126,7 @@ def create_demands(
         _description_
     reps : int, optional
         How many scenario repetitions to create, by default 1.
-    kind : Literal[&quot;constant&quot;, &quot;random&quot;], optional
+    kind : "constant" or "random", optional
         If "constant", the scenarios are generated from constant data. If "random", the
         scenarios durations and levels are generated randomly. By default "constant".
     noise : 3-tuple of floats, optional
