@@ -1,4 +1,4 @@
-from typing import Any, ClassVar, List, Literal, Optional, SupportsFloat
+from typing import Any, ClassVar, Dict, List, Literal, Optional, SupportsFloat
 
 import casadi as cs
 import gymnasium as gym
@@ -8,7 +8,7 @@ import sym_metanet
 from csnlp.util.io import SupportsDeepcopyAndPickle
 from gymnasium.spaces import Box
 
-from metanet.costs import get_constraint_violation, get_stage_cost
+from metanet.costs import get_stage_cost
 from metanet.demands import Demands, create_demands
 from metanet.network import get_network, steady_state
 
@@ -31,7 +31,7 @@ class Constants:
     kappa: ClassVar[float] = 40  # model parameter (veh/km/lane)
     eta: ClassVar[float] = 60  # model parameter (km^2/lane)
     delta: ClassVar[float] = 0.0122  # merging phenomenum parameter
-    w_O2_max: ClassVar[int] = 50  # max queue on ramp O2
+    w_max: ClassVar[Dict[str, int]] = {"O1": 1000, "O2": 50}  # max queue on ramp O2
 
 
 class HighwayTrafficEnv(
@@ -51,7 +51,6 @@ class HighwayTrafficEnv(
         "demands",
         "state",
         "stage_cost",
-        "constraint_violation",
         "_last_initial_state",
         "_last_action",
     )
@@ -116,15 +115,13 @@ class HighwayTrafficEnv(
             network=self.network,
             n_actions=self.dynamics.size1_in(1),
             T=Constants.T,
-        )
-        self.constraint_violation = get_constraint_violation(
-            self.network, {self.network.origins_by_name["O2"]: Constants.w_O2_max}, True
+            w_max=Constants.w_max,
         )
         assert (
             self.stage_cost.size1_in(0) == ns
             and self.stage_cost.size1_in(1) == na
-            and self.constraint_violation.size1_in(0) == ns
-        ), "Invalid shapes in cost functions."
+            and self.stage_cost.size1_out(2) == len(Constants.w_max)
+        ), "Invalid shapes in cost function."
 
         # create initial solution to steady-state search (used in reset)
         n_segments = sum(link.N for _, _, link in self.network.links)
@@ -235,9 +232,10 @@ class HighwayTrafficEnv(
 
         # compute cost of current state L(s,a)
         a_last = self._last_action if self._last_action is not None else a
-        tts_cost, var_cost = self.stage_cost(s, a, a_last)
-        # TODO: compute constraint violations
-        cost = tts_cost + var_cost
+        tts_, var_, cvi_ = self.stage_cost(s, a, a_last)
+        tts = float(tts_)
+        var = float(var_)
+        cvi = np.maximum(0, cvi_).sum()
 
         # step the dynamics
         d = next(self.demand)
@@ -247,11 +245,13 @@ class HighwayTrafficEnv(
 
         # add other information in dict
         info: dict[str, Any] = {
-            "q": flow,
-            # TODO: add cost terms
+            "q": flow.full().reshape(-1),
+            "tts": tts,
+            "var": var,
+            "cvi": cvi,
         }
 
         # save some variables and return
         self.state = s_next
         self._last_action = a
-        return s_next, cost, False, self.current_demand.exhausted, info
+        return s_next, cost, False, self.demand.exhausted, info
