@@ -241,14 +241,10 @@ class HighwayTrafficEnv(
         # compute cost of current state L(s,a)
         a_last = self._last_action if self._last_action is not None else a
         tts_, var_, cvi_ = self.stage_cost(s, a, a_last)
-        tts = float(tts_)
-        var = float(var_)
-        cvi = np.maximum(0, cvi_).sum()
-        cost = (
-            self.stage_cost_contribution_weights["tts"] * tts
-            + self.stage_cost_contribution_weights["var"] * var
-            + self.stage_cost_contribution_weights["cvi"] * cvi
-        )
+        tts = self.stage_cost_contribution_weights["tts"] * float(tts_)
+        var = self.stage_cost_contribution_weights["var"] * float(var_)
+        cvi = self.stage_cost_contribution_weights["cvi"] * np.maximum(0, cvi_).sum()
+        cost = tts + var + cvi
 
         # step the dynamics
         d = next(self.demand)
