@@ -1,4 +1,4 @@
-from typing import Any, ClassVar, Literal, Optional, SupportsFloat
+from typing import Any, Literal, Optional, SupportsFloat
 
 import casadi as cs
 import gymnasium as gym
@@ -8,35 +8,10 @@ import sym_metanet
 from csnlp.util.io import SupportsDeepcopyAndPickle
 from gymnasium.spaces import Box
 
+from util.constants import EnvConstants as EC
 from metanet.costs import get_stage_cost
 from metanet.demands import Demands, create_demands
 from metanet.network import get_network, steady_state
-
-
-class Constants:
-    """Constant parameters of the highway traffic network."""
-
-    T: ClassVar[float] = 10 / 3600  # simulation step size (h)
-    segment_length: ClassVar[float] = 1  # length of links segments (km)
-    lanes: ClassVar[int] = 2  # lanes per link (adim)
-    origin_capacities: ClassVar[tuple[float, float]] = (
-        3500,
-        2000,
-    )  # on-ramp capacities (veh/h/lane)
-    rho_max: ClassVar[float] = 180  # maximum capacity (veh/km/lane)
-    a: ClassVar[float] = 1.867  # model parameter (adim)
-    v_free: ClassVar[float] = 102  # free flow speed (km/h)
-    rho_crit: ClassVar[float] = 33.5  # critical capacity (veh/km/lane)
-    tau: ClassVar[float] = 18 / 3600  # model parameter (s)
-    kappa: ClassVar[float] = 40  # model parameter (veh/km/lane)
-    eta: ClassVar[float] = 60  # model parameter (km^2/lane)
-    delta: ClassVar[float] = 0.0122  # merging phenomenum parameter
-    w_max: ClassVar[dict[str, int]] = {"O2": 50}  # max queue on ramp O2
-    stage_cost_weights: ClassVar[dict[str, float]] = {  # weight of each contribution
-        "tts": 1.0,
-        "var": 0.04,
-        "cvi": 10.0,
-    }
 
 
 class HighwayTrafficEnv(
@@ -126,33 +101,33 @@ class HighwayTrafficEnv(
         gym.Env.__init__(self)
         SupportsDeepcopyAndPickle.__init__(self)
         self.n_scenarios = n_scenarios
-        self.time = np.arange(0.0, scenario_duration, Constants.T)
+        self.time = np.arange(0.0, scenario_duration, EC.T)
 
         # create dynamics
         self.network, sympars = get_network(
-            segment_length=Constants.segment_length,
-            lanes=Constants.lanes,
-            origin_capacities=Constants.origin_capacities,
-            rho_max=Constants.rho_max,
+            segment_length=EC.segment_length,
+            lanes=EC.lanes,
+            origin_capacities=EC.origin_capacities,
+            rho_max=EC.rho_max,
             sym_type=sym_type,
         )
         self.network.step(
             init_conditions={self.network.origins_by_name["O1"]: {"r": 1}},
-            T=Constants.T,
-            tau=Constants.tau,
-            eta=Constants.eta,
-            kappa=Constants.kappa,
-            delta=Constants.delta,
+            T=EC.T,
+            tau=EC.tau,
+            eta=EC.eta,
+            kappa=EC.kappa,
+            delta=EC.delta,
         )
         self.dynamics: cs.Function = sym_metanet.engine.to_function(
             net=self.network,
-            T=Constants.T,
+            T=EC.T,
             parameters=sympars,
             more_out=True,
             force_positive_speed=True,
             compact=2,
         )
-        self.realpars = np.asarray([getattr(Constants, n) for n in sympars])
+        self.realpars = np.asarray([getattr(EC, n) for n in sympars])
         # NOTE: the dynamics are of the form
         #           Function(F:(x[8],u,d[3],p[3])->(x+[8],q[5])
         # where the inputs are
@@ -175,15 +150,13 @@ class HighwayTrafficEnv(
         self.stage_cost = get_stage_cost(
             network=self.network,
             n_actions=self.dynamics.size1_in(1),
-            T=Constants.T,
-            w_max={
-                self.network.origins_by_name[n]: v for n, v in Constants.w_max.items()
-            },
+            T=EC.T,
+            w_max={self.network.origins_by_name[n]: v for n, v in EC.w_max.items()},
         )
         assert (
             self.stage_cost.size1_in(0) == ns
             and self.stage_cost.size1_in(1) == na
-            and self.stage_cost.size1_out(2) == len(Constants.w_max)
+            and self.stage_cost.size1_out(2) == len(EC.w_max)
         ), "Invalid shapes in cost function."
 
         # create initial solution to steady-state search (used in reset)
@@ -258,7 +231,7 @@ class HighwayTrafficEnv(
         self.demand = create_demands(
             self.time,
             self.n_scenarios,
-            kind=options.get("demands_kind", "random"),
+            kind=options.get("demands_kind", EC.demands_type),
             noise=options.get("demands_noise", (100.0, 100.0, 2.5)),
             np_random=self.np_random,
         )
@@ -296,9 +269,9 @@ class HighwayTrafficEnv(
         # compute cost of current state L(s,a)
         a_last = self._last_action if self._last_action is not None else a
         tts_, var_, cvi_ = self.stage_cost(s, a, a_last)
-        tts = Constants.stage_cost_weights["tts"] * float(tts_)
-        var = Constants.stage_cost_weights["var"] * float(var_)
-        cvi = Constants.stage_cost_weights["cvi"] * np.maximum(0, cvi_).sum().item()
+        tts = EC.stage_cost_weights["tts"] * float(tts_)
+        var = EC.stage_cost_weights["var"] * float(var_)
+        cvi = EC.stage_cost_weights["cvi"] * np.maximum(0, cvi_).sum().item()
         cost = tts + var + cvi
 
         # step the dynamics
