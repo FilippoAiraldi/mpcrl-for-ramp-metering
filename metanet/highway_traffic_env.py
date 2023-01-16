@@ -8,10 +8,10 @@ import sym_metanet
 from csnlp.util.io import SupportsDeepcopyAndPickle
 from gymnasium.spaces import Box
 
-from util.constants import EnvConstants as EC
 from metanet.costs import get_stage_cost
 from metanet.demands import Demands, create_demands
 from metanet.network import get_network, steady_state
+from util.constants import EnvConstants as EC
 
 
 class HighwayTrafficEnv(
