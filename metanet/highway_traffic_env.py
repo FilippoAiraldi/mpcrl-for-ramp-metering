@@ -31,7 +31,7 @@ class Constants:
     kappa: ClassVar[float] = 40  # model parameter (veh/km/lane)
     eta: ClassVar[float] = 60  # model parameter (km^2/lane)
     delta: ClassVar[float] = 0.0122  # merging phenomenum parameter
-    w_max: ClassVar[Dict[str, int]] = {"O1": 1000, "O2": 50}  # max queue on ramp O2
+    w_max: ClassVar[Dict[str, int]] = {"O2": 50}  # max queue on ramp O2
 
 
 class HighwayTrafficEnv(
@@ -121,7 +121,9 @@ class HighwayTrafficEnv(
             network=self.network,
             n_actions=self.dynamics.size1_in(1),
             T=Constants.T,
-            w_max=Constants.w_max,
+            w_max={
+                self.network.origins_by_name[n]: v for n, v in Constants.w_max.items()
+            },
         )
         assert (
             self.stage_cost.size1_in(0) == ns

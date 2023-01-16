@@ -8,7 +8,7 @@ def get_stage_cost(
     network: Network,
     n_actions: int,
     T: float,
-    w_max: Dict[str, int],
+    w_max: Dict[Origin, int],
 ) -> cs.Function:
     """Returns the stage cost function to compute for each state-action pair the
     corresponding cost.
@@ -21,9 +21,8 @@ def get_stage_cost(
         Number of actions available in the network.
     T : float
         Simulation timestep.
-    w_max : Dict[str, int]
-        A dictionary of origins names and their corresponding threshold on the queue
-        size.
+    w_max : Dict[sym_metanet.Origins, int]
+        A dictionary of origins and their corresponding threshold on the queue size.
 
     Returns
     -------
@@ -32,6 +31,11 @@ def get_stage_cost(
         network's state, `a` the action, and `a-` the action at the previous time step.
         The function returns the TTS cost, the control VARiability cost, and the
         Constraint VIolation cost as `TTS, VAR, CVI = L(s,a,a-).`
+
+    Raises
+    ------
+    ValueError
+        Raises if an origin name cannot be found in the given network.
     """
     # compute Total-Time-Spent for the current state
     TTS = 0
@@ -55,17 +59,16 @@ def get_stage_cost(
     VAR = cs.sumsqr(a - a_prev)
 
     # compute constraint violations for origins
-    w = cs.vertcat(*ws)
     CVI = cs.vertcat(
         *(
-            w[i] - w_max[origin.name]
-            for i, origin in enumerate(network.origins)
-            if origin.name in w_max
+            w - w_max[origin]
+            for origin, w in zip(network.origins, ws)
+            if origin in w_max
         )
     )
 
     # pack into function L(s,a) (with a third argument for the previous action)
-    s = cs.vertcat(*rhos, *vs, w)
+    s = cs.vertcat(*rhos, *vs, *ws)
     return cs.Function(
         "L", [s, a, a_prev], [TTS, VAR, CVI], ["s", "a", "a-"], ["tts", "var", "cvi"]
     )
