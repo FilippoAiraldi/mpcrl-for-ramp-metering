@@ -8,9 +8,9 @@ import sym_metanet
 from csnlp.util.io import SupportsDeepcopyAndPickle
 from gymnasium.spaces import Box
 
+from metanet.costs import get_constraint_violation, get_stage_cost
 from metanet.demands import create_demands
 from metanet.network import get_network, steady_state
-from metanet.costs import get_stage_cost
 
 
 class Constants:
@@ -31,6 +31,7 @@ class Constants:
     kappa: ClassVar[float] = 40  # model parameter (veh/km/lane)
     eta: ClassVar[float] = 60  # model parameter (km^2/lane)
     delta: ClassVar[float] = 0.0122  # merging phenomenum parameter
+    w_O2_max: ClassVar[int] = 50  # max queue on ramp O2
 
 
 class HighwayTrafficEnv(
@@ -100,21 +101,26 @@ class HighwayTrafficEnv(
         #           x+[8] = ...same as x...
         #           q[5] = [q[3], q_o[2]]           (3 segments, 2 origins)
 
-        # set reward/cost ranges and function
+        # set observation and action spaces
+        ns = self.ns
+        na = self.na
+        self.observation_space = Box(0.0, np.inf, (ns,), np.float64)
+        self.action_space = Box(0.0, np.inf, () if na == 1 else (na,), np.float64)
+
+        # set reward/cost ranges and functions
         self.reward_range = (0.0, float("inf"))
         self.stage_cost = get_stage_cost(
             network=self.network,
             n_actions=self.dynamics.size1_in(1),
             T=Constants.T,
         )
+        self.constraint_violation = get_constraint_violation(
+            self.network, {self.network.origins_by_name["O2"]: Constants.w_O2_max}, True
+        )
         assert all(
-            self.stage_cost.size1_in(i) == self.dynamics.size1_in(i) for i in range(2)
-        ), "Invalid shapes in stage cost"
-
-        # set observation and action spaces
-        self.observation_space = Box(0.0, np.inf, (self.ns,), np.float64)
-        na = self.na
-        self.action_space = Box(0.0, np.inf, () if na == 1 else (na,), np.float64)
+            f.size1_in(0) == ns and f.size1_in(1) == na
+            for f in (self.stage_cost, self.constraint_violation)
+        ), "Invalid shapes in cost functions."
 
         # create initial solution to steady-state search (used in reset)
         n_segments = sum(link.N for _, _, link in self.network.links)
