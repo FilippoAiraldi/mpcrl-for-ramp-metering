@@ -32,6 +32,11 @@ class Constants:
     eta: ClassVar[float] = 60  # model parameter (km^2/lane)
     delta: ClassVar[float] = 0.0122  # merging phenomenum parameter
     w_max: ClassVar[dict[str, int]] = {"O2": 50}  # max queue on ramp O2
+    stage_cost_weights: ClassVar[dict[str, float]] = {  # weight of each contribution
+        "tts": 1.0,
+        "var": 0.04,
+        "cvi": 10.0,
+    }
 
 
 class HighwayTrafficEnv(
@@ -53,13 +58,8 @@ class HighwayTrafficEnv(
         "stage_cost",
         "_last_initial_state",
         "_last_action",
+        "_np_random",
     )
-
-    stage_cost_contribution_weights: dict[str, float] = {
-        "tts": 1.0,
-        "var": 0.04,
-        "cvi": 10.0,
-    }
 
     def __init__(
         self,
@@ -241,9 +241,9 @@ class HighwayTrafficEnv(
         # compute cost of current state L(s,a)
         a_last = self._last_action if self._last_action is not None else a
         tts_, var_, cvi_ = self.stage_cost(s, a, a_last)
-        tts = self.stage_cost_contribution_weights["tts"] * float(tts_)
-        var = self.stage_cost_contribution_weights["var"] * float(var_)
-        cvi = self.stage_cost_contribution_weights["cvi"] * np.maximum(0, cvi_).sum()
+        tts = Constants.stage_cost_weights["tts"] * float(tts_)
+        var = Constants.stage_cost_weights["var"] * float(var_)
+        cvi = Constants.stage_cost_weights["cvi"] * np.maximum(0, cvi_).sum().item()
         cost = tts + var + cvi
 
         # step the dynamics
