@@ -50,8 +50,9 @@ class HighwayTrafficEnv(
         "demand",
         "demands",
         "state",
-        "_last_initial_state",
         "stage_cost",
+        "constraint_violation",
+        "_last_initial_state",
         "_last_action",
     )
 
