@@ -1,4 +1,4 @@
-from typing import Any, ClassVar, Dict, List, Literal, Optional, SupportsFloat
+from typing import Any, ClassVar, Literal, Optional, SupportsFloat
 
 import casadi as cs
 import gymnasium as gym
@@ -31,7 +31,7 @@ class Constants:
     kappa: ClassVar[float] = 40  # model parameter (veh/km/lane)
     eta: ClassVar[float] = 60  # model parameter (km^2/lane)
     delta: ClassVar[float] = 0.0122  # merging phenomenum parameter
-    w_max: ClassVar[Dict[str, int]] = {"O2": 50}  # max queue on ramp O2
+    w_max: ClassVar[dict[str, int]] = {"O2": 50}  # max queue on ramp O2
 
 
 class HighwayTrafficEnv(
@@ -140,7 +140,7 @@ class HighwayTrafficEnv(
         )
 
         # initialize storage for past demands
-        self.demands: Optional[List[Demands]] = [] if store_demands else None
+        self.demands: Optional[list[Demands]] = [] if store_demands else None
 
     @property
     def ns(self) -> int:

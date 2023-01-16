@@ -1,5 +1,3 @@
-from typing import Dict
-
 import casadi as cs
 from sym_metanet import Network, Origin
 
@@ -8,7 +6,7 @@ def get_stage_cost(
     network: Network,
     n_actions: int,
     T: float,
-    w_max: Dict[Origin, int],
+    w_max: dict[Origin, int],
 ) -> cs.Function:
     """Returns the stage cost function to compute for each state-action pair the
     corresponding cost.
@@ -21,7 +19,7 @@ def get_stage_cost(
         Number of actions available in the network.
     T : float
         Simulation timestep.
-    w_max : Dict[sym_metanet.Origins, int]
+    w_max : dict[sym_metanet.Origins, int]
         A dictionary of origins and their corresponding threshold on the queue size.
 
     Returns
