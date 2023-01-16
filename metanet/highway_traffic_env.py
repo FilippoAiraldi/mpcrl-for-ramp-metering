@@ -55,6 +55,12 @@ class HighwayTrafficEnv(
         "_last_action",
     )
 
+    stage_cost_contribution_weights: dict[str, float] = {
+        "tts": 1.0,
+        "var": 0.04,
+        "cvi": 10.0,
+    }
+
     def __init__(
         self,
         n_scenarios: int,
@@ -236,6 +242,11 @@ class HighwayTrafficEnv(
         tts = float(tts_)
         var = float(var_)
         cvi = np.maximum(0, cvi_).sum()
+        cost = (
+            self.stage_cost_contribution_weights["tts"] * tts
+            + self.stage_cost_contribution_weights["var"] * var
+            + self.stage_cost_contribution_weights["cvi"] * cvi
+        )
 
         # step the dynamics
         d = next(self.demand)
