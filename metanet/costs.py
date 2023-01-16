@@ -27,21 +27,21 @@ def get_stage_cost(network: Network, n_actions: int, T: float) -> cs.Function:
     TTS = 0
     rhos, vs = [], []
     for _, _, link in network.links:
-        rho = cs.SX.sym(f"rho_{link.name}", link.N, 1)
-        v = cs.SX.sym(f"v_{link.name}", link.N, 1)
+        rho = cs.MX.sym(f"rho_{link.name}", link.N, 1)
+        v = cs.MX.sym(f"v_{link.name}", link.N, 1)
         rhos.append(rho)
         vs.append(v)
         TTS += cs.sum1(rho) * link.lam * link.L
     ws = []
     for origin in network.origins:
-        w = cs.SX.sym(f"w_{origin.name}", 1, 1)
+        w = cs.MX.sym(f"w_{origin.name}", 1, 1)
         ws.append(w)
         TTS += cs.sum1(w)
     TTS *= T  # type: ignore[assignment]
 
     # compute control input variability
-    a = cs.SX.sym("a", n_actions, 1)
-    a_prev = cs.SX.sym("a_prev", n_actions, 1)
+    a = cs.MX.sym("a", n_actions, 1)
+    a_prev = cs.MX.sym("a_prev", n_actions, 1)
     VAR = cs.sumsqr(a - a_prev)
 
     # pack into function L(s,a) (with a third argument for the previous action)
@@ -75,9 +75,9 @@ def get_constraint_violation(
     # build symbolic variables
     n_segments = sum(link.N for _, _, link in network.links)
     n_origins = len(network.origins)
-    rho = cs.SX.sym("rho", n_segments, 1)
-    v = cs.SX.sym("v", n_segments, 1)
-    w = cs.SX.sym("w", n_origins, 1)
+    rho = cs.MX.sym("rho", n_segments, 1)
+    v = cs.MX.sym("v", n_segments, 1)
+    w = cs.MX.sym("w", n_origins, 1)
 
     # compute constraints symbolically
     constraints = cs.vertcat(
