@@ -43,6 +43,47 @@ class HighwayTrafficEnv(
     gym.Env[npt.NDArray[np.floating], npt.NDArray[np.floating]],
     SupportsDeepcopyAndPickle,
 ):
+    """
+    ## Description
+
+    This environment simulates a highway traffic network according to the METANET
+    modelling framework.
+
+    ## Action Space
+
+    The action is an array containing only one element, which can take any non-negative
+    value.
+
+    ## Observation Space
+
+    The observation (also state) space is an array of shape `(ns * 2 + no,)`, where `ns`
+    is the number of segments and `no` the number of origins in the network. The state
+    is then obtained via concatenation as
+    ```
+                            s = [rho^T, v^T, w^T]^T
+    ```
+    where `rho ∈ R^ns`, `v ∈ R^ns` and `w ∈ R^no`.
+
+    ## Rewards/Costs
+
+    The reward here is intended as a cost, and must be minized. It is computed according
+    to the current state and action, and reflects
+     - the time-spent on average by cars in traffic
+     - the control input variability
+     - the violation of maximum queues at the ramps.
+
+    ## Demands and Starting State
+
+    The demands (a.k.a., the disturbances) at the network's origin and destinations can
+    random- or constant- generated at each reset, and the initial starting state depends
+    on them.
+
+    ## Episode End
+
+    Each episode ends when all the demand scenarios (specified in the constructor) have
+    been simulated.
+    """
+
     __slots__ = (
         "reward_range",
         "observation_space",
@@ -68,6 +109,20 @@ class HighwayTrafficEnv(
         sym_type: Literal["SX", "MX"],
         store_demands: bool = True,
     ) -> None:
+        """Initializes the environment.
+
+        Parameters
+        ----------
+        n_scenarios : int
+            Number of successive demands scenarios to simulate in this environment
+            per episode (i.e., per reset).
+        scenario_duration : float
+            The duration (in hours) of a single scenario.
+        sym_type : "SX" or "MX"
+            The type of CasADi symbolic variable to use.
+        store_demands : bool, optional
+            Whether to store past demands in memory or not, by default `True`.
+        """
         gym.Env.__init__(self)
         SupportsDeepcopyAndPickle.__init__(self)
         self.n_scenarios = n_scenarios
