@@ -34,3 +34,21 @@ class EnvConstants:
     }
 
 
+class MpcConstants:
+    """Constant parameters of the highway traffic MPC controller."""
+
+    prediction_horizon: ClassVar[int] = 4  # prediction horizon \approx 3*L/(M*T*v_avg)
+    control_horizon: ClassVar[int] = 3  # control horizon
+    horizon_sparsity: ClassVar[int] = 6  # sparsity/spacing factor for horizons
+    multistart: ClassVar[int] = 1  # number of NMPC multistarts
+    solver_opts: ClassVar[dict[str, Any]] = {  # solver options
+        "expand": True,
+        "print_time": False,
+        "ipopt": {
+            "max_iter": 3e3,
+            "tol": 1e-8,
+            "barrier_tol_factor": 10,
+            "sb": "yes",
+            "print_level": 0,
+        },
+    }
