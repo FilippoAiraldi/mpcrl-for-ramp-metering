@@ -1,4 +1,4 @@
-from typing import Any, ClassVar, Literal, Optional, SupportsFloat
+from typing import Any, ClassVar, List, Literal, Optional, SupportsFloat
 
 import casadi as cs
 import gymnasium as gym
@@ -9,7 +9,7 @@ from csnlp.util.io import SupportsDeepcopyAndPickle
 from gymnasium.spaces import Box
 
 from metanet.costs import get_constraint_violation, get_stage_cost
-from metanet.demands import create_demands
+from metanet.demands import Demands, create_demands
 from metanet.network import get_network, steady_state
 
 
@@ -47,11 +47,12 @@ class HighwayTrafficEnv(
         "dynamics",
         "n_scenarios",
         "time",
-        "demands",
+        "current_demand",
         "state",
         "_last_initial_state",
         "stage_cost",
         "_last_action",
+        "demands",
     )
 
     def __init__(
@@ -59,6 +60,7 @@ class HighwayTrafficEnv(
         n_scenarios: int,
         scenario_duration: float,
         sym_type: Literal["SX", "MX"],
+        store_demands: bool = True,
     ) -> None:
         gym.Env.__init__(self)
         SupportsDeepcopyAndPickle.__init__(self)
@@ -131,6 +133,9 @@ class HighwayTrafficEnv(
             [rho0] * n_segments + [v0] * n_segments + [w0] * n_origins
         )
 
+        # initialize storage for past demands
+        self.demands: Optional[List[Demands]] = [] if store_demands else None
+
     @property
     def ns(self) -> int:
         """Gets the number of states/observations in the environment."""
@@ -188,19 +193,21 @@ class HighwayTrafficEnv(
         self.observation_space.seed(seed)
         self.action_space.seed(seed)
 
-        # create demands
-        self.demands = create_demands(
+        # create demands (and record them in storage)
+        self.current_demand = create_demands(
             self.time,
             self.n_scenarios,
             kind=options.get("demands_kind", "random"),
             noise=options.get("demands_noise", (100.0, 100.0, 2.5)),
             np_random=self.np_random,
         )
+        if self.demands is not None:
+            self.demands.append(self.current_demand)
 
         # compute initial state
         x0: np.ndarray = options.get("steady_state_x0", self._last_initial_state)
         u = options.get("steady_state_u", 1e3 * np.ones(self.na))  # fully open O2
-        d = self.demands[0]
+        d = self.current_demand[0]
         p = self.realpars
         f = lambda x: self.dynamics(x, u, d, p)[0].full().reshape(-1)
         state, err, iters = steady_state(
@@ -232,10 +239,9 @@ class HighwayTrafficEnv(
         cost = tts_cost + var_cost
 
         # step the dynamics
-        d = next(self.demands)
+        d = next(self.current_demand)
         s_next, flow = self.dynamics(s, a, d, self.realpars)
         s_next = s_next.full().reshape(-1)
-        flow = flow.full().reshape(-1)
         assert self.observation_space.contains(s_next), "Invalid state after step."
 
         # add other information in dict
@@ -247,4 +253,4 @@ class HighwayTrafficEnv(
         # save some variables and return
         self.state = s_next
         self._last_action = a
-        return s_next, cost, False, self.demands.exhausted, info
+        return s_next, cost, False, self.current_demand.exhausted, info
