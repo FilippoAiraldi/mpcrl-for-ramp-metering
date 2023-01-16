@@ -11,17 +11,16 @@ class Demands:
     """Class containing the demands of the highway stretch at the mainstream origin O1,
     on-ramp O2, and the congestion at destination D1."""
 
-    __slots__ = ("demands", "_it", "_cnt")
+    __slots__ = ("demands", "t")
 
     def __init__(self, demands: npt.NDArray[np.floating]):
         assert demands.ndim == 2 and demands.shape[1] == 3, "Invalid demands array."
         self.demands = demands
-        self.reset_iter()
+        self.reset()
 
-    def reset_iter(self) -> None:
-        """Resets the demands iterator."""
-        self._it = iter(self.demands)
-        self._cnt = 0
+    def reset(self) -> None:
+        """Resets the demands iteration."""
+        self.t = 0
 
     @property
     def O1(self) -> npt.NDArray[np.floating]:
@@ -47,8 +46,9 @@ class Demands:
         return self.demands[idx]
 
     def __next__(self) -> npt.NDArray[np.floating]:
-        self._cnt += 1
-        return next(self._it)
+        d = self.demands[self.t]
+        self.t += 1
+        return d
 
     def __repr__(self) -> str:
         o1 = summarize_array(self.O1)

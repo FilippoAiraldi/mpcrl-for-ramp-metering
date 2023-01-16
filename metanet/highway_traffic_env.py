@@ -117,9 +117,10 @@ class HighwayTrafficEnv(
         self.constraint_violation = get_constraint_violation(
             self.network, {self.network.origins_by_name["O2"]: Constants.w_O2_max}, True
         )
-        assert all(
-            f.size1_in(0) == ns and f.size1_in(1) == na
-            for f in (self.stage_cost, self.constraint_violation)
+        assert (
+            self.stage_cost.size1_in(0) == ns
+            and self.stage_cost.size1_in(1) == na
+            and self.constraint_violation.size1_in(0) == ns
         ), "Invalid shapes in cost functions."
 
         # create initial solution to steady-state search (used in reset)
