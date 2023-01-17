@@ -12,7 +12,7 @@ class EnvConstants:
 
     T: ClassVar[float] = 10 / 3600  # simulation step size (h)
     Tfin: ClassVar[float] = 2.0  # duration of each demand scenario
-    n_scenarios: ClassVar[int] = 10   # number of demand scenarios per episode
+    n_scenarios: ClassVar[int] = 10  # number of demand scenarios per episode
     #
     segment_length: ClassVar[float] = 1  # length of links segments (km)
     lanes: ClassVar[int] = 2  # lanes per link (adim)
@@ -44,7 +44,8 @@ class MpcConstants:
 
     prediction_horizon: ClassVar[int] = 4  # prediction horizon \approx 3*L/(M*T*v_avg)
     control_horizon: ClassVar[int] = 3  # control horizon
-    horizon_sparsity: ClassVar[int] = 6  # sparsity/spacing factor for horizons
+    input_spacing: ClassVar[int] = 6  # sparsity/spacing factor for horizons
+    #
     multistart: ClassVar[int] = 1  # number of NMPC multistarts
     solver_opts: ClassVar[dict[str, Any]] = {  # solver options
         "expand": True,
