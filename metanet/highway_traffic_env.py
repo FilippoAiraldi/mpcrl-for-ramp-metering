@@ -60,6 +60,7 @@ class HighwayTrafficEnv(
     """
 
     __slots__ = (
+        "sym_type",
         "reward_range",
         "observation_space",
         "action_space",
@@ -92,6 +93,7 @@ class HighwayTrafficEnv(
         """
         gym.Env.__init__(self)
         SupportsDeepcopyAndPickle.__init__(self)
+        self.sym_type = sym_type
         self.time = np.arange(0.0, EC.Tfin, EC.T)
 
         # create dynamics
@@ -151,8 +153,7 @@ class HighwayTrafficEnv(
         ), "Invalid shapes in cost function."
 
         # create initial solution to steady-state search (used in reset)
-        n_segments = sum(link.N for _, _, link in self.network.links)
-        n_origins = len(self.network.origins)
+        n_segments, n_origins = self.n_segments, self.n_origins
         rho0, v0, w0 = 10, 100, 0
         self._last_initial_state = np.asarray(
             [rho0] * n_segments + [v0] * n_segments + [w0] * n_origins
@@ -170,6 +171,16 @@ class HighwayTrafficEnv(
     def na(self) -> int:
         """Gets the number of actions in the environment."""
         return self.dynamics.size1_in(1)
+
+    @property
+    def n_segments(self) -> int:
+        """Gets the number of segments in all links of the network."""
+        return sum(link.N for _, _, link in self.network.links)
+
+    @property
+    def n_origins(self) -> int:
+        """Gets the number of origins across the network."""
+        return len(self.network.origins)
 
     def reset(
         self, *, seed: Optional[int] = None, options: Optional[dict[str, Any]] = None
