@@ -46,6 +46,12 @@ class MpcConstants:
     control_horizon: ClassVar[int] = 3  # control horizon
     input_spacing: ClassVar[int] = 6  # sparsity/spacing factor for horizons
     #
+    parameters: ClassVar[dict[str, float]] = {  # mpc parameters with their value
+        "rho_crit": EnvConstants.rho_crit * 0.7,
+        "a": EnvConstants.a * 1.3,
+        "v_free": EnvConstants.v_free * 1.3,
+    }
+    #
     multistart: ClassVar[int] = 1  # number of NMPC multistarts
     solver_opts: ClassVar[dict[str, Any]] = {  # solver options
         "expand": True,
