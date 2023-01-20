@@ -50,10 +50,12 @@ class MpcConstants:
     solver_opts: ClassVar[dict[str, Any]] = {  # solver options
         "expand": True,
         "print_time": False,
+        "jit": False,
         "ipopt": {
             "max_iter": 3e3,
             "tol": 1e-8,
             "barrier_tol_factor": 10,
+            # "linear_solver": "pardiso",
             "sb": "yes",
             "print_level": 0,
         },
