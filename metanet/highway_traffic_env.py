@@ -120,7 +120,7 @@ class HighwayTrafficEnv(
             force_positive_speed=True,
             compact=2,
         )
-        self.realpars = np.asarray([getattr(EC, n) for n in sympars])
+        self.realpars = {n: getattr(EC, n) for n in sympars}
         # NOTE: the dynamics are of the form
         #           Function(F:(x[8],u,d[3],p[3])->(x+[8],q[5])
         # where the inputs are
@@ -243,8 +243,8 @@ class HighwayTrafficEnv(
         # compute initial state
         x0: np.ndarray = options.get("steady_state_x0", self._last_initial_state)
         u = options.get("steady_state_u", 1e3 * np.ones(self.na))  # fully open O2
-        d = self.demand[0]
-        p = self.realpars
+        d = cs.DM(self.demand[0])
+        p = cs.DM(self.realpars.values())
         f = lambda x: self.dynamics(x, u, d, p)[0].full().reshape(-1)
         state, err, iters = steady_state(
             f=f,
@@ -278,7 +278,7 @@ class HighwayTrafficEnv(
 
         # step the dynamics
         d = next(self.demand)
-        s_next, flow = self.dynamics(s, a, d, self.realpars)
+        s_next, flow = self.dynamics(s, a, d, self.realpars.values())
         s_next = s_next.full().reshape(-1)
         assert self.observation_space.contains(s_next), "Invalid state after step."
 
