@@ -305,3 +305,9 @@ class HighwayTrafficEnv(
         self.state = s_next
         self._last_action = a
         return s_next, cost, False, self.demand.exhausted, info
+
+    def __str__(self):
+        return self.__class__.__name__
+
+    def __repr__(self) -> str:
+        return f"{self.__class__.__name__}({self.sym_type})"
