@@ -64,6 +64,7 @@ class HighwayTrafficEnv(
         "reward_range",
         "observation_space",
         "action_space",
+        "n_scenarios",
         "network",
         "realpars",
         "dynamics",
@@ -80,6 +81,7 @@ class HighwayTrafficEnv(
     def __init__(
         self,
         sym_type: Literal["SX", "MX"],
+        n_scenarios: int,
         store_demands: bool = True,
     ) -> None:
         """Initializes the environment.
@@ -88,12 +90,16 @@ class HighwayTrafficEnv(
         ----------
         sym_type : "SX" or "MX"
             The type of CasADi symbolic variable to use.
+        n_scenarios : int
+            Number demand scenarios to generate after each reset (consequently, this
+            affects also the length of each env's episode).
         store_demands : bool, optional
             Whether to store past demands in memory or not, by default `True`.
         """
         gym.Env.__init__(self)
         SupportsDeepcopyAndPickle.__init__(self)
         self.sym_type = sym_type
+        self.n_scenarios = n_scenarios
         self.time = np.arange(0.0, EC.Tfin, EC.T)
 
         # create dynamics
@@ -237,7 +243,7 @@ class HighwayTrafficEnv(
         # create demands (and record them in storage)
         self.demand = create_demands(
             time=self.time,
-            reps=EC.n_scenarios,
+            reps=self.n_scenarios,
             kind=options.get("demands_kind", EC.demands_type),
             noise=options.get("demands_noise", (100.0, 100.0, 2.5)),
             np_random=self.np_random,

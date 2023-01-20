@@ -12,7 +12,6 @@ class EnvConstants:
 
     T: ClassVar[float] = 10 / 3600  # simulation step size (h)
     Tfin: ClassVar[float] = 2.0  # duration of each demand scenario
-    n_scenarios: ClassVar[int] = 10  # number of demand scenarios per episode
     #
     segment_length: ClassVar[float] = 1  # length of links segments (km)
     lanes: ClassVar[int] = 2  # lanes per link (adim)
