@@ -1,5 +1,4 @@
 import argparse
-from secrets import choice
 
 from util.runs import get_runname
 
