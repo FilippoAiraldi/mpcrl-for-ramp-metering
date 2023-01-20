@@ -173,6 +173,11 @@ class HighwayTrafficEnv(
         return self.dynamics.size1_in(1)
 
     @property
+    def nd(self) -> int:
+        """Gets the number of disturbances in the environment."""
+        return self.dynamics.size1_in(2)
+
+    @property
     def n_segments(self) -> int:
         """Gets the number of segments in all links of the network."""
         return sum(link.N for _, _, link in self.network.links)
