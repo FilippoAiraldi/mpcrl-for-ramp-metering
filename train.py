@@ -2,8 +2,8 @@ from datetime import datetime
 from time import perf_counter
 from typing import Any, Literal
 
-from csnlp.util.io import save
 import joblib as jl
+from csnlp.util.io import save
 
 from metanet import HighwayTrafficEnv
 from mpc import HighwayTrafficMpc
