@@ -1,4 +1,4 @@
-from typing import Any, Literal, Optional, SupportsFloat
+from typing import Any, Literal, Optional, SupportsFloat, Type, TypeVar
 
 import casadi as cs
 import gymnasium as gym
@@ -7,11 +7,15 @@ import numpy.typing as npt
 import sym_metanet
 from csnlp.util.io import SupportsDeepcopyAndPickle
 from gymnasium.spaces import Box
+from gymnasium.wrappers import NormalizeReward
+from mpcrl.wrappers.envs import MonitorEpisodes
 
 from metanet.costs import get_stage_cost
 from metanet.demands import Demands, create_demands
 from metanet.network import get_network, steady_state
 from util.constants import EnvConstants as EC
+
+EnvType = TypeVar("EnvType", bound="HighwayTrafficEnv")
 
 
 class HighwayTrafficEnv(
@@ -301,6 +305,49 @@ class HighwayTrafficEnv(
         self.state = s_next
         self._last_action = a
         return s_next, cost, False, self.demand.exhausted, info
+
+    @classmethod
+    def wrapped(
+        cls: Type[EnvType],
+        monitor_episodes: bool = True,
+        monitor_deques_size: Optional[int] = None,
+        normalize_rewards: bool = True,
+        normalization_gamma: float = 0.99,
+        *env_args,
+        **env_kwargs,
+    ) -> EnvType:
+        """Allows to build an instance of the env that can be wrapped in the following
+        wrappers (from inner to outer, where the outer returns last):
+         - `MonitorEpisodes`
+         - `NormalizeReward`
+
+        Parameters
+        ----------
+        cls : Type[EnvType]
+            The type of env to instantiate.
+        monitor_episodes : bool, optional
+            Whether to wrap the env in an instance of `MonitorEpisodes` or not.
+        monitor_deques_size : int, optional
+            Size of the monitor deques. Only valid if `monitor_episodes=True`.
+        normalize_rewards : bool, optional
+            Whether to wrap the env in an instance of `NormalizeReward` or not.
+        normalization_gamma : float, optional
+            Normalization discount factor. Should be the same as the one used by the RL
+            agent. Only valid if `normalize_rewards=True`.
+
+        Returns
+        -------
+        EnvType
+            Wrapped instance of the environment.
+        """
+        env = cls(*env_args, **env_kwargs)
+        if monitor_episodes:
+            env = MonitorEpisodes(env, monitor_deques_size)
+        if normalize_rewards:
+            env = NormalizeReward(  # type: ignore[assignment]
+                env, normalization_gamma, 1e-6
+            )
+        return env
 
     def __str__(self):
         return self.__class__.__name__
