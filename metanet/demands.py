@@ -45,7 +45,8 @@ class Demands:
     def forecast(self, length: int) -> npt.NDArray[np.floating]:
         """Gets the forecast of the demands from the current time up to the horizon of
         specified length. The forecast is flawless, and forecasted demands are padded to
-        always have the expected size.
+        always have the expected size. This method does not increase the demands' time
+        counter.
 
         Parameters
         ----------
@@ -63,6 +64,24 @@ class Demands:
             future_demands = np.append(
                 future_demands, np.tile(future_demands[-1, None], (gap, 1)), axis=0
             )
+        return future_demands
+
+    def next(self, length: int) -> npt.NDArray[np.floating]:
+        """Similar to `forecast`; however, it increases the internal demands' time
+        counter.
+
+        Parameters
+        ----------
+        length : int
+            Length of the next demands to get.
+
+        Returns
+        -------
+        array of floats
+            The future demands.
+        """
+        future_demands = self.forecast(length)
+        self.t += length
         return future_demands
 
     def __getitem__(self, idx) -> npt.NDArray[np.floating]:
