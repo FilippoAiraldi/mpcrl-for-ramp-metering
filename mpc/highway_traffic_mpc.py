@@ -14,6 +14,9 @@ SymType = TypeVar("SymType", cs.SX, cs.MX)
 
 
 class HighwayTrafficMpc(Mpc[SymType]):
+    """MPC controller for highway traffic control. This MPC formulation lends itself as
+    function approximation for RL algorithms."""
+
     __slots__ = ("env",)
 
     def __init__(
@@ -22,6 +25,20 @@ class HighwayTrafficMpc(Mpc[SymType]):
         discount: float,
         parametric_cost_terms: bool,
     ) -> None:
+        """Builds an instance of the MPC controller for traffic control.
+
+        Parameters
+        ----------
+        env : HighwayTrafficEnv
+            The traffic network the controller is acting upon.
+        discount : float
+            The discount factor for stage and terminal cost terms. Should be the same as
+            the one used by the RL agent.
+        parametric_cost_terms : bool
+            If `True`, parametric initial, stage, and terminal cost terms are added to
+            the MPC objective. If `False`, the objective is only made up of economic and
+            traffic-related costs.
+        """
         self.env = env
         starts = MC.multistart
         nlp = (
