@@ -8,7 +8,7 @@ import sym_metanet
 from csnlp.util.io import SupportsDeepcopyAndPickle
 from gymnasium.spaces import Box
 from gymnasium.wrappers import NormalizeReward
-from mpcrl.wrappers.envs import MonitorEpisodes
+from mpcrl.wrappers.envs import MonitorInfos
 
 from metanet.costs import get_stage_cost
 from metanet.demands import Demands, create_demands
@@ -309,7 +309,7 @@ class HighwayTrafficEnv(
     @classmethod
     def wrapped(
         cls: Type[EnvType],
-        monitor_episodes: bool = True,
+        monitor_infos: bool = True,
         monitor_deques_size: Optional[int] = None,
         normalize_rewards: bool = True,
         normalization_gamma: float = 0.99,
@@ -318,17 +318,17 @@ class HighwayTrafficEnv(
     ) -> EnvType:
         """Allows to build an instance of the env that can be wrapped in the following
         wrappers (from inner to outer, where the outer returns last):
-         - `MonitorEpisodes`
+         - `MonitorInfos`
          - `NormalizeReward`
 
         Parameters
         ----------
         cls : Type[EnvType]
             The type of env to instantiate.
-        monitor_episodes : bool, optional
-            Whether to wrap the env in an instance of `MonitorEpisodes` or not.
+        monitor_infos : bool, optional
+            Whether to wrap the env in an instance of `MonitorInfos` or not.
         monitor_deques_size : int, optional
-            Size of the monitor deques. Only valid if `monitor_episodes=True`.
+            Size of the monitor deques. Only valid if `monitor_infos=True`.
         normalize_rewards : bool, optional
             Whether to wrap the env in an instance of `NormalizeReward` or not.
         normalization_gamma : float, optional
@@ -341,8 +341,8 @@ class HighwayTrafficEnv(
             Wrapped instance of the environment.
         """
         env = cls(*env_args, **env_kwargs)
-        if monitor_episodes:
-            env = MonitorEpisodes(env, monitor_deques_size)
+        if monitor_infos:
+            env = MonitorInfos(env, monitor_deques_size)
         if normalize_rewards:
             env = NormalizeReward(  # type: ignore[assignment]
                 env, normalization_gamma, 1e-6
