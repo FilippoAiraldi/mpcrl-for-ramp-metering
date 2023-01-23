@@ -72,6 +72,7 @@ class HighwayTrafficEnv(
         "network",
         "realpars",
         "dynamics",
+        "dynamics_mapaccum",
         "time",
         "demand",
         "demands",
@@ -130,6 +131,7 @@ class HighwayTrafficEnv(
             force_positive_speed=True,
             compact=2,
         )
+        self.dynamics_mapaccum = self.dynamics.mapaccum(EC.steps)
         self.realpars = {n: getattr(EC, n) for n in sympars}
         # NOTE: the dynamics are of the form
         #           Function(F:(x[8],u,d[3],p[3])->(x+[8],q[5])
@@ -288,23 +290,22 @@ class HighwayTrafficEnv(
         cost = tts + var + cvi
 
         # step the dynamics
-        d = next(self.demand)
-        s_next, flow = self.dynamics(s, a, d, self.realpars.values())
-        s_next = s_next.full().reshape(-1)
-        assert self.observation_space.contains(s_next), "Invalid state after step."
+        d = self.demand.next(EC.steps).T
+        s_nexts, flows = self.dynamics_mapaccum(s, a, d, self.realpars.values())
+        self.state = s_nexts[:, -1].full().reshape(-1)
+        assert self.observation_space.contains(self.state), "Invalid state after step."
 
         # add other information in dict
         info: dict[str, Any] = {
-            "q": flow.full().reshape(-1),
+            "q": flows.full(),
             "tts": tts,
             "var": var,
             "cvi": cvi,
         }
 
-        # save some variables and return
-        self.state = s_next
+        # save last action and return
         self._last_action = a
-        return s_next, cost, False, self.demand.exhausted, info
+        return self.state, cost, False, self.demand.exhausted, info
 
     @classmethod
     def wrapped(
