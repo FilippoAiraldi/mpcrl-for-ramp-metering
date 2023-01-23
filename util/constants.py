@@ -12,6 +12,7 @@ class EnvConstants:
 
     T: ClassVar[float] = 10 / 3600  # simulation step size (h)
     Tfin: ClassVar[float] = 2.0  # duration of each demand scenario
+    steps: ClassVar[int] = 6  # timesteps to simulate at each env.step calls
     #
     segment_length: ClassVar[float] = 1  # length of links segments (km)
     lanes: ClassVar[int] = 2  # lanes per link (adim)
@@ -43,7 +44,6 @@ class MpcConstants:
 
     prediction_horizon: ClassVar[int] = 4  # prediction horizon \approx 3*L/(M*T*v_avg)
     control_horizon: ClassVar[int] = 3  # control horizon
-    input_spacing: ClassVar[int] = 6  # sparsity/spacing factor for horizons
     #
     parameters: ClassVar[dict[str, float]] = {  # mpc parameters with their value
         "rho_crit": EnvConstants.rho_crit * 0.7,

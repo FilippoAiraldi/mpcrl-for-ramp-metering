@@ -46,10 +46,9 @@ class HighwayTrafficMpc(Mpc[SymType]):
             if starts == 1
             else MultistartNlp(starts=starts, sym_type=env.sym_type)
         )
-        sp = MC.input_spacing
-        Np = MC.prediction_horizon * sp
-        Nc = MC.control_horizon * sp
-        super().__init__(nlp, Np, Nc, sp)
+        Np = MC.prediction_horizon * EC.steps
+        Nc = MC.control_horizon * EC.steps
+        super().__init__(nlp, Np, Nc, EC.steps)
 
         # create dynamics parameters
         pars = {n: self.parameter(n) for n in env.realpars.keys()}
