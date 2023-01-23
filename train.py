@@ -14,12 +14,13 @@ def eval_pk_agent(
     agent_n: int,
     episodes: int,
     scenarios: int,
+    discount_factor: float,
     sym_type: Literal["SX", "MX"],
     seed: int,
 ) -> Any:
     # TODO: wrap env
     env = HighwayTrafficEnv(sym_type, scenarios)
-    mpc = HighwayTrafficMpc(env)
+    mpc = HighwayTrafficMpc(env, discount_factor, False)
     # TODO: agent = ... function of mpc ...
     # TODO: wrap agent
     # TODO: call agent.train ...
@@ -44,6 +45,7 @@ if __name__ == "__main__":
             agent_n=n,
             episodes=args.episodes,
             scenarios=args.scenarios,
+            discount_factor=args.gamma,
             sym_type=args.sym_type,
             seed=args.seed + (args.episodes + 1) * n,
         )

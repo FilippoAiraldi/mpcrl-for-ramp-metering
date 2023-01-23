@@ -6,6 +6,7 @@ from csnlp import MultistartNlp, Nlp
 from csnlp.wrappers import Mpc
 
 from metanet.highway_traffic_env import HighwayTrafficEnv
+from mpc.costs import get_parametric_cost
 from util.constants import EnvConstants as EC
 from util.constants import MpcConstants as MC
 
@@ -15,7 +16,12 @@ SymType = TypeVar("SymType", cs.SX, cs.MX)
 class HighwayTrafficMpc(Mpc[SymType]):
     __slots__ = ("env",)
 
-    def __init__(self, env: HighwayTrafficEnv) -> None:
+    def __init__(
+        self,
+        env: HighwayTrafficEnv,
+        discount: float,
+        parametric_cost_terms: bool,
+    ) -> None:
         self.env = env
         starts = MC.multistart
         nlp = (
@@ -28,7 +34,7 @@ class HighwayTrafficMpc(Mpc[SymType]):
         Nc = MC.control_horizon * sp
         super().__init__(nlp, Np, Nc, sp)
 
-        # create parameters
+        # create dynamics parameters
         pars = {n: self.parameter(n) for n in env.realpars.keys()}
 
         # create disturbances
@@ -42,7 +48,7 @@ class HighwayTrafficMpc(Mpc[SymType]):
         # create action and upper-constrain it dynamically
         C = EC.origin_capacities[1]  # capacity of O2
         si = 1  # index of segment connected to O2
-        _, a_exp = self.action("a", env.na, ub=C)  # control action of O2
+        a, a_exp = self.action("a", env.na, ub=C)  # control action of O2
         self.constraint("a_min_1", a_exp, "<=", d[si, :] + w[si, :-1] / EC.T)
         self.constraint(
             "a_min_2",
@@ -52,14 +58,56 @@ class HighwayTrafficMpc(Mpc[SymType]):
         )
 
         # create (soft) constraints on queue(s)
-        # NOTE: no constraint on w[:, 0], since this must be equal to the init condition
+        # NOTE: no constraint on w[:, 0], since this must be equal to init conditions.
+        # For this reason, we prepend a column of zeros to make it equal size to state
         for oi, origin in enumerate(env.network.origins_by_name):
             if origin in EC.w_max:
                 self.constraint(
                     f"w_max_O{oi + 1}", w[oi, 1:], "<=", EC.w_max[origin], soft=True
                 )
+        slacks = cs.horzcat(
+            self.nlp.sym_type.zeros(self.nslacks, 1), cs.vertcat(*self.slacks.values())
+        )
 
         # set dynamics
         p = cs.vertcat(*pars.values())
         F = lambda x, u, d: env.dynamics(x, u, d, p)
         self.set_dynamics(F, n_in=3, n_out=env.dynamics.n_out())
+
+        # build objective terms related to traffic, control action, and slacks
+        gammas = cs.DM(discount ** np.arange(Np + 1).reshape(1, -1))
+        # total-time spent
+        J = cs.dot(gammas, env.stage_cost(s, 0, 0)[0])
+        # control action variability
+        a_last = self.parameter("a-", (a.shape[0], 1))
+        a_lasts = cs.horzcat(a_last, a[:, :-1])
+        weight_var = self.parameter("weight_var")
+        J += weight_var * cs.sum2(env.stage_cost(0, a, a_lasts)[1])
+        # slack penalty
+        weight_slack = self.parameter("weight_slack", (slacks.shape[0], 1))
+        weight_slack_T = self.parameter("weight_slack_terminal", (slacks.shape[0], 1))
+        J += cs.dot(gammas[:-1], weight_slack.T @ slacks[:, :-1]) + gammas[-1] * cs.dot(
+            weight_slack_T, slacks[:, -1]
+        )
+
+        # add the additional parametric costs
+        # NOTE: should terminal cost have separate tracking values from stage cost?
+        if parametric_cost_terms:
+            init_cost, stage_cost, terminal_cost = get_parametric_cost(env.network)
+            weight_V = self.parameter("weight_V", init_cost.size_in("weight"))
+            weight_L = self.parameter("weight_L", stage_cost.size_in("weight"))
+            weight_T = self.parameter("weight_T", terminal_cost.size_in("weight"))
+            rho_crit_L = self.parameter("rho_crit_stage")
+            v_free_L = self.parameter("v_free_stage")
+            rho_crit_T = self.parameter("rho_crit_terminal")
+            v_free_T = self.parameter("v_free_terminal")
+            J += (
+                init_cost(s[:, 0], weight_V)
+                + cs.dot(
+                    gammas[1:-1], stage_cost(s[:, 1:-1], rho_crit_L, v_free_L, weight_L)
+                )
+                + gammas[-1] * terminal_cost(s[:, -1], rho_crit_T, v_free_T, weight_T)
+            )
+
+        # set the MPC objective
+        self.minimize(J)
