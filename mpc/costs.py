@@ -21,7 +21,7 @@ def get_parametric_cost(
     tuple[cs.Function, cs.Function, cs.Function]
         A tuple of the 3 CasADi functions.
     """
-    symvar = cs.SX  # faster function evaluations with MX
+    symvar = cs.MX  # faster function evaluations with MX
 
     # create variables
     n_segments = sum(link.N for _, _, link in network.links)
@@ -44,27 +44,33 @@ def get_parametric_cost(
     )
 
     # create stage cost function
-    weight_stage_rho = symvar.sym("weight_stage_rho", n_segments, 1)
+    weight_stage1_rho = symvar.sym("weight_stage1_rho", n_segments, 1)
+    weight_stage2_rho = symvar.sym("weight_stage2_rho", n_segments, 1)
     weight_stage_v = symvar.sym("weight_stage_v", n_segments, 1)
-    stage_term_rho = quad_form(weight_stage_rho, rho - rho_crit) * cs.sumsqr(rho)
+    stage_term1_rho = quad_form(weight_stage1_rho, rho - rho_crit)
+    stage_term2_rho = quad_form(weight_stage2_rho, rho)
     stage_term_v = quad_form(weight_stage_v, v - v_free)
+    weight_stage = cs.vertcat(weight_stage1_rho, weight_stage2_rho, weight_stage_v)
     stage_cost = cs.Function(
         "stage_cost",
-        (s, rho_crit, v_free, cs.vertcat(weight_stage_rho, weight_stage_v)),
-        (stage_term_rho + stage_term_v,),
+        (s, rho_crit, v_free, weight_stage),
+        (stage_term1_rho * stage_term2_rho + stage_term_v,),
         ("s", "rho_crit", "v_free", "weight"),
         ("J_stage",),
     )
 
     # create terminal cost function
-    weight_terminal_rho = symvar.sym("weight_terminal_rho", n_segments, 1)
-    weight_terminal_v = symvar.sym("weight_terminal_v", n_segments, 1)
-    terminal_term_rho = quad_form(weight_terminal_rho, rho - rho_crit) * cs.sumsqr(rho)
-    terminal_term_v = quad_form(weight_terminal_v, v - v_free)
-    terminal_cost = cs.Function(
+    weight_fin1_rho = symvar.sym("weight_fin1_rho", n_segments, 1)
+    weight_fin2_rho = symvar.sym("weight_fin2_rho", n_segments, 1)
+    weight_fin_v = symvar.sym("weight_fin_v", n_segments, 1)
+    fin_term1_rho = quad_form(weight_fin1_rho, rho - rho_crit)
+    fin_term2_rho = quad_form(weight_fin2_rho, rho)
+    fin_term_v = quad_form(weight_fin_v, v - v_free)
+    weight_fin = cs.vertcat(weight_fin1_rho, weight_fin2_rho, weight_fin_v)
+    fin_cost = cs.Function(
         "terminal_cost",
-        (s, rho_crit, v_free, cs.vertcat(weight_terminal_rho, weight_terminal_v)),
-        (terminal_term_rho + terminal_term_v,),
+        (s, rho_crit, v_free, weight_fin),
+        (fin_term1_rho * fin_term2_rho + fin_term_v,),
         ("s", "rho_crit", "v_free", "weight"),
         ("J_terminal",),
     )
@@ -72,6 +78,6 @@ def get_parametric_cost(
     assert (
         init_cost.size_out(0) == (1, 1)
         and stage_cost.size_out(0) == (1, 1)
-        and terminal_cost.size_out(0) == (1, 1)
+        and fin_cost.size_out(0) == (1, 1)
     ), "Invalid cost functions."
-    return init_cost, stage_cost, terminal_cost
+    return init_cost, stage_cost, fin_cost
