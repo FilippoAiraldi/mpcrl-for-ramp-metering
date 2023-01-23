@@ -292,12 +292,14 @@ class HighwayTrafficEnv(
         # step the dynamics
         d = self.demand.next(EC.steps).T
         s_nexts, flows = self.dynamics_mapaccum(s, a, d, self.realpars.values())
-        self.state = s_nexts[:, -1].full().reshape(-1)
+        s_nexts_ = s_nexts.full()
+        self.state = s_nexts_[:, -1]
         assert self.observation_space.contains(self.state), "Invalid state after step."
 
         # add other information in dict
         info: dict[str, Any] = {
-            "q": flows.full(),
+            "state": s_nexts_,
+            "flow": flows.full(),
             "tts": tts,
             "var": var,
             "cvi": cvi,
