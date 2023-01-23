@@ -146,12 +146,8 @@ class HighwayTrafficEnv(
 
         # set reward/cost ranges and functions
         self.reward_range = (0.0, float("inf"))
-        self.stage_cost = get_stage_cost(
-            network=self.network,
-            n_actions=self.dynamics.size1_in(1),
-            T=EC.T,
-            w_max={self.network.origins_by_name[n]: v for n, v in EC.w_max.items()},
-        )
+        w_max = {self.network.origins_by_name[n]: v for n, v in EC.w_max.items()}
+        self.stage_cost = get_stage_cost(self.network, self.na, EC.T, w_max)
         assert (
             self.stage_cost.size1_in(0) == ns
             and self.stage_cost.size1_in(1) == na
