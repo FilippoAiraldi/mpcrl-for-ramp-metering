@@ -11,7 +11,7 @@ from util.constants import RlConstants as RC
 SymType = TypeVar("SymType", cs.SX, cs.MX)
 
 
-class HighwayTrafficPkAgent(Agent):
+class HighwayTrafficPkAgent(Agent[SymType]):
     """Perfect-knowledge (PK) agent for the traffic control task, meaning that the agent
     has access to all the exact information underlying the environment."""
 
