@@ -17,8 +17,6 @@ class HighwayTrafficMpc(Mpc[SymType]):
     """MPC controller for highway traffic control. This MPC formulation lends itself as
     function approximation for RL algorithms."""
 
-    __slots__ = ("env",)
-
     def __init__(
         self,
         env: HighwayTrafficEnv,
@@ -39,7 +37,6 @@ class HighwayTrafficMpc(Mpc[SymType]):
             the MPC objective. If `False`, the objective is only made up of economic and
             traffic-related costs.
         """
-        self.env = env
         starts = MC.multistart
         nlp = (
             Nlp(sym_type=env.sym_type)
