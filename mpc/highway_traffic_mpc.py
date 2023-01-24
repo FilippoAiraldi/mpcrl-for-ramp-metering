@@ -124,3 +124,6 @@ class HighwayTrafficMpc(Mpc[SymType]):
 
         # set the MPC objective
         self.minimize(J)
+
+        # initialize solver
+        self.init_solver(MC.solver_opts)
