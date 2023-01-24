@@ -1,3 +1,4 @@
-gymnasium==0.27.0
-matplotlib
+csnlp==1.4.3
+mpcrl==1.0.3
 sym-metanet[all]==1.0.2
+matplotlib
