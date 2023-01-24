@@ -258,7 +258,7 @@ class HighwayTrafficEnv(
         u = options.get("steady_state_u", 1e3 * np.ones(self.na))  # fully open O2
         d = cs.DM(self.demand[0])
         p = cs.DM(self.realpars.values())
-        f = lambda x: self.dynamics(x, u, d, p)[0].full().reshape(-1)
+        f = lambda x: self.dynamics(x, u, d, p)[0].full().ravel()
         state, err, iters = steady_state(
             f=f,
             x0=x0,
