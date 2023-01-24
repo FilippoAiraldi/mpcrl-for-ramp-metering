@@ -55,7 +55,9 @@ class MpcConstants:
     solver_opts: ClassVar[dict[str, Any]] = {  # solver options
         "expand": True,
         "print_time": False,
-        "jit": False,
+        # "jit": True,
+        # "compiler": "shell",
+        # "jit_options": {"flags": ["-O1"], "verbose": True},
         "ipopt": {
             "max_iter": 3e3,
             "tol": 1e-8,

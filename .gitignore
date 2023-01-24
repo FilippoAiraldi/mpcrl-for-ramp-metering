@@ -132,3 +132,4 @@ dmypy.json
 .vscode
 /_*
 venv
+jit_tmp*.c
