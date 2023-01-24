@@ -35,21 +35,19 @@ class HighwayTrafficPkAgent(Agent[SymType]):
         super().__init__(mpc, fixed_pars, name=name)
 
     def on_episode_start(self, env: HighwayTrafficEnv, episode: int) -> None:
-        self._set_varying_pars(env)
+        self._update_fixed_pars(env)
         super().on_episode_start(env, episode)
 
     def on_env_step(self, env: HighwayTrafficEnv, episode: int, timestep: int) -> None:
-        self._set_varying_pars(env)
+        self._update_fixed_pars(env)
         super().on_env_step(env, episode, timestep)
 
-    def on_episode_end(
-        self, env: HighwayTrafficEnv, episode: int, rewards: float
-    ) -> None:
-        del self.fixed_parameters["d"], self.fixed_parameters["a-"]
-        super().on_episode_end(env, episode, rewards)
-
-    def _set_varying_pars(self, env: HighwayTrafficEnv) -> None:
-        """Sets the internal demand as the forecasted demands, and the last action taken
-        in the env."""
-        self.fixed_parameters["d"] = env.demand.forecast(self._forecast_length).T
-        self.fixed_parameters["a-"] = env.last_action
+    def _update_fixed_pars(self, env: HighwayTrafficEnv) -> None:
+        """Updates the internal demand as the forecasted demands, and the last action
+        taken in the env. If the episode is over, deletes them instead."""
+        # TODO: check the timestep. If it is the final, delete the parameters
+        if env.demand.exhausted:
+            del self.fixed_parameters["d"], self.fixed_parameters["a-"]
+        else:
+            self.fixed_parameters["d"] = env.demand.forecast(self._forecast_length).T
+            self.fixed_parameters["a-"] = env.last_action
