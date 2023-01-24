@@ -65,3 +65,8 @@ class MpcConstants:
             "print_level": 0,
         },
     }
+
+
+assert (
+    EnvConstants.Tfin / EnvConstants.T % EnvConstants.steps == 0.0
+), "Incompatible simulation length and step size."
