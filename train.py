@@ -19,6 +19,29 @@ def eval_pk_agent(
     sym_type: Literal["SX", "MX"],
     seed: int,
 ) -> Any:
+    """Launches a simulation that evaluates a perfect-knowledge (PK) agent in the
+    traffic control environment.
+
+    Parameters
+    ----------
+    agent_n : int
+        Number of the agent. Used to formulate its name.
+    episodes : int
+        Number of episodes to evaluate the agent for.
+    scenarios : int
+        Number of demands' scenarios per episode.
+    discount_factor : float
+        Discount factor (used only in the MPC; no learning occurs in the PK agent).
+    sym_type : {"SX", "MX"}
+        The type of casadi symbols to use during the simulation.
+    seed : int
+        RNG seed for the simulation.
+
+    Returns
+    -------
+    Any
+        _description_
+    """
     env = HighwayTrafficEnv.wrapped(
         sym_type=sym_type,
         n_scenarios=scenarios,
@@ -26,7 +49,6 @@ def eval_pk_agent(
     )
     mpc = HighwayTrafficMpc(env, discount_factor, False)
     agent = HighwayTrafficPkAgent(mpc, name=f"PkAgent[{agent_n}]")
-    # TODO: wrap agent
     agent.evaluate(
         env,
         episodes,
