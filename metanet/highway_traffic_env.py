@@ -275,9 +275,9 @@ class HighwayTrafficEnv(
         self,
         action: npt.NDArray[np.floating],
     ) -> tuple[npt.NDArray[np.floating], SupportsFloat, bool, bool, dict[str, Any]]:
-        assert self.action_space.contains(action), "Invalid action passed to step."
+        a = np.asarray(action).reshape(())
+        assert self.action_space.contains(a), "Invalid action passed to step."
         s = self.state
-        a = action.item()
 
         # compute cost of current state L(s,a)
         tts_, var_, cvi_ = self.stage_cost(s, a, self.last_action)
