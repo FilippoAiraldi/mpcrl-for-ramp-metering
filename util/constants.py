@@ -70,3 +70,18 @@ class MpcConstants:
 assert (
     EnvConstants.Tfin / EnvConstants.T % EnvConstants.steps == 0.0
 ), "Incompatible simulation length and step size."
+
+
+class RlConstants:
+    """Constant parameters of the highway traffic RL agents."""
+
+    # dict of parameters for the agents containing, for each key, the initial value and
+    # whether it is learnable or not.
+    parameters = {
+        "rho_crit": (EnvConstants.rho_crit * 0.7, True),
+        "a": (EnvConstants.a * 1.3, True),
+        "v_free": (EnvConstants.v_free * 1.3, True),
+        "weight_var": (EnvConstants.stage_cost_weights["var"], True),
+        "weight_slack": (EnvConstants.stage_cost_weights["cvi"], True),
+        "weight_slack_terminal": (EnvConstants.stage_cost_weights["cvi"], True),
+    }
