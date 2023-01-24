@@ -79,7 +79,7 @@ class HighwayTrafficEnv(
         "state",
         "stage_cost",
         "_last_initial_state",
-        "_last_action",
+        "last_action",
         "_np_random",
     )
 
@@ -218,16 +218,14 @@ class HighwayTrafficEnv(
              for the newly generated demand. Defaults to the previous result of the same
              function.
 
-             - `steady_state_u`: the action for which to compute the steady-state.
-             Defaults to `1000` (ramps are fully opened)
+             - `last_action`: the last action, i.e., before the env reset used to
+             compute the steady-state. Defaults to setting the ramp to fully opened.
 
              - `steady_state_tol`: tolerance for steady-state, `1e-3` by default.
 
              - `steady_state_maxiter`: maximum iterations for steady-state, `500` by
              default.
 
-             - `last_action`: the last action, i.e., before the env reset. Used only in
-             the first computation of the stage cost.
 
         Returns
         -------
@@ -254,8 +252,8 @@ class HighwayTrafficEnv(
             self.demands.append(self.demand)
 
         # compute initial state
-        x0: np.ndarray = options.get("steady_state_x0", self._last_initial_state)
-        u = options.get("steady_state_u", 1e3 * np.ones(self.na))  # fully open O2
+        x0 = options.get("steady_state_x0", self._last_initial_state)
+        u = options.get("last_action", 1e4 * np.ones(self.na))  # huge control action
         d = cs.DM(self.demand[0])
         p = cs.DM(self.realpars.values())
         f = lambda x: self.dynamics(x, u, d, p)[0].full().ravel()
@@ -269,8 +267,8 @@ class HighwayTrafficEnv(
         self.state = state
         self._last_initial_state = state  # save to warmstart next reset steady-state
 
-        # get last action
-        self._last_action = options.get("last_action", None)
+        # now get the actual control action sufficient for the steady-state state
+        self.last_action = self.dynamics(state, u, d, p)[1][-1].full().reshape(-1)
         return state, {"steady_state_error": err, "steady_state_iters": iters}
 
     def step(
@@ -282,8 +280,7 @@ class HighwayTrafficEnv(
         a = action.item()
 
         # compute cost of current state L(s,a)
-        a_last = self._last_action if self._last_action is not None else a
-        tts_, var_, cvi_ = self.stage_cost(s, a, a_last)
+        tts_, var_, cvi_ = self.stage_cost(s, a, self.last_action)
         tts = EC.stage_cost_weights["tts"] * float(tts_)
         var = EC.stage_cost_weights["var"] * float(var_)
         cvi = EC.stage_cost_weights["cvi"] * np.maximum(0, cvi_).sum().item()
@@ -306,7 +303,7 @@ class HighwayTrafficEnv(
         }
 
         # save last action and return
-        self._last_action = a
+        self.last_action = a
         return self.state, cost, False, self.demand.exhausted, info
 
     @classmethod
