@@ -133,3 +133,7 @@ dmypy.json
 /_*
 venv
 jit_tmp*.c
+libpardiso.dll
+libpardiso.exp
+libpardiso.lib
+pardiso.lic
