@@ -7,6 +7,7 @@ from csnlp.util.io import save
 
 from metanet import HighwayTrafficEnv
 from mpc import HighwayTrafficMpc
+from rl import HighwayTrafficPkAgent
 from util import parse_args, tqdm_joblib
 
 
@@ -18,12 +19,20 @@ def eval_pk_agent(
     sym_type: Literal["SX", "MX"],
     seed: int,
 ) -> Any:
-    # TODO: wrap env
-    env = HighwayTrafficEnv(sym_type, scenarios)
+    env = HighwayTrafficEnv.wrapped(
+        sym_type=sym_type,
+        n_scenarios=scenarios,
+        normalize_rewards=False,
+    )
     mpc = HighwayTrafficMpc(env, discount_factor, False)
-    # TODO: agent = ... function of mpc ...
+    agent = HighwayTrafficPkAgent(mpc, name=f"PkAgent[{agent_n}]")
     # TODO: wrap agent
-    # TODO: call agent.train ...
+    agent.evaluate(
+        env,
+        episodes,
+        seed=seed,
+    )
+    # TODO: what to return?
     raise NotImplementedError
 
 
