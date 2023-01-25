@@ -59,7 +59,7 @@ class MpcConstants:
         # "compiler": "shell",
         # "jit_options": {"flags": ["-O1"], "verbose": True},
         "ipopt": {
-            "max_iter": 3e3,
+            "max_iter": 5e2,
             "tol": 1e-7,
             "barrier_tol_factor": 4,
             # "linear_solver": "pardiso",
