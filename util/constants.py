@@ -60,8 +60,8 @@ class MpcConstants:
         # "jit_options": {"flags": ["-O1"], "verbose": True},
         "ipopt": {
             "max_iter": 3e3,
-            "tol": 1e-8,
-            "barrier_tol_factor": 10,
+            "tol": 1e-7,
+            "barrier_tol_factor": 4,
             # "linear_solver": "pardiso",
             "sb": "yes",
             "print_level": 0,
