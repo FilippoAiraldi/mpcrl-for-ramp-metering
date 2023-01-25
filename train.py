@@ -54,8 +54,7 @@ def eval_pk_agent(
         episodes,
         seed=seed,
     )
-    # TODO: what to return?
-    raise NotImplementedError
+    return env
 
 
 # def train_lstdq_agent(
