@@ -255,7 +255,7 @@ class HighwayTrafficEnv(
 
         # compute initial state
         x0 = options.get("steady_state_x0", self._last_initial_state)
-        u = options.get("last_action", 1e3 * np.ones(self.na))  # huge control action
+        u = options.get("last_action", EC.origin_capacities[1] * np.ones(self.na))
         d = cs.DM(self.demand[0])
         p = cs.DM(self.realpars.values())
         f = lambda x: self.dynamics(x, u, d, p)[0].full().ravel()
