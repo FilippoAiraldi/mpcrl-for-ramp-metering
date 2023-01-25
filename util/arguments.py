@@ -84,7 +84,9 @@ def parse_train_args() -> argparse.Namespace:
     group.add_argument(
         "--n-jobs", "--n_jobs", type=int, default=-1, help="Simulation parallel jobs."
     )
-    # group.add_argument("--verbose", action="store_true", help="Verbose flag.")
+    group.add_argument(
+        "--verbose", type=int, choices=(0, 1, 2, 3), default=1, help="Verbosity level."
+    )
 
     # group = parser.add_argument_group("RL experience replay parameters")
     # group.add_argument(

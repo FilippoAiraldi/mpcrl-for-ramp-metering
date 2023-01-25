@@ -1,7 +1,9 @@
-from typing import Optional, TypeVar
+from logging import DEBUG, INFO
+from typing import Dict, List, Literal, Optional, Type, TypeVar
 
 import casadi as cs
 from mpcrl import Agent
+from mpcrl.wrappers.agents import Log
 
 from metanet.highway_traffic_env import HighwayTrafficEnv
 from mpc.highway_traffic_mpc import HighwayTrafficMpc
@@ -9,6 +11,7 @@ from util.constants import EnvConstants as EC
 from util.constants import RlConstants as RC
 
 SymType = TypeVar("SymType", cs.SX, cs.MX)
+AgentType = TypeVar("AgentType", bound="HighwayTrafficPkAgent")
 
 
 class HighwayTrafficPkAgent(Agent[SymType]):
@@ -51,3 +54,44 @@ class HighwayTrafficPkAgent(Agent[SymType]):
         else:
             self.fixed_parameters["d"] = env.demand.forecast(self._forecast_length).T
             self.fixed_parameters["a-"] = env.last_action
+
+    @classmethod
+    def wrapped(
+        cls: Type[AgentType],
+        verbose: Literal[0, 1, 2, 3],
+        *agent_args,
+        **agent_kwargs,
+    ) -> AgentType:
+        """Allows to build an instance of the agent that can be wrapped in the following
+        wrappers (from inner to outer, where the outer returns last):
+         - `Log`
+
+        Parameters
+        ----------
+        cls : Type[AgentType]
+            The type of env to instantiate.
+        verbose : {0, 1, 2,  3}
+            The level of verbosity for the logging wrapper.
+
+        Returns
+        -------
+        AgentType
+            Wrapped instance of the agent.
+        """
+        agent = cls(*agent_args, **agent_kwargs)
+        if verbose > 0:
+            level = INFO
+            frequencies: Dict[str, int] = {}
+            excluded: List[str] = []
+            if verbose >= 2:
+                frequencies["on_episode_end"] = 1
+                level = DEBUG
+            if verbose >= 3:
+                frequencies["on_env_step"] = int(EC.Tfin / EC.T / EC.steps)
+            agent = Log(
+                agent,
+                level=level,
+                log_frequencies=frequencies,
+                exclude_mandatory=excluded,
+            )
+        return agent

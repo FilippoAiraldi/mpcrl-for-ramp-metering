@@ -18,6 +18,7 @@ def eval_pk_agent(
     discount_factor: float,
     sym_type: Literal["SX", "MX"],
     seed: int,
+    verbose: Literal[0, 1, 2, 3],
 ) -> Any:
     """Launches a simulation that evaluates a perfect-knowledge (PK) agent in the
     traffic control environment.
@@ -36,6 +37,8 @@ def eval_pk_agent(
         The type of casadi symbols to use during the simulation.
     seed : int
         RNG seed for the simulation.
+    verbose : {0, 1, 2, 3}
+        Level of verbosity of the agent's logger.
 
     Returns
     -------
@@ -48,7 +51,9 @@ def eval_pk_agent(
         normalize_rewards=False,
     )
     mpc = HighwayTrafficMpc(env, discount_factor, False)
-    agent = HighwayTrafficPkAgent(mpc, name=f"PkAgent[{agent_n}]")
+    agent = HighwayTrafficPkAgent.wrapped(
+        mpc=mpc, name=f"PkAgent<{agent_n}>", verbose=verbose
+    )
     agent.evaluate(
         env,
         episodes,
@@ -78,6 +83,7 @@ if __name__ == "__main__":
             discount_factor=args.gamma,
             sym_type=args.sym_type,
             seed=args.seed + (args.episodes + 1) * n,
+            verbose=args.verbose,
         )
     elif args.lstdq:
         raise NotImplementedError
