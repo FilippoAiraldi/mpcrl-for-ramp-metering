@@ -3,7 +3,7 @@ import argparse
 from util.runs import get_runname
 
 
-def parse_args() -> argparse.Namespace:
+def parse_train_args() -> argparse.Namespace:
     """Parses the arguments needed to run the highway traffic control environment and
     its (learning) agents.
 

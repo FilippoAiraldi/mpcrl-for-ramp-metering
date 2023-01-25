@@ -8,7 +8,7 @@ from csnlp.util.io import save
 from metanet import HighwayTrafficEnv
 from mpc import HighwayTrafficMpc
 from rl import HighwayTrafficPkAgent
-from util import parse_args, tqdm_joblib
+from util import parse_train_args, tqdm_joblib
 
 
 def eval_pk_agent(
@@ -67,7 +67,7 @@ def eval_pk_agent(
 
 
 if __name__ == "__main__":
-    args = parse_args()
+    args = parse_train_args()
     date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     start = perf_counter()
     if args.pk:
