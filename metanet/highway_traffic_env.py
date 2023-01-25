@@ -129,6 +129,8 @@ class HighwayTrafficEnv(
             parameters=sympars,
             more_out=True,
             force_positive_speed=True,
+            # force_positive_density=True,
+            force_positive_queue=True,
             compact=2,
         )
         self.dynamics_mapaccum = self.dynamics.mapaccum(EC.steps)
