@@ -34,7 +34,7 @@ class EnvConstants:
     w_max: ClassVar[dict[str, int]] = {"O2": 50}  # max queue on ramp O2
     stage_cost_weights: ClassVar[dict[str, float]] = {  # weight of each contribution
         "tts": 1.0,
-        "var": 0.04,
+        "var": 0.4,
         "cvi": 10.0,
     }
 

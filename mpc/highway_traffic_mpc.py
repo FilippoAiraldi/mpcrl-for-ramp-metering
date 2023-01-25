@@ -51,24 +51,15 @@ class HighwayTrafficMpc(Mpc[SymType]):
         pars = {n: self.parameter(n) for n in env.realpars.keys()}
 
         # create disturbances
-        d = self.disturbance("d", env.nd)
+        self.disturbance("d", env.nd)
 
         # create state variables
         s, _ = self.state("s", env.ns, lb=0)
         n_segments, n_origins = env.n_segments, env.n_origins
-        rho, _, w = cs.vertsplit(s, np.cumsum((0, n_segments, n_segments, n_origins)))
+        _, _, w = cs.vertsplit(s, np.cumsum((0, n_segments, n_segments, n_origins)))
 
         # create action and upper-constrain it dynamically
-        C = EC.origin_capacities[1]  # capacity of O2
-        si = 1  # index of segment connected to O2
-        a, a_exp = self.action("a", env.na, lb=0, ub=C)  # control action of O2
-        self.constraint("a_min_1", a_exp, "<=", d[si, :] + w[si, :-1] / EC.T)
-        self.constraint(
-            "a_min_2",
-            (EC.rho_max - pars["rho_crit"]) * a_exp,
-            "<=",
-            C * (EC.rho_max - rho[si, :-1]),
-        )
+        a, _ = self.action("a", env.na, lb=0, ub=1.0)
 
         # create (soft) constraints on queue(s)
         # NOTE: no constraint on w[:, 0], since this must be equal to init conditions.
