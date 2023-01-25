@@ -51,7 +51,11 @@ def get_network(
         1, lanes, segment_length, rho_max, rho_crit_sym, v_free_sym, a_sym, name="L2"
     )
     O1 = metanet.MeteredOnRamp(origin_capacities[0], name="O1")
-    O2 = metanet.MeteredOnRamp(origin_capacities[1], "out", name="O2")
+    O2 = metanet.SimplifiedMeteredOnRamp(
+        origin_capacities[1],
+        flow_eq_type="unlimited",  # NOTE: this requires forcing queues to be positive
+        name="O2",
+    )
     D1 = metanet.CongestedDestination(name="D1")
     net = (
         metanet.Network()

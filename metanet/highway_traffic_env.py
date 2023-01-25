@@ -139,7 +139,7 @@ class HighwayTrafficEnv(
         #           Function(F:(x[8],u,d[3],p[3])->(x+[8],q[5])
         # where the inputs are
         #           x[8] = [rho[3], v[3], w[2]]     (3 segments, 2 origins)
-        #           u = r_O2
+        #           u = q_O2
         #           d = [d_O1, d_O2, d_D1]          (2 demands, 1 congestion)
         #           p = ...see `sympars`...
         # and the outpus are
@@ -150,7 +150,7 @@ class HighwayTrafficEnv(
         ns = self.ns
         na = self.na
         self.observation_space = Box(0.0, np.inf, (ns,), np.float64)
-        self.action_space = Box(0.0, 1.0, () if na == 1 else (na,), np.float64)
+        self.action_space = Box(0.0, np.inf, () if na == 1 else (na,), np.float64)
 
         # set reward/cost ranges and functions
         self.reward_range = (0.0, float("inf"))
@@ -255,7 +255,7 @@ class HighwayTrafficEnv(
 
         # compute initial state
         x0 = options.get("steady_state_x0", self._last_initial_state)
-        u = options.get("last_action", np.ones(self.na))
+        u = options.get("last_action", 1e3 * np.ones(self.na))  # huge control action
         d = cs.DM(self.demand[0])
         p = cs.DM(self.realpars.values())
         f = lambda x: self.dynamics(x, u, d, p)[0].full().ravel()
@@ -268,7 +268,9 @@ class HighwayTrafficEnv(
         assert self.observation_space.contains(state), "Invalid reset state."
         self.state = state
         self._last_initial_state = state  # save to warmstart next reset steady-state
-        self.last_action = u
+
+        # now get the actual control action sufficient for the steady-state state
+        self.last_action = self.dynamics(state, u, d, p)[1][-1].full().reshape(-1)
         return state, {"steady_state_error": err, "steady_state_iters": iters}
 
     def step(
