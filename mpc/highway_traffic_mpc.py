@@ -84,15 +84,15 @@ class HighwayTrafficMpc(Mpc[SymType]):
 
         # set dynamics
         p = cs.vertcat(*pars.values())
-        F = lambda x, u, d: env.dynamics(x, u, d, p)
-        self.set_dynamics(F, n_in=3, n_out=env.dynamics.n_out())
+        F = lambda x, u, d: env.dynamics(x, u, d, p)[0]
+        self.set_dynamics(F, n_in=3, n_out=1)
 
         # build objective terms related to traffic, control action, and slacks
         gammas = cs.DM(discount ** np.arange(Np + 1).reshape(1, -1))
         # total-time spent
         J = cs.dot(gammas, env.stage_cost(s, 0, 0)[0])
         # control action variability
-        a_last = self.parameter("a-", (a.shape[0], 1))
+        a_last = self.parameter("a-", (env.na, 1))
         a_lasts = cs.horzcat(a_last, a[:, :-1])
         weight_var = self.parameter("weight_var")
         J += weight_var * cs.sum2(env.stage_cost(0, a, a_lasts)[1])
