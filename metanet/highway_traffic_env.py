@@ -290,8 +290,8 @@ class HighwayTrafficEnv(
 
         # step the dynamics
         d = self.demand.next(EC.steps).T
-        s_nexts, flows = self.dynamics_mapaccum(s, a, d, self.realpars.values())
-        self.state = s_nexts.full().T
+        s_next, flows = self.dynamics_mapaccum(s[-1], a, d, self.realpars.values())
+        self.state = s_next.full().T
         last_state = self.state[-1]
         assert self.observation_space.contains(last_state), "Invalid state after step."
 
