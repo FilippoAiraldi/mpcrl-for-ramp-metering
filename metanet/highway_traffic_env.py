@@ -266,8 +266,8 @@ class HighwayTrafficEnv(
             maxiter=options.get("steady_state_maxiter", 500),
         )
         assert self.observation_space.contains(state), "Invalid reset state."
-        self.state = state
         self._last_initial_state = state  # save to warmstart next reset steady-state
+        self.state = np.tile(state, (EC.steps, 1))
 
         # now get the actual control action sufficient for the steady-state state
         self.last_action = self.dynamics(state, u, d, p)[1][-1].full().reshape(-1)
@@ -281,24 +281,24 @@ class HighwayTrafficEnv(
         assert self.action_space.contains(a), "Invalid action passed to step."
         s = self.state
 
-        # compute cost of current state L(s,a)
-        tts_, var_, cvi_ = self.stage_cost(s, a, self.last_action)
-        tts = float(tts_) * EC.stage_cost_weights["tts"]
-        var = float(var_) * EC.stage_cost_weights["var"]
+        # compute cost of current state L(s,a) (actually, over the last bunch of states)
+        tts_, var_, cvi_ = self.stage_cost(s.T, a, self.last_action)
+        tts = np.sum(tts_).item() * EC.stage_cost_weights["tts"]
+        var = float(var_[0]) * EC.stage_cost_weights["var"]
         cvi = np.maximum(0, cvi_).sum().item() * EC.stage_cost_weights["cvi"]
         cost = tts + var + cvi
 
         # step the dynamics
         d = self.demand.next(EC.steps).T
         s_nexts, flows = self.dynamics_mapaccum(s, a, d, self.realpars.values())
-        s_nexts_ = s_nexts.full()
-        self.state = s_nexts_[:, -1]
-        assert self.observation_space.contains(self.state), "Invalid state after step."
+        self.state = s_nexts.full().T
+        last_state = self.state[-1]
+        assert self.observation_space.contains(last_state), "Invalid state after step."
 
         # add other information in dict
         info: dict[str, Any] = {
-            "state": s_nexts_,
-            "flow": flows.full(),
+            "state": self.state,
+            "flow": flows.full().T,
             "tts": tts,
             "var": var,
             "cvi": cvi,
@@ -306,7 +306,7 @@ class HighwayTrafficEnv(
 
         # save last action and return
         self.last_action = a
-        return self.state, cost, False, self.demand.exhausted, info
+        return last_state, cost, False, self.demand.exhausted, info
 
     @classmethod
     def wrapped(
