@@ -19,16 +19,14 @@ def parse_train_args() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    group = parser.add_argument_group("Agent type (select only one)")
+    group = parser.add_argument_group("Agent type")
     group.add_argument(
-        "--lstdq",
-        action="store_true",
-        help="If passed, trains a LSTD Q-learning agent",
-    )
-    group.add_argument(
-        "--pk",
-        action="store_true",
-        help="If passed, evaluates a non-learning PK agent.",
+        "--agent-type",
+        "--agent_type",
+        type=str,
+        choices=("pk", "lstdq"),
+        help="Type of agent to simulate.",
+        required=True,
     )
 
     group = parser.add_argument_group("RL algorithm parameters")
@@ -69,13 +67,18 @@ def parse_train_args() -> argparse.Namespace:
     group.add_argument(
         "--scenarios",
         type=int,
-        default=10,
+        default=6,
         help="Number of demands' scenarios per training episode.",
     )
 
     group = parser.add_argument_group("Simulation details")
     group.add_argument(
-        "--sym-type", "--sym_type", type=str, choices=("SX", "MX"), default="MX"
+        "--sym-type",
+        "--sym_type",
+        type=str,
+        choices=("SX", "MX"),
+        default="MX",
+        help="Type of CasADi symbolic variable.",
     )
     group.add_argument(
         "--runname", type=str, default=None, help="Name of the simulation run."
@@ -107,9 +110,6 @@ def parse_train_args() -> argparse.Namespace:
     args = parser.parse_args()
 
     # perform some checks and processing
-    assert (
-        args.lstdq + args.pk == 1
-    ), "Must specify one and only one type of agent to simulate."
     args.runname = get_runname(candidate=args.runname)
     if args.agents == 1:
         args.n_jobs = 1  # don't parallelize

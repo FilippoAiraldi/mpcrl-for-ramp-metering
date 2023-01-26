@@ -75,7 +75,7 @@ if __name__ == "__main__":
     args = parse_train_args()
     date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     start = perf_counter()
-    if args.pk:
+    if args.agent_type == "pk":
         fun = lambda n: eval_pk_agent(
             agent_n=n,
             episodes=args.episodes,
@@ -85,7 +85,7 @@ if __name__ == "__main__":
             seed=args.seed + (args.episodes + 1) * n,
             verbose=args.verbose,
         )
-    elif args.lstdq:
+    elif args.agent_type == "lstdq":
         raise NotImplementedError
         # fun = lambda n: train_lstdq_agent(
         #     agent_n=n,
