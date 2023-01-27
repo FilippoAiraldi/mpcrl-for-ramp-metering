@@ -1,5 +1,5 @@
 from logging import DEBUG, INFO
-from typing import Dict, List, Literal, Optional, Type, TypeVar
+from typing import Literal, Optional, Type, TypeVar
 
 import casadi as cs
 from mpcrl import Agent
@@ -81,8 +81,8 @@ class HighwayTrafficPkAgent(Agent[SymType]):
         agent = cls(*agent_args, **agent_kwargs)
         if verbose > 0:
             level = INFO
-            frequencies: Dict[str, int] = {}
-            excluded: List[str] = []
+            frequencies: dict[str, int] = {}
+            excluded: list[str] = []
             if verbose >= 2:
                 frequencies["on_episode_end"] = 1
                 level = DEBUG

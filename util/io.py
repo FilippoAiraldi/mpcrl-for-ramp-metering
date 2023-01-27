@@ -1,6 +1,6 @@
 from argparse import Namespace
 from logging import warn
-from typing import Any, Dict, Iterable, List
+from typing import Any, Iterable
 
 import numpy as np
 import numpy.typing as npt
@@ -10,28 +10,28 @@ from mpcrl.wrappers.envs import MonitorInfos
 _BAD_KEYS = ("__header__", "__version__", "__globals__")
 
 
-def _check_keys(dict: Dict) -> Dict:
+def _check_keys(dictionary: dict) -> dict:
     """Checks if entries in dictionary are mat-objects. If yes, todict is called to
     change them to nested dictionaries."""
-    for key in dict:
-        if isinstance(dict[key], spio.matlab.mio5_params.mat_struct):
-            dict[key] = _todict(dict[key])
-    return dict
+    for key in dictionary:
+        if isinstance(dictionary[key], spio.matlab.mio5_params.mat_struct):
+            dictionary[key] = _todict(dictionary[key])
+    return dictionary
 
 
-def _todict(matobj: spio.matlab.mio5_params.mat_struct) -> Dict:
+def _todict(matobj: spio.matlab.mio5_params.mat_struct) -> dict:
     """A recursive function which constructs nested dictionaries from matobjects."""
-    dict = {}
+    dictionary = {}
     for strg in matobj._fieldnames:
         elem = matobj.__dict__[strg]
         if isinstance(elem, spio.matlab.mio5_params.mat_struct):
-            dict[strg] = _todict(elem)
+            dictionary[strg] = _todict(elem)
         else:
-            dict[strg] = elem
-    return dict
+            dictionary[strg] = elem
+    return dictionary
 
 
-def load_data(filename: str) -> Dict[str, Any]:
+def load_data(filename: str) -> dict[str, Any]:
     """Loads simulation data from .mat files.
 
     Many thanks to https://stackoverflow.com/a/8832212/19648688.
@@ -46,7 +46,7 @@ def load_data(filename: str) -> Dict[str, Any]:
 
 def postprocess_env_data(
     data: Iterable[MonitorInfos],
-) -> Dict[str, npt.NDArray[np.floating]]:
+) -> dict[str, npt.NDArray[np.floating]]:
     """Post-processes a list of monitored envs resulting from a simulation into a single
     dict of arrays.
 
@@ -88,7 +88,7 @@ def postprocess_env_data(
     return processed
 
 
-def _save(filename: str, data: Dict[str, Any]) -> None:
+def _save(filename: str, data: dict[str, Any]) -> None:
     """Saves simulation data to a .mat file."""
     if not filename.endswith(".mat"):
         filename = f"{filename}.mat"
@@ -98,7 +98,7 @@ def _save(filename: str, data: Dict[str, Any]) -> None:
 def save_data(
     filename: str,
     args: Namespace,
-    data: List[Any],
+    data: list[Any],
     **others: Any,
 ) -> None:
     """Saves the simulation data to a .mat file.
@@ -111,7 +111,7 @@ def save_data(
     args : Namespace
         Arguments used to run the simulation to save. Also used to deduce which
         post-processing to apply to the data based on the agent's type.
-    data : List[Any]
+    data : list[Any]
         List of simulation results.
     others
         Any other piece of information to add to the .mat file.
@@ -121,8 +121,8 @@ def save_data(
     mdict["args"] = args.__dict__
 
     # process simulation data specifically for each agent
-    env_data: List[MonitorInfos]
-    # agent_data: List  # [RecordUpdates or something like that]
+    env_data: list[MonitorInfos]
+    # agent_data: list  # [RecordUpdates or something like that]
     if args.agent_type == "pk":
         env_data = data
 

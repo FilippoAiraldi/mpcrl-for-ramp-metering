@@ -2,8 +2,8 @@ from datetime import datetime
 from time import perf_counter
 from typing import Any, Literal
 
-from joblib import delayed, Parallel
 from csnlp.util.io import save
+from joblib import Parallel, delayed
 
 from metanet import HighwayTrafficEnv
 from mpc import HighwayTrafficMpc
