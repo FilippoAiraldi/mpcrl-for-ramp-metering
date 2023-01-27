@@ -2,13 +2,12 @@ from datetime import datetime
 from time import perf_counter
 from typing import Any, Literal
 
-from csnlp.util.io import save
 from joblib import Parallel, delayed
 
 from metanet import HighwayTrafficEnv
 from mpc import HighwayTrafficMpc
 from rl import HighwayTrafficPkAgent
-from util import parse_train_args, tqdm_joblib
+from util import parse_train_args, tqdm_joblib, save_data
 
 
 def eval_pk_agent(
@@ -101,10 +100,12 @@ if __name__ == "__main__":
 
     # save results
     print(f"[Simulated {args.agents} agents]")
-    save(
+    save_data(
         filename=args.runname,
-        date=date,
-        args=args,
-        simtime=perf_counter() - start,
+        agent_type=args.agent_type,
         data=data,
+        date=date,
+        args=args.__dict__,
+        simtime=perf_counter() - start,
+        compression="matlab",
     )
