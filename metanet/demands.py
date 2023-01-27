@@ -92,6 +92,9 @@ class Demands:
         self.t += 1
         return d
 
+    def __array__(self) -> npt.NDArray[np.floating]:
+        return self.demands
+
     def __repr__(self) -> str:
         o1 = summarize_array(self.O1)
         o2 = summarize_array(self.O2)
