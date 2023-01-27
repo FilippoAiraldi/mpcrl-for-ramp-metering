@@ -1,6 +1,6 @@
 from argparse import Namespace
 from logging import warn
-from typing import Any, Dict, List
+from typing import Any, Dict, Iterable, List
 
 import numpy as np
 import numpy.typing as npt
@@ -45,15 +45,15 @@ def load_data(filename: str) -> Dict[str, Any]:
 
 
 def postprocess_env_data(
-    data: List[MonitorInfos],
+    data: Iterable[MonitorInfos],
 ) -> Dict[str, npt.NDArray[np.floating]]:
     """Post-processes a list of monitored envs resulting from a simulation into a single
     dict of arrays.
 
     Parameters
     ----------
-    data : List[MonitorInfos]
-        List of monitored envs.
+    data : Iterable[MonitorInfos]
+        An iterable of monitored envs.
 
     Returns
     -------
@@ -61,10 +61,11 @@ def postprocess_env_data(
         A dict of arrays.
     """
     # convert data into lists
-    datum = data[0]
+    dataiter = iter(data)
+    datum = next(dataiter)
     processed_ = {k: [v] for k, v in datum.finalized_step_infos(np.nan).items()}
     processed_["demands"] = [datum.demands]
-    for datum in data[1:]:
+    for datum in dataiter:
         # append step info
         info = datum.finalized_step_infos(np.nan)
         for k, v in processed_.items():
