@@ -11,7 +11,7 @@ from gymnasium.wrappers import NormalizeReward
 from mpcrl.wrappers.envs import MonitorInfos
 
 from metanet.costs import get_stage_cost
-from metanet.demands import Demands, create_demands
+from metanet.demands import create_demands
 from metanet.network import get_network, steady_state
 from util.constants import EnvConstants as EC
 
@@ -170,7 +170,9 @@ class HighwayTrafficEnv(
         )
 
         # initialize storage for past demands
-        self.demands: Optional[list[Demands]] = [] if store_demands else None
+        self.demands: Optional[list[npt.NDArray[np.floating]]] = (
+            [] if store_demands else None
+        )
 
     @property
     def ns(self) -> int:
@@ -251,7 +253,8 @@ class HighwayTrafficEnv(
             np_random=self.np_random,
         )
         if self.demands is not None:
-            self.demands.append(self.demand)
+            # NOTE: do not save all demands for sake of reducing size of results
+            self.demands.append(np.asarray(self.demand)[:: EC.steps])
 
         # compute initial state
         x0 = options.get("steady_state_x0", self._last_initial_state)
@@ -267,7 +270,7 @@ class HighwayTrafficEnv(
         )
         assert self.observation_space.contains(state), "Invalid reset state."
         self._last_initial_state = state  # save to warmstart next reset steady-state
-        self.state = np.tile(state, (EC.steps, 1))
+        self.state = np.tile(state, (EC.steps, 1)).T
 
         # now get the actual control action sufficient for the steady-state state
         self.last_action = self.dynamics(state, u, d, p)[1][-1].full().reshape(-1)
@@ -282,7 +285,7 @@ class HighwayTrafficEnv(
         s = self.state
 
         # compute cost of current state L(s,a) (actually, over the last bunch of states)
-        tts_, var_, cvi_ = self.stage_cost(s.T, a, self.last_action)
+        tts_, var_, cvi_ = self.stage_cost(s, a, self.last_action)
         tts = np.sum(tts_).item() * EC.stage_cost_weights["tts"]
         var = float(var_[0]) * EC.stage_cost_weights["var"]
         cvi = np.maximum(0, cvi_).sum().item() * EC.stage_cost_weights["cvi"]
@@ -290,22 +293,21 @@ class HighwayTrafficEnv(
 
         # step the dynamics
         d = self.demand.next(EC.steps).T
-        s_next, flows = self.dynamics_mapaccum(s[-1], a, d, self.realpars.values())
-        self.state = s_next.full().T
-        last_state = self.state[-1]
+        s_next, flows = self.dynamics_mapaccum(s[:, -1], a, d, self.realpars.values())
+        self.state = s_next.full()
+        last_state = self.state[:, -1]
+        self.last_action = a
         assert self.observation_space.contains(last_state), "Invalid state after step."
 
-        # add other information in dict
+        # add information in dict to be saved
+        # NOTE: save only last state and flow for sake of reducing size of results
         info: dict[str, Any] = {
-            "state": self.state,
-            "flow": flows.full().T,
+            "state": last_state,
+            "flow": flows.full()[:, -1],
             "tts": tts,
             "var": var,
             "cvi": cvi,
         }
-
-        # save last action and return
-        self.last_action = a
         return last_state, cost, False, self.demand.exhausted, info
 
     @classmethod
