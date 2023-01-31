@@ -27,7 +27,7 @@ def postprocess_env_data(
     dataiter = iter(data)
     datum = next(dataiter)
     processed_ = {k: [v] for k, v in datum.finalized_step_infos(np.nan).items()}
-    step_info_keys = processed_.keys()  # keys without "demands"
+    step_info_keys = list(processed_.keys())  # keys without "demands"
     processed_["demands"] = [datum.demands]
     for datum in dataiter:
         # append step info
