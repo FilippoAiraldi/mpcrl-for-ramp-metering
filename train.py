@@ -57,6 +57,7 @@ def eval_pk_agent(
         env,
         episodes,
         seed=seed,
+        raises=False,
     )
     return env
 
