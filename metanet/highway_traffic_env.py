@@ -267,6 +267,7 @@ class HighwayTrafficEnv(
             x0=x0,
             tol=options.get("steady_state_tol", 1e-3),
             maxiter=options.get("steady_state_maxiter", 500),
+            warn=options.get("warn", False),
         )
         assert self.observation_space.contains(state), "Invalid reset state."
         self._last_initial_state = state  # save to warmstart next reset steady-state

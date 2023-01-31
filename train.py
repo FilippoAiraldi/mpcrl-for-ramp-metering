@@ -7,7 +7,7 @@ from joblib import Parallel, delayed
 from metanet import HighwayTrafficEnv
 from mpc import HighwayTrafficMpc
 from rl import HighwayTrafficPkAgent
-from util import parse_train_args, tqdm_joblib, save_data
+from util import parse_train_args, save_data, tqdm_joblib
 
 
 def eval_pk_agent(
