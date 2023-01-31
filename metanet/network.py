@@ -1,5 +1,5 @@
-import warnings
 from typing import Callable, Literal, TypeVar, Union
+from warnings import warn
 
 import casadi as cs
 import numpy as np
@@ -71,7 +71,7 @@ def steady_state(
     x0: Tx,
     tol: float = 1e-3,
     maxiter: int = 500,
-    warn: bool = False,
+    warns: bool = False,
 ) -> tuple[Tx, float, int]:
     r"""Searches the steady-state of the given dynamics.
 
@@ -107,8 +107,8 @@ def steady_state(
         if err < tol:
             return x0_ss, err, k
         elif err > err_previous:
-            if warn:
-                warnings.warn(
+            if warns:
+                warn(
                     "Increasing error encountered in steady-state search "
                     f"({err} > {err_previous})."
                 )
@@ -117,8 +117,8 @@ def steady_state(
         x0 = x0_ss
         err_previous = err
 
-    if warn:
-        warnings.warn(
+    if warns:
+        warn(
             f"Maximum number of iterations reached in steady-state search ({maxiter})."
         )
     return x0_ss, err, k
