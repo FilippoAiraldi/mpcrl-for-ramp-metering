@@ -108,5 +108,5 @@ if __name__ == "__main__":
         date=date,
         args=args.__dict__,
         simtime=perf_counter() - start,
-        compression="matlab",
+        compression="lzma",
     )
