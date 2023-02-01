@@ -286,6 +286,7 @@ class HighwayTrafficEnv(
         s = self.state
 
         # compute cost of current state L(s,a) (actually, over the last bunch of states)
+        # NOTE: since the action is only applied every EC.steps, penalize var_ only once
         tts_, var_, cvi_ = self.stage_cost(s, a, self.last_action)
         tts = np.sum(tts_).item() * EC.stage_cost_weights["tts"]
         var = float(var_[0]) * EC.stage_cost_weights["var"]
