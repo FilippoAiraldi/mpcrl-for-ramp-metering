@@ -125,4 +125,7 @@ def plot_costs(
 
     # set axis options
     _set_axis_opts(axs, intx=True)
+    axs[0].set_xlabel("Episode")
+    axs[0].set_ylabel("Cost")
+    axs[1].set_ylabel("Cost contributions")
     return fig
