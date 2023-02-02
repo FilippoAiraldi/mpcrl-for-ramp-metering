@@ -1,3 +1,4 @@
+from functools import cached_property
 from typing import Any, Literal, Optional, SupportsFloat, Type, TypeVar
 
 import casadi as cs
@@ -150,7 +151,7 @@ class HighwayTrafficEnv(
         ns = self.ns
         na = self.na
         self.observation_space = Box(0.0, np.inf, (ns,), np.float64)
-        self.action_space = Box(0.0, np.inf, () if na == 1 else (na,), np.float64)
+        self.action_space = Box(0.0, np.inf, (na,), np.float64)
 
         # set reward/cost ranges and functions
         self.reward_range = (0.0, float("inf"))
@@ -174,27 +175,27 @@ class HighwayTrafficEnv(
             [] if store_demands else None
         )
 
-    @property
+    @cached_property
     def ns(self) -> int:
         """Gets the number of states/observations in the environment."""
         return self.dynamics.size1_in(0)
 
-    @property
+    @cached_property
     def na(self) -> int:
         """Gets the number of actions in the environment."""
         return self.dynamics.size1_in(1)
 
-    @property
+    @cached_property
     def nd(self) -> int:
         """Gets the number of disturbances in the environment."""
         return self.dynamics.size1_in(2)
 
-    @property
+    @cached_property
     def n_segments(self) -> int:
         """Gets the number of segments in all links of the network."""
         return sum(link.N for _, _, link in self.network.links)
 
-    @property
+    @cached_property
     def n_origins(self) -> int:
         """Gets the number of origins across the network."""
         return len(self.network.origins)
@@ -274,14 +275,14 @@ class HighwayTrafficEnv(
         self.state = np.tile(state, (EC.steps, 1)).T
 
         # now get the actual control action sufficient for the steady-state state
-        self.last_action = self.dynamics(state, u, d, p)[1][-1].full().reshape(-1)
+        self.last_action = self.dynamics(state, u, d, p)[1][-1].full().reshape(self.na)
         return state, {"steady_state_error": err, "steady_state_iters": iters}
 
     def step(
         self,
         action: npt.NDArray[np.floating],
     ) -> tuple[npt.NDArray[np.floating], SupportsFloat, bool, bool, dict[str, Any]]:
-        a = np.asarray(action).reshape(())
+        a = np.asarray(action).reshape(self.na)
         assert self.action_space.contains(a), "Invalid action passed to step."
         s = self.state
 
