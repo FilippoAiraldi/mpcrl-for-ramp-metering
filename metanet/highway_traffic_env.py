@@ -298,20 +298,21 @@ class HighwayTrafficEnv(
         d = self.demand.next(EC.steps).T
         s_next, flows = self.dynamics_mapaccum(s[:, -1], a, d, self.realpars.values())
         self.state = s_next.full()
-        last_state = self.state[:, -1]
         self.last_action = a
-        assert self.observation_space.contains(last_state), "Invalid state after step."
+        observation = self.state[:, -1]
+        assert self.observation_space.contains(observation), "Invalid state after step."
 
         # add information in dict to be saved
         # NOTE: save only last state and flow for sake of reducing size of results
         info: dict[str, Any] = {
-            "state": last_state,
+            "state": s[:, -1],
+            "action": a,
             "flow": flows.full()[:, -1],
             "tts": tts,
             "var": var,
             "cvi": cvi,
         }
-        return last_state, cost, False, self.demand.exhausted, info
+        return observation, cost, False, self.demand.exhausted, info
 
     @classmethod
     def wrapped(
