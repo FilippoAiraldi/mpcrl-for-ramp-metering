@@ -8,7 +8,6 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 
-
 OPTS = {
     "bar.edgecolor": "k",
     "bar.lw": 0.2,
@@ -80,52 +79,41 @@ def _plot_population(
         raise ValueError(f"unsupported plotting method {method}.")
 
 
+def plot_traffic_quantities(
+    envsdata: dict[str, npt.NDArray[np.floating]],
+    fig: Figure = None,
+    label: Optional[str] = None,
+    **kwargs,
+) -> Figure:
+    pass
+
+
 def plot_costs(
     envsdata: dict[str, npt.NDArray[np.floating]],
     fig: Figure = None,
     label: Optional[str] = None,
-    idata: int = 0,
-    ndata: int = 1,
-    **kwargs,
+    **_,
 ) -> Figure:
     if fig is None:
-        fig, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
+        fig, axs = plt.subplots(2, 2, constrained_layout=True, sharex=True)
+        axs = axs.flatten()
     else:
         axs = fig.axes
 
-    costnames = ("tts", "var", "cvi")
-    costs = np.stack([envsdata[n] for n in costnames], axis=-1)
+    costnames = ("total", "tts", "var", "cvi")
+    costs = np.stack([envsdata[n] for n in costnames[1:]], axis=-1)
     costs = costs.sum(2)  # sum costs per episodes
-    ep = np.arange(1, costs.shape[1] + 1)
-
-    # plot total cost/return per episode
-    J = costs.sum(-1)  # tot cost per episode per agent
-    _plot_population(axs[0], ep, J, label=label)
-
-    # plot various cost contributions
-    contributions = costs / np.expand_dims(J, 2)
-    ax, cumulative = axs[1], 0
-    W: float = OPTS["bar.width"]  # type: ignore[assignment]
-    w = W / ndata
-    ep_shifted = ep - (W + w) / 2 + w * (idata + 1)
-    colors = plt.rcParams["axes.prop_cycle"].by_key()["color"]
-    for n, contrib, color in zip(costnames, np.rollaxis(contributions, 2), colors):
-        c_avg = contrib.mean(0)  # plot only average (no yerr argument)
-        ax.bar(
-            ep_shifted,
-            c_avg,
-            width=w,
-            label=n if idata == 0 else None,
-            bottom=cumulative,
-            edgecolor=OPTS["bar.edgecolor"],
-            linewidth=OPTS["bar.lw"],
-            color=color,
-        )
-        cumulative += c_avg
+    J = costs.sum(-1, keepdims=True)  # tot cost per episode per agent
+    all_costs = np.concatenate((J, costs), axis=-1)
+    ep = np.arange(1, all_costs.shape[1] + 1)
+    for costname, cost, ax in zip(costnames, np.rollaxis(all_costs, 2), axs):
+        _plot_population(ax, ep, cost, label=label)
+        ax.set_ylabel(f"{costname} cost")
 
     # set axis options
     _set_axis_opts(axs, intx=True)
-    axs[0].set_xlabel("Episode")
-    axs[0].set_ylabel("Cost")
-    axs[1].set_ylabel("Cost contributions")
+    for i in (2, 3):
+        axs[i].set_xlabel("Episode")
     return fig
+
+

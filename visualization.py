@@ -26,22 +26,20 @@ if __name__ == "__main__":
 
     # load and plot data one by one
     figs: dict[Callable[[Any], Figure], Figure] = {}
-    N = len(args.filenames)
-    for i, (name, data) in enumerate(load_all_data(args.filenames)):
+    for name, data in load_all_data(args.filenames):
         envsdata = data["envs"]
         agentsdata = data.get("agents", None)
-        funcs = [plot.plot_costs]  # TODO: add the others
+        funcs: list[Callable[[Any], Figure]] = [
+            plot.plot_costs,
+        ]
         if agentsdata is not None:
             funcs.append(plot.plot_agent_quantities)
         for fun in funcs:
-            figs[fun] = fun(
+            figs[fun] = fun(  # type: ignore[call-arg]
                 envsdata=envsdata,
                 agentsdata=agentsdata,
                 fig=figs.get(fun, None),
                 label=name,
                 reduce=args.reduce,
-                idata=i,
-                ndata=N,
             )
-
     plt.show()
