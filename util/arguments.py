@@ -1,4 +1,5 @@
 import argparse
+from itertools import repeat
 
 from util.runs import get_runname
 
@@ -113,4 +114,82 @@ def parse_train_args() -> argparse.Namespace:
     args.runname = get_runname(candidate=args.runname)
     if args.agents == 1:
         args.n_jobs = 1  # don't parallelize
+    return args
+
+
+def parse_visualization_args() -> argparse.Namespace:
+    """Parses the arguments needed for the visualization of results obtained from the
+    highway traffic control environment.
+
+    Returns
+    -------
+    argparse.Namespace
+        The argument namespace.
+    """
+
+    # construct parser
+    parser = argparse.ArgumentParser(
+        description="Launches visualization for different MPC-based agents.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    group = parser.add_argument_group("Data")
+    group.add_argument(
+        "filenames", type=str, nargs="+", help="Simulation data to be visualized."
+    )
+    group = parser.add_argument_group("Plots")
+    group.add_argument(
+        "-t",
+        "--traffic",
+        action="store_true",
+        help="Plots the traffic-related quantities.",
+    )
+    group.add_argument(
+        "-c",
+        "--cost",
+        action="store_true",
+        help="Plots the stage cost the agent witnessed during the simulation.",
+    )
+    group.add_argument(
+        "-cvi",
+        "--constraint",
+        action="store_true",
+        help="Plots the constraint violations.",
+    )
+    group.add_argument(
+        "-a",
+        "--agent",
+        action="store_true",
+        help="Plots agent-specific quantities.",
+    )
+    group.add_argument(
+        "-A",
+        "--all",
+        action="store_true",
+        help="Plots all the available plots.",
+    )
+    group = parser.add_argument_group("Others")
+    group.add_argument(
+        "-r",
+        "--reduce",
+        type=int,
+        default=1,
+        help="Step-size to reduce the amount of points to plot.",
+    )
+
+    args = parser.parse_args()
+
+    # remove duplicate but keep order
+    args.filenames = list(dict(zip(args.filenames, repeat(None))))
+
+    if args.all:
+        args.traffic = args.cost = args.constraint = args.agent = True
+    del args.all
+    if not (args.traffic or args.cost or args.constraint or args.agent):
+        raise argparse.ArgumentError(
+            None,
+            "No plot selected for visualization; see help for -t, -c, -cvi, -a and -A.",
+        )
+    if args.reduce <= 0:
+        raise argparse.ArgumentTypeError("--reduce must be a positive integer.")
     return args
