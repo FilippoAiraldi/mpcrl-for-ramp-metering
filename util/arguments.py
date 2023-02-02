@@ -151,12 +151,6 @@ def parse_visualization_args() -> argparse.Namespace:
         help="Plots the stage cost the agent witnessed during the simulation.",
     )
     group.add_argument(
-        "-cvi",
-        "--constraint",
-        action="store_true",
-        help="Plots the constraint violations.",
-    )
-    group.add_argument(
         "-a",
         "--agent",
         action="store_true",
@@ -183,12 +177,11 @@ def parse_visualization_args() -> argparse.Namespace:
     args.filenames = list(dict(zip(args.filenames, repeat(None))))
 
     if args.all:
-        args.traffic = args.cost = args.constraint = args.agent = True
+        args.traffic = args.cost = args.agent = True
     del args.all
-    if not (args.traffic or args.cost or args.constraint or args.agent):
+    if not (args.traffic or args.cost or args.agent):
         raise argparse.ArgumentError(
-            None,
-            "No plot selected for visualization; see help for -t, -c, -cvi, -a and -A.",
+            None, "No plot selected for visualization; see help for -t, -c, -a and -A."
         )
     if args.reduce <= 0:
         raise argparse.ArgumentTypeError("--reduce must be a positive integer.")
