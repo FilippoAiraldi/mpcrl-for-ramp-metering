@@ -1,8 +1,9 @@
 from datetime import datetime
 from time import perf_counter
-from typing import Any, Literal
+from typing import Literal
 
 from joblib import Parallel, delayed
+from gymnasium import Env
 
 from metanet import HighwayTrafficEnv
 from mpc import HighwayTrafficMpc
@@ -18,7 +19,7 @@ def eval_pk_agent(
     sym_type: Literal["SX", "MX"],
     seed: int,
     verbose: Literal[0, 1, 2, 3],
-) -> Any:
+) -> Env:
     """Launches a simulation that evaluates a perfect-knowledge (PK) agent in the
     traffic control environment.
 
@@ -42,7 +43,7 @@ def eval_pk_agent(
     Returns
     -------
     Any
-        _description_
+        The wrapped instance of the traffic environment
     """
     env = HighwayTrafficEnv.wrapped(
         sym_type=sym_type,
