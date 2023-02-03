@@ -14,6 +14,16 @@ SymType = TypeVar("SymType", cs.SX, cs.MX)
 AgentType = TypeVar("AgentType", bound="HighwayTrafficPkAgent")
 
 
+def _update_fixed_pars(pars: dict, env: HighwayTrafficEnv, forecast_len: int) -> None:
+    """Updates the internal demand as the forecasted demands, and the last action
+    taken in the env. If the episode is over, deletes them instead."""
+    if env.demand.exhausted:
+        del pars["d"], pars["a-"]
+    else:
+        pars["d"] = env.demand.forecast(forecast_len).T
+        pars["a-"] = env.last_action
+
+
 class HighwayTrafficPkAgent(Agent[SymType]):
     """Perfect-knowledge (PK) agent for the traffic control task, meaning that the agent
     has access to all the exact information underlying the environment."""
@@ -38,22 +48,12 @@ class HighwayTrafficPkAgent(Agent[SymType]):
         super().__init__(mpc, fixed_pars, name=name)
 
     def on_episode_start(self, env: HighwayTrafficEnv, episode: int) -> None:
-        self._update_fixed_pars(env)
+        _update_fixed_pars(self.fixed_parameters, env, self._forecast_length)
         super().on_episode_start(env, episode)
 
     def on_env_step(self, env: HighwayTrafficEnv, episode: int, timestep: int) -> None:
-        self._update_fixed_pars(env)
+        _update_fixed_pars(self.fixed_parameters, env, self._forecast_length)
         super().on_env_step(env, episode, timestep)
-
-    def _update_fixed_pars(self, env: HighwayTrafficEnv) -> None:
-        """Updates the internal demand as the forecasted demands, and the last action
-        taken in the env. If the episode is over, deletes them instead."""
-        # TODO: check the timestep. If it is the final, delete the parameters
-        if env.demand.exhausted:
-            del self.fixed_parameters["d"], self.fixed_parameters["a-"]
-        else:
-            self.fixed_parameters["d"] = env.demand.forecast(self._forecast_length).T
-            self.fixed_parameters["a-"] = env.last_action
 
     @classmethod
     def wrapped(
