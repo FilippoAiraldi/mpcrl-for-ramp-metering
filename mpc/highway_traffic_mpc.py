@@ -127,3 +127,11 @@ class HighwayTrafficMpc(Mpc[SymType]):
 
         # initialize solver
         self.init_solver(MC.solver_opts)
+
+    # TODO: override call to create multiple vals0 with some noise if multistart > 1
+    # def __call__(self, *args, **kwargs):
+    #   if multistart == 1
+    #       call normal mpc
+    #   else
+    #       create multiple different vals0
+    #       call multistart mpc
