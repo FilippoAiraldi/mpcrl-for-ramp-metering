@@ -1,27 +1,15 @@
-from logging import DEBUG, INFO
-from typing import Literal, Optional, Type, TypeVar
+from typing import Literal, Type, TypeVar
 
 import casadi as cs
 from mpcrl import Agent
-from mpcrl.wrappers.agents import Log
 
 from metanet.highway_traffic_env import HighwayTrafficEnv
-from mpc.highway_traffic_mpc import HighwayTrafficMpc
+from rl.common import _update_fixed_parameters, _wrap_agent
 from util.constants import EnvConstants as EC
 from util.constants import RlConstants as RC
 
 SymType = TypeVar("SymType", cs.SX, cs.MX)
 AgentType = TypeVar("AgentType", bound="HighwayTrafficPkAgent")
-
-
-def _update_fixed_pars(pars: dict, env: HighwayTrafficEnv, forecast_len: int) -> None:
-    """Updates the internal demand as the forecasted demands, and the last action
-    taken in the env. If the episode is over, deletes them instead."""
-    if env.demand.exhausted:
-        del pars["d"], pars["a-"]
-    else:
-        pars["d"] = env.demand.forecast(forecast_len).T
-        pars["a-"] = env.last_action
 
 
 class HighwayTrafficPkAgent(Agent[SymType]):
@@ -30,32 +18,20 @@ class HighwayTrafficPkAgent(Agent[SymType]):
 
     __slots__ = ("_forecast_length",)
 
-    def __init__(
-        self,
-        mpc: HighwayTrafficMpc[SymType],
-        warmstart: Literal["last", "last-successful"] = "last-successful",
-        name: Optional[str] = None,
-    ) -> None:
-        """Initializes the PK agent.
-
-        Parameters
-        ----------
-        mpc : HighwayTrafficMpc[SymType]
-            The MPC which the agent can use as policy provider.
-        name : str, optional
-            Name of the agent.
-        """
-        self._forecast_length = mpc.nlp.parameters["d"].shape[1]
+    def __init__(self, **kwargs) -> None:
+        """Initializes the PK agent."""
         fixed_pars = {n: p for n, (p, _) in RC.parameters.items()}
         fixed_pars.update({"rho_crit": EC.rho_crit, "a": EC.a, "v_free": EC.v_free})
-        super().__init__(mpc, fixed_pars, warmstart, name)
+        kwargs["fixed_parameters"] = fixed_pars
+        super().__init__(**kwargs)
+        self._forecast_length = self.V.nlp.parameters["d"].shape[1]
 
     def on_episode_start(self, env: HighwayTrafficEnv, episode: int) -> None:
-        _update_fixed_pars(self.fixed_parameters, env, self._forecast_length)
+        _update_fixed_parameters(self.fixed_parameters, env, self._forecast_length)
         super().on_episode_start(env, episode)
 
     def on_env_step(self, env: HighwayTrafficEnv, episode: int, timestep: int) -> None:
-        _update_fixed_pars(self.fixed_parameters, env, self._forecast_length)
+        _update_fixed_parameters(self.fixed_parameters, env, self._forecast_length)
         super().on_env_step(env, episode, timestep)
 
     @classmethod
@@ -81,20 +57,4 @@ class HighwayTrafficPkAgent(Agent[SymType]):
         AgentType
             Wrapped instance of the agent.
         """
-        agent = cls(*agent_args, **agent_kwargs)
-        if verbose > 0:
-            level = INFO
-            frequencies: dict[str, int] = {}
-            excluded: list[str] = []
-            if verbose >= 2:
-                frequencies["on_episode_end"] = 1
-                level = DEBUG
-            if verbose >= 3:
-                frequencies["on_env_step"] = int(EC.Tfin / EC.T / EC.steps)
-            agent = Log(
-                agent,
-                level=level,
-                log_frequencies=frequencies,
-                exclude_mandatory=excluded,
-            )
-        return agent
+        return _wrap_agent(cls(*agent_args, **agent_kwargs), verbose=verbose)
