@@ -45,12 +45,6 @@ class MpcConstants:
     prediction_horizon: ClassVar[int] = 4  # prediction horizon \approx 3*L/(M*T*v_avg)
     control_horizon: ClassVar[int] = 3  # control horizon
     #
-    parameters: ClassVar[dict[str, float]] = {  # mpc parameters with their value
-        "rho_crit": EnvConstants.rho_crit * 0.7,
-        "a": EnvConstants.a * 1.3,
-        "v_free": EnvConstants.v_free * 1.3,
-    }
-    #
     multistart: ClassVar[int] = 1  # number of NMPC multistarts
     solver_opts: ClassVar[dict[str, Any]] = {  # solver options
         "expand": True,
