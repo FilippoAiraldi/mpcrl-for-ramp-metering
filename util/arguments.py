@@ -179,10 +179,6 @@ def parse_visualization_args() -> argparse.Namespace:
     if args.all:
         args.traffic = args.cost = args.agent = True
     del args.all
-    if not (args.traffic or args.cost or args.agent):
-        raise argparse.ArgumentError(
-            None, "No plot selected for visualization; see help for -t, -c, -a and -A."
-        )
     if args.reduce <= 0:
         raise argparse.ArgumentTypeError("--reduce must be a positive integer.")
     return args

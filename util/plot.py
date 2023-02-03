@@ -177,3 +177,11 @@ def plot_costs(
     return fig
 
 
+def plot_agent_quantities(
+    agentsdata: dict[str, npt.NDArray[np.floating]],
+    fig: Figure = None,
+    label: Optional[str] = None,
+    **_,
+) -> Figure:
+    # TODO:
+    raise NotImplementedError

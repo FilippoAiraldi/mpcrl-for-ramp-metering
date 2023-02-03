@@ -29,12 +29,15 @@ if __name__ == "__main__":
     for name, data in load_all_data(args.filenames):
         envsdata = data["envs"]
         agentsdata = data.get("agents", None)
-        funcs: list[Callable[[Any], Figure]] = [
-            plot.plot_traffic_quantities,
-            plot.plot_costs,
-        ]
-        if agentsdata is not None:
+
+        funcs: list[Callable[[Any], Figure]] = []
+        if args.traffic:
+            funcs.append(plot.plot_traffic_quantities)
+        if args.cost:
+            funcs.append(plot.plot_costs)
+        if agentsdata is not None and args.agent:
             funcs.append(plot.plot_agent_quantities)
+
         for fun in funcs:
             figs[fun] = fun(  # type: ignore[call-arg]
                 envsdata=envsdata,
