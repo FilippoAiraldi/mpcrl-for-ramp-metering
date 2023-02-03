@@ -31,7 +31,10 @@ class HighwayTrafficPkAgent(Agent[SymType]):
     __slots__ = ("_forecast_length",)
 
     def __init__(
-        self, mpc: HighwayTrafficMpc[SymType], name: Optional[str] = None
+        self,
+        mpc: HighwayTrafficMpc[SymType],
+        warmstart: Literal["last", "last-successful"] = "last-successful",
+        name: Optional[str] = None,
     ) -> None:
         """Initializes the PK agent.
 
@@ -45,7 +48,7 @@ class HighwayTrafficPkAgent(Agent[SymType]):
         self._forecast_length = mpc.nlp.parameters["d"].shape[1]
         fixed_pars = {n: p for n, (p, _) in RC.parameters.items()}
         fixed_pars.update({"rho_crit": EC.rho_crit, "a": EC.a, "v_free": EC.v_free})
-        super().__init__(mpc, fixed_pars, name=name)
+        super().__init__(mpc, fixed_pars, warmstart, name)
 
     def on_episode_start(self, env: HighwayTrafficEnv, episode: int) -> None:
         _update_fixed_pars(self.fixed_parameters, env, self._forecast_length)
