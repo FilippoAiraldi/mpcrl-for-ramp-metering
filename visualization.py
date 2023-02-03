@@ -30,6 +30,7 @@ if __name__ == "__main__":
         envsdata = data["envs"]
         agentsdata = data.get("agents", None)
         funcs: list[Callable[[Any], Figure]] = [
+            plot.plot_traffic_quantities,
             plot.plot_costs,
         ]
         if agentsdata is not None:

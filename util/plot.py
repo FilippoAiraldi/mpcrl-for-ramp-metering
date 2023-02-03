@@ -8,10 +8,11 @@ from matplotlib.axes import Axes
 from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 
+from util.constants import EnvConstants as EC
+
+MARKERS = ("o", "s", "v")
+LINESTYLES = ("-", "--", "-.")
 OPTS = {
-    "bar.edgecolor": "k",
-    "bar.lw": 0.2,
-    "bar.width": 0.8,
     "fill_between.alpha": 0.25,
     "plot.lw": 2.5,
 }
@@ -51,6 +52,8 @@ def _plot_population(
     x: npt.NDArray[np.floating],
     y: npt.NDArray[np.floating],
     use_median: bool = False,
+    marker: Optional[str] = None,
+    ls: Optional[str] = None,
     label: Optional[str] = None,
     method: Literal["fill_between", "errorbar"] = "fill_between",
 ) -> None:
@@ -64,16 +67,18 @@ def _plot_population(
             y_avg + y_std,
             alpha=OPTS["fill_between.alpha"],
         )
-        ax.plot(x, y_avg, label=label, lw=OPTS["plot.lw"])
+        ax.plot(x, y_avg, label=label, marker=marker, ls=ls, lw=OPTS["plot.lw"])
     elif method == "errorbar":
         ax.errorbar(
             x,
             y_avg,
             y_std,
             label=label,
+            marker=marker,
+            ls=ls,
+            lw=OPTS["plot.lw"],
             errorevery=x.size // 10,
             capsize=5,
-            lw=OPTS["plot.lw"],
         )
     else:
         raise ValueError(f"unsupported plotting method {method}.")
@@ -83,9 +88,64 @@ def plot_traffic_quantities(
     envsdata: dict[str, npt.NDArray[np.floating]],
     fig: Figure = None,
     label: Optional[str] = None,
-    **kwargs,
+    reduce: int = 1,
+    **_,
 ) -> Figure:
-    pass
+    if fig is None:
+        fig, axs = plt.subplots(3, 2, constrained_layout=True, sharex=True)
+        axs = axs.flatten()
+    else:
+        axs = fig.axes
+
+    # reduce number of points to plot
+    if reduce > 1:
+        envsdata_ = {}
+        raxis = 2  # reduction axis
+        for k, v in envsdata.items():
+            envsdata_[k] = v.take(range(0, v.shape[raxis], reduce), raxis)
+    else:
+        envsdata_ = envsdata
+
+    # flatten episodes along time
+    Na, Nep, Nscen = envsdata["state"].shape[:3]
+    Ntime = Nep * Nscen
+    time = np.arange(Ntime, step=reduce) * EC.T * EC.steps  # type: ignore
+    Ntime //= reduce
+    envsdata_ = {k: v.reshape(Na, Ntime, -1) for k, v in envsdata_.items()}
+
+    # make plots
+    data = (
+        *np.array_split(envsdata_["state"], 3, axis=-1),  # rho, v and w
+        envsdata_["flow"][:, :, -2:],  # origin flow
+        envsdata_["action"],
+        envsdata_["demands"],
+    )
+    ylbls = (
+        r"$\rho$ (veh/km/lane)",
+        r"$v$ (km/h)",
+        r"$w$ (veh)",
+        r"$q_O$ (veh/h)",
+        r"$a$ (veh/h)",
+        r"$d$ (veh/h, veh/km/lane)",
+    )
+    for ax, datum, ylbl in zip(axs, data, ylbls):
+        datum = np.rollaxis(datum, 2)
+        N = datum.shape[0]
+        if N == 1:
+            _plot_population(ax, time, datum[0], label=label)
+        else:
+            for datum_, marker, ls in zip(datum, MARKERS, LINESTYLES):
+                _plot_population(
+                    ax,
+                    time,
+                    datum_,
+                    marker=marker,
+                    ls=ls,
+                    label=label,
+                )
+        ax.set_ylabel(ylbl)
+    _set_axis_opts(axs)
+    return fig
 
 
 def plot_costs(
