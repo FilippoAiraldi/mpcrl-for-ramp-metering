@@ -6,7 +6,7 @@ from sym_metanet import Network
 def get_parametric_cost(
     network: Network,
 ) -> tuple[cs.Function, cs.Function, cs.Function]:
-    """Creates parametric cost functions for the MPC controller. These are the
+    r"""Creates parametric cost functions for the MPC controller. These are the
      - parametric initial cost: `V(s, weights)` (or \lambda_0)
      - paremtric stage cost: `L(s, rho_crit, v_free, weights)`
      - paremtric terminal cost: `T(s, rho_crit, v_free, weights)`
