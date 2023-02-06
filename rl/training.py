@@ -1,12 +1,15 @@
 from typing import Literal
 
 from gymnasium import Env
+from mpcrl import ExperienceReplay, RlLearningAgent
+from mpcrl import exploration as E
+from mpcrl import schedulers as S
 
 from metanet import HighwayTrafficEnv
 from mpc import HighwayTrafficMpc
-from rl import HighwayTrafficPkAgent
+from rl import HighwayTrafficLstdQLearningAgent, HighwayTrafficPkAgent
+from rl.agents import get_fixed_parameters, get_learnable_parameters
 from util import EnvConstants as EC
-from util import RlConstants as RC
 
 
 def evaluate_pk_agent(
@@ -40,7 +43,7 @@ def evaluate_pk_agent(
 
     Returns
     -------
-    Any
+    Env
         The wrapped instance of the traffic environment
     """
     # create env for evaluation
@@ -59,7 +62,7 @@ def evaluate_pk_agent(
     agent = HighwayTrafficPkAgent.wrapped(
         mpc=mpc,
         fixed_parameters=fixed_parameters,
-        name=f"PkAgent<{agent_n}>",
+        name=f"PkAgent{agent_n}",
         verbose=verbose,
     )
 
@@ -73,10 +76,109 @@ def evaluate_pk_agent(
     return env
 
 
-# def train_lstdq_agent(
-#     agent_n: int,
-#     episodes: int,
-#     sym_type: Literal["SX", "MX"],
-#     seed: int,
-# ) -> Any:
-#     raise NotImplementedError
+def train_lstdq_agent(
+    agent_n: int,
+    episodes: int,
+    scenarios: int,
+    update_freq: int,
+    discount_factor: float,
+    learning_rate: float,
+    exploration_chance: float,
+    exploration_strength: float,
+    exploration_decay: float,
+    experience_replay_size: int,
+    experience_replay_sample: float,
+    max_percentage_update: float,
+    sym_type: Literal["SX", "MX"],
+    seed: int,
+    verbose: Literal[0, 1, 2, 3],
+) -> tuple[Env, RlLearningAgent]:
+    """Launches a simulation for the training of a second-order LSTD Q-learning agent in
+    the traffic control environment.
+
+    Parameters
+    ----------
+    agent_n : int
+        Number of the agent. Used to formulate its name.
+    episodes : int
+        Number of episodes to evaluate the agent for.
+    scenarios : int
+        Number of demands' scenarios per episode.
+    update_freq : int
+        Frequency (in terms of env steps) with which to update the agent's parameters.
+    discount_factor : float
+        Discount factor (used only in the MPC; no learning occurs in the PK agent).
+    learning_rate : float
+        The learning rate of the RL algorithm.
+    exploration_chance : float
+        Probability of exploration (epsilon-greedy strategy).
+    exploration_strength : float
+        Strength of the exploration perturbation.
+    exploration_decay : float
+        Rate at which exploration chance and strength decay (after each update).
+    experience_replay_size : int
+        Maximum size of the experience replay memory.
+    experience_replay_sample : float
+        Size of experience samples (in terms of percentage of max size) per update.
+    max_percentage_update : float
+        Maximum percentage parameters update at each RL update.
+    sym_type : {"SX", "MX"}
+        The type of casadi symbols to use during the simulation.
+    seed : int
+        RNG seed for the simulation.
+    verbose : {0, 1, 2, 3}
+        Level of verbosity of the agent's logger.
+
+    Returns
+    -------
+    Env and Agent
+        The wrapped instances of both the traffic environment and the agent.
+    """
+    # create env for training
+    env = HighwayTrafficEnv.wrapped(
+        sym_type=sym_type,
+        n_scenarios=scenarios,
+        normalize_rewards=True,
+    )
+
+    # create controller
+    mpc = HighwayTrafficMpc(env, discount_factor, parametric_cost_terms=True)
+
+    # initialize the agent's components
+    # TODO: tune exploration (strength especially)
+    exploration = E.EpsilonGreedyExploration(
+        epsilon=S.ExponentialScheduler(exploration_chance, exploration_decay),
+        strength=S.ExponentialScheduler(exploration_strength, exploration_decay),
+        hook="on_update",
+        seed=seed,
+    )
+    experience = ExperienceReplay(
+        maxlen=experience_replay_size,
+        sample_size=experience_replay_sample,
+        include_last=0.5,
+        seed=seed,
+    )
+    agent = HighwayTrafficLstdQLearningAgent.wrapped(
+        mpc=mpc,
+        update_strategy=update_freq,
+        discount_factor=discount_factor,
+        learning_rate=learning_rate,
+        learnable_parameters=get_learnable_parameters(mpc),
+        fixed_parameters=get_fixed_parameters(),
+        exploration=exploration,
+        experience=experience,
+        max_percentage_update=max_percentage_update,
+        record_td_errors=True,
+        name=f"LstdQAgent{agent_n}",
+        record_udpates=True,
+        verbose=verbose,
+    )
+
+    # launch training
+    agent.train(
+        env,
+        episodes,
+        seed=seed,
+        raises=False,
+    )
+    return env, agent
