@@ -54,7 +54,7 @@ def evaluate_pk_agent(
     mpc = HighwayTrafficMpc(env, discount_factor, parametric_cost_terms=False)
 
     # initialize the agent with full knowledge of the env
-    fixed_parameters = {n: p for n, (p, _) in RC.parameters.items()}
+    fixed_parameters = get_learnable_parameters(mpc).value_as_dict
     fixed_parameters.update({"rho_crit": EC.rho_crit, "a": EC.a, "v_free": EC.v_free})
     agent = HighwayTrafficPkAgent.wrapped(
         mpc=mpc,

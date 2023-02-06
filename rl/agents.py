@@ -3,11 +3,13 @@ from typing import Literal, Type, TypeVar
 
 import casadi as cs
 import numpy.typing as npt
-from mpcrl import Agent
+from mpcrl import Agent, LearnableParameter, LearnableParametersDict, LstdQLearningAgent
 from mpcrl.wrappers.agents import Log, Wrapper
 
 from metanet import HighwayTrafficEnv
+from mpc import HighwayTrafficMpc
 from util import EnvConstants as EC
+from util import RlConstants as RC
 
 SymType = TypeVar("SymType", cs.SX, cs.MX)
 AgentType = TypeVar("AgentType", bound="HighwayTrafficPkAgent")
@@ -49,6 +51,32 @@ def _wrap_agent(
             exclude_mandatory=excluded,
         )
     return agent
+
+
+def get_fixed_parameters() -> dict[str, npt.ArrayLike]:
+    """Gets the fixed (non-learnable) parameters."""
+    return {
+        n: v for n, (v, is_learnable, _) in RC.parameters.items() if not is_learnable
+    }
+
+
+def get_learnable_parameters(
+    mpc: HighwayTrafficMpc[SymType],
+) -> LearnableParametersDict[SymType]:
+    """Gets the learnable parameters."""
+    pars = mpc.parameters
+
+    def get_par(name, value, bnds):
+        sym = pars[name]
+        return LearnableParameter(name, sym.size1(), value, *bnds, sym)
+
+    return LearnableParametersDict(
+        (
+            get_par(name, value, bnds)
+            for name, (value, is_learnable, bnds) in RC.parameters.items()
+            if is_learnable and name in pars
+        )
+    )
 
 
 class HighwayTrafficPkAgent(Agent[SymType]):

@@ -63,21 +63,29 @@ class MpcConstants:
     }
 
 
-assert (
-    EnvConstants.Tfin / EnvConstants.T % EnvConstants.steps == 0.0
-), "Incompatible simulation length and step size."
+EC = EnvConstants
+assert EC.Tfin / EC.T % EC.steps == 0.0, "Incompatible simulation length and step size."
 
 
 class RlConstants:
     """Constant parameters of the highway traffic RL agents."""
 
-    # dict of parameters for the agents containing, for each key, the initial value and
-    # whether it is learnable or not.
-    parameters = {
-        "rho_crit": (EnvConstants.rho_crit * 0.7, True),
-        "a": (EnvConstants.a * 1.3, True),
-        "v_free": (EnvConstants.v_free * 1.3, True),
-        "weight_var": (EnvConstants.stage_cost_weights["var"], True),
-        "weight_slack": (EnvConstants.stage_cost_weights["cvi"], True),
-        "weight_slack_terminal": (EnvConstants.stage_cost_weights["cvi"], True),
+    # dict of parameters for the agents containing, for each key:
+    #   - initial value
+    #   - flag indicating whether it is learnable or not.
+    #   - bounds (only if learnable)
+    parameters: ClassVar[dict[str, tuple[float, bool, tuple[float, float]]]] = {
+        "rho_crit": (EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9)),
+        "rho_crit_stage": (EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9)),
+        "rho_crit_terminal": (EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9)),
+        "a": (EC.a * 1.3, False, (1.0, 3.0)),
+        "v_free": (EC.v_free * 1.3, True, (30, 250)),
+        "v_free_stage": (EC.v_free * 1.3, True, (30, 250)),
+        "v_free_terminal": (EC.v_free * 1.3, True, (30, 250)),
+        "weight_var": (EC.stage_cost_weights["var"], True, (1e-8, np.inf)),
+        "weight_slack": (EC.stage_cost_weights["cvi"], True, (1e-3, np.inf)),
+        "weight_slack_terminal": (EC.stage_cost_weights["cvi"], True, (1e-3, np.inf)),
+        "weight_V": (1.0, True, (-np.inf, np.inf)),
+        "weight_L": (1.0, True, (1e-3, np.inf)),
+        "weight_T": (1.0, True, (1e-3, np.inf)),
     }
