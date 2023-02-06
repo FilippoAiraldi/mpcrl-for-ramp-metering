@@ -51,14 +51,14 @@ def evaluate_pk_agent(
     )
 
     # create controller
-    mpc = HighwayTrafficMpc(env, discount_factor, False)
+    mpc = HighwayTrafficMpc(env, discount_factor, parametric_cost_terms=False)
 
     # initialize the agent with full knowledge of the env
-    fixed_pars = {n: p for n, (p, _) in RC.parameters.items()}
-    fixed_pars.update({"rho_crit": EC.rho_crit, "a": EC.a, "v_free": EC.v_free})
+    fixed_parameters = {n: p for n, (p, _) in RC.parameters.items()}
+    fixed_parameters.update({"rho_crit": EC.rho_crit, "a": EC.a, "v_free": EC.v_free})
     agent = HighwayTrafficPkAgent.wrapped(
         mpc=mpc,
-        fixed_parameters=fixed_pars,
+        fixed_parameters=fixed_parameters,
         name=f"PkAgent<{agent_n}>",
         verbose=verbose,
     )
