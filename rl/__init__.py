@@ -1,3 +1,4 @@
-__all__ = ["HighwayTrafficPkAgent"]
+__all__ = ["evaluate_pk_agent", "HighwayTrafficPkAgent"]
 
-from rl.highway_traffic_pk_agent import HighwayTrafficPkAgent
+from rl.agents import HighwayTrafficPkAgent
+from rl.training import evaluate_pk_agent
