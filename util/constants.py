@@ -6,6 +6,8 @@ for the learning process, i.e., mpc horizons and solver options.
 
 from typing import Any, ClassVar
 
+import numpy as np
+
 
 class EnvConstants:
     """Constant parameters of the highway traffic network."""
