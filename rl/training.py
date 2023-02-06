@@ -145,7 +145,6 @@ def train_lstdq_agent(
     mpc = HighwayTrafficMpc(env, discount_factor, parametric_cost_terms=True)
 
     # initialize the agent's components
-    # TODO: tune exploration (strength especially)
     exploration = E.EpsilonGreedyExploration(
         epsilon=S.ExponentialScheduler(exploration_chance, exploration_decay),
         strength=S.ExponentialScheduler(exploration_strength, exploration_decay),
