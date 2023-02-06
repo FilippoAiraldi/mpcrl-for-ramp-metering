@@ -1,7 +1,10 @@
 import argparse
 from itertools import repeat
 
+from util.constants import EnvConstants as EC
 from util.runs import get_runname
+
+K = int(EC.Tfin / EC.T / EC.steps)  # 120, i.e., steps in a single demand scenario
 
 
 def parse_train_args() -> argparse.Namespace:
@@ -20,7 +23,7 @@ def parse_train_args() -> argparse.Namespace:
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
-    group = parser.add_argument_group("Agent type")
+    group = parser.add_argument_group("RL algorithm parameters")
     group.add_argument(
         "--agent-type",
         "--agent_type",
@@ -29,34 +32,59 @@ def parse_train_args() -> argparse.Namespace:
         help="Type of agent to simulate.",
         required=True,
     )
-
-    group = parser.add_argument_group("RL algorithm parameters")
     group.add_argument("--gamma", type=float, default=1.0, help="Discount factor.")
-    # group.add_argument(  # [3e-2, 3e-2, 1e-3, 1e-3, 1e-3],
-    #     "--lr",
-    #     type=float,
-    #     nargs="+",
-    #     default=[0.498],
-    #     help="Learning rate. Can be a single float, or a list of floats. In "
-    #     "the latter case, either one float per parameter name, or one "
-    #     "per parameter element (in case of parameters that are vectors).",
-    # )
-    # group.add_argument(
-    #     "--perturbation-decay",
-    #     "--perturbation_decay",
-    #     type=float,
-    #     default=0.885,
-    #     help="Rate at which the exploration (random perturbations of the MPC "
-    #     "objective ) decays both in term of chance and strength.",
-    # )
-    # group.add_argument(
-    #     "--max-perc-update",
-    #     "--max_perc_update",
-    #     type=float,
-    #     default=float("inf"),
-    #     help="Limits the maximum value that each parameter can be updated by "
-    #     "a percentage of the current value.",
-    # )
+    group.add_argument(
+        "--update-freq",
+        "--update_freq",
+        type=int,
+        default=K // 1,
+        help="Update frequency of the learning agent (in terms of env-steps)",
+    )
+    group.add_argument(
+        "--lr", type=float, default=1e-2, help="Learning rate of the agent."
+    )
+    group.add_argument(
+        "--max-update",
+        "--max_update",
+        type=float,
+        default=float("inf"),
+        help="Maximum value parameters can be updated as percentage of current value.",
+    )
+    group.add_argument(
+        "--replaymem-size",
+        "--replaymem_size",
+        type=int,
+        default=K * 5,
+        help="Maximum size of the experience replay buffer.",
+    )
+    group.add_argument(
+        "--replaymem-sample",
+        "--replaymem_sample",
+        type=float,
+        default=0.5,
+        help="Size of the replay memory samples as percentage of maximum replay size.",
+    )
+    group.add_argument(
+        "--exp-chance",
+        "--exp_chance",
+        type=float,
+        default=0.75,
+        help="Chance of exploration (epsilon-greedy strategy).",
+    )
+    group.add_argument(
+        "--exp-strength",
+        "--exp_strength",
+        type=float,
+        default=0.5,
+        help="Strength of exploration.",
+    )
+    group.add_argument(
+        "--exp-decay",
+        "--exp_decay",
+        type=float,
+        default=0.85,
+        help="Multiplicative decay rate of exploration chance and strength.",
+    )
 
     group = parser.add_argument_group("Simulation length")
     group.add_argument(
@@ -92,25 +120,18 @@ def parse_train_args() -> argparse.Namespace:
         "--verbose", type=int, choices=(0, 1, 2, 3), default=1, help="Verbosity level."
     )
 
-    # group = parser.add_argument_group("RL experience replay parameters")
-    # group.add_argument(
-    #     "--replay-mem-size",
-    #     "--replay_mem_size",
-    #     type=int,
-    #     default=1,
-    #     help="How many epochs the replay memory can store.",
-    # )
-    # group.add_argument(
-    #     "--replay-mem-sample",
-    #     "--replay_mem_sample",
-    #     type=float,
-    #     default=1.0,
-    #     help="Size of the replay memory samples (percentage).",
-    # )
-
     args = parser.parse_args()
 
     # perform some checks and processing
+    assert (
+        0.0 <= args.replaymem_sample <= 1.0
+    ), f"Replay sample size must be in [0,1]; got {args.replaymem_sample} instead."
+    assert (
+        0.0 <= args.exp_chance <= 1.0
+    ), f"Chance of exploration must be in [0,1]; got {args.replaymem_sample} instead."
+    assert (
+        0.0 <= args.exp_decay <= 1.0
+    ), f"Exploration decay must be in [0,1]; got {args.replaymem_sample} instead."
     args.runname = get_runname(candidate=args.runname)
     if args.agents == 1:
         args.n_jobs = 1  # don't parallelize
