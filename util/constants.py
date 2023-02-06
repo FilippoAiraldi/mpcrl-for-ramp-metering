@@ -87,7 +87,7 @@ class RlConstants:
         "weight_var": (EC.stage_cost_weights["var"], True, (1e-8, np.inf)),
         "weight_slack": (EC.stage_cost_weights["cvi"], True, (1e-3, np.inf)),
         "weight_slack_terminal": (EC.stage_cost_weights["cvi"], True, (1e-3, np.inf)),
-        "weight_V": (1.0, True, (-np.inf, np.inf)),
-        "weight_L": (1.0, True, (1e-3, np.inf)),
-        "weight_T": (1.0, True, (1e-3, np.inf)),
+        "weight_V": (1e-3, False, (-np.inf, np.inf)),
+        "weight_L": (1e-3, False, (1e-5, np.inf)),
+        "weight_T": (1e-3, True, (1e-5, np.inf)),
     }
