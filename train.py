@@ -21,7 +21,7 @@ if __name__ == "__main__":
             verbose=args.verbose,
         )
     elif args.agent_type == "lstdq":
-        fun = lambda n: train_lstdq_agent(
+        fun = lambda n: train_lstdq_agent(  # type: ignore[assignment,return-value]
             agent_n=n,
             episodes=args.episodes,
             scenarios=args.scenarios,
