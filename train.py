@@ -2,8 +2,8 @@ from datetime import datetime
 from time import perf_counter
 from typing import Literal
 
-from joblib import Parallel, delayed
 from gymnasium import Env
+from joblib import Parallel, delayed
 
 from metanet import HighwayTrafficEnv
 from mpc import HighwayTrafficMpc
