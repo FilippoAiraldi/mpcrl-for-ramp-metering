@@ -14,7 +14,11 @@ class Demands:
     __slots__ = ("demands", "t")
 
     def __init__(self, demands: npt.NDArray[np.floating]):
-        assert demands.ndim == 2 and demands.shape[1] == 3, "Invalid demands array."
+        # demands : 3d array where
+        #   - 1st dim: amount of iterations to simulate all the demands
+        #   - 2nd dim: timesteps per iteration (the same step size used by MPC)
+        #   - 3rd dim: number of demand quantities (i.e., 3)
+        assert demands.ndim == 3 and demands.shape[2] == 3, "Invalid demands array."
         self.demands = demands
         self.reset()
 
@@ -25,17 +29,17 @@ class Demands:
     @property
     def O1(self) -> npt.NDArray[np.floating]:
         """Gets the demands for the main origin O1."""
-        return self.demands[:, 0]
+        return self.demands[:, :, 0]
 
     @property
     def O2(self) -> npt.NDArray[np.floating]:
         """Gets the demands for the on-ramp O2."""
-        return self.demands[:, 1]
+        return self.demands[:, :, 1]
 
     @property
     def D1(self) -> npt.NDArray[np.floating]:
         """Gets the demands (congestion) for the destination D1."""
-        return self.demands[:, 2]
+        return self.demands[:, :, 2]
 
     @property
     def exhausted(self) -> bool:
@@ -59,30 +63,11 @@ class Demands:
             The future demands.
         """
         future_demands = self.demands[self.t : self.t + length]
+        flattened = future_demands.reshape(-1, 3)
         if future_demands.shape[0] < length:
-            gap = length - future_demands.shape[0]
-            future_demands = np.append(
-                future_demands, future_demands[-1, None].repeat(gap, 0), 0
-            )
-        return future_demands
-
-    def next(self, length: int) -> npt.NDArray[np.floating]:
-        """Similar to `forecast`; however, it increases the internal demands' time
-        counter.
-
-        Parameters
-        ----------
-        length : int
-            Length of the next demands to get.
-
-        Returns
-        -------
-        array of floats
-            The future demands.
-        """
-        future_demands = self.forecast(length)
-        self.t += length
-        return future_demands
+            gap = (length - future_demands.shape[0]) * self.demands.shape[1]
+            flattened = np.append(flattened, flattened[-1, None].repeat(gap, 0), 0)
+        return flattened
 
     def __getitem__(self, idx) -> npt.NDArray[np.floating]:
         return self.demands[idx]
@@ -136,6 +121,7 @@ def create_demand(
 def create_demands(
     time: _ArrayLikeFloat_co,
     reps: int = 1,
+    steps_per_iteration: int = 1,
     kind: Literal["constant", "random"] = "constant",
     noise: tuple[float, float, float] = (100.0, 100.0, 2.5),
     np_random: Optional[np.random.Generator] = None,
@@ -148,6 +134,8 @@ def create_demands(
         _description_
     reps : int, optional
         How many scenario repetitions to create, by default 1.
+    steps_per_iteration : int, optional
+        Reshapes the demands to return n steps per iteration, when iterated over.
     kind : "constant" or "random", optional
         If "constant", the scenarios are generated from constant data. If "random", the
         scenarios durations and levels are generated randomly. By default "constant".
@@ -209,9 +197,12 @@ def create_demands(
     else:
         raise ValueError(f"Unrecognized demand kind '{kind}'.")
 
-    # apply noise and positivity, and return
+    # apply noise and positivity
     D = np.stack((o1, o2, d1), axis=-1)
     b, a = butter(3, 0.1)
     D = filtfilt(b, a, D + np_random.normal(scale=noise, size=D.shape), axis=0)
     D = np.maximum(0, D)
+
+    # reshape and return
+    D = D.reshape(-1, steps_per_iteration, 3)
     return Demands(D)

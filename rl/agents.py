@@ -9,6 +9,7 @@ from mpcrl.wrappers.agents import Log, RecordUpdates, Wrapper
 from metanet import HighwayTrafficEnv
 from mpc import HighwayTrafficMpc
 from util import EnvConstants as EC
+from util import MpcConstants as MC
 from util import RlConstants as RC
 
 SymType = TypeVar("SymType", cs.SX, cs.MX)
@@ -16,14 +17,14 @@ AgentType = TypeVar("AgentType", bound="HighwayTrafficPkAgent")
 
 
 def _update_fixed_parameters(
-    parameters: dict[str, npt.ArrayLike], env: HighwayTrafficEnv, forecast_length: int
+    parameters: dict[str, npt.ArrayLike], env: HighwayTrafficEnv,
 ) -> None:
     """Updates the internal demand as the forecasted demands, and the last action
     taken in the env. If the episode is over, deletes them instead."""
     if env.demand.exhausted:
         del parameters["d"], parameters["a-"]
     else:
-        parameters["d"] = env.demand.forecast(forecast_length).T
+        parameters["d"] = env.demand.forecast(MC.prediction_horizon).T
         parameters["a-"] = env.last_action
 
 
@@ -87,18 +88,12 @@ class HighwayTrafficPkAgent(Agent[SymType]):
     """Perfect-knowledge (PK) agent for the traffic control task, meaning that the agent
     has access to all the exact information underlying the environment."""
 
-    __slots__ = ("_forecast_length",)
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._forecast_length = self.V.nlp.parameters["d"].shape[1]
-
     def on_episode_start(self, env: HighwayTrafficEnv, episode: int) -> None:
-        _update_fixed_parameters(self.fixed_parameters, env, self._forecast_length)
+        _update_fixed_parameters(self.fixed_parameters, env)
         super().on_episode_start(env, episode)
 
     def on_env_step(self, env: HighwayTrafficEnv, episode: int, timestep: int) -> None:
-        _update_fixed_parameters(self.fixed_parameters, env, self._forecast_length)
+        _update_fixed_parameters(self.fixed_parameters, env)
         super().on_env_step(env, episode, timestep)
 
     @classmethod
@@ -128,18 +123,12 @@ class HighwayTrafficPkAgent(Agent[SymType]):
 
 
 class HighwayTrafficLstdQLearningAgent(LstdQLearningAgent[SymType, float]):
-    __slots__ = ("_forecast_length",)
-
-    def __init__(self, *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-        self._forecast_length = self.V.nlp.parameters["d"].shape[1]
-
     def on_episode_start(self, env: HighwayTrafficEnv, episode: int) -> None:
-        _update_fixed_parameters(self.fixed_parameters, env, self._forecast_length)
+        _update_fixed_parameters(self.fixed_parameters, env)
         super().on_episode_start(env, episode)
 
     def on_env_step(self, env: HighwayTrafficEnv, episode: int, timestep: int) -> None:
-        _update_fixed_parameters(self.fixed_parameters, env, self._forecast_length)
+        _update_fixed_parameters(self.fixed_parameters, env)
         super().on_env_step(env, episode, timestep)
 
     @classmethod

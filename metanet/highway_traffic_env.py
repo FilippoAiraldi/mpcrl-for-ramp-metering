@@ -249,17 +249,18 @@ class HighwayTrafficEnv(
         self.demand = create_demands(
             time=self.time,
             reps=self.n_scenarios,
+            steps_per_iteration=EC.steps,
             kind=options.get("demands_kind", EC.demands_type),
             noise=options.get("demands_noise", (100.0, 100.0, 2.5)),
             np_random=self.np_random,
         )
         if self.demands is not None:
-            # NOTE: do not save all demands for sake of reducing size of results
-            self.demands.append(np.asarray(self.demand)[:: EC.steps])
+            # NOTE: do not save all demands (only 0) to reduce size of results
+            self.demands.append(self.demand[:, 0])
 
         # compute initial state
         x0 = options.get("steady_state_x0", self._last_initial_state)
-        d = cs.DM(self.demand[0])
+        d = cs.DM(self.demand[0, 0])
         u = options.get("last_action", d[1])
         p = cs.DM(self.realpars.values())
         f = lambda x: self.dynamics(x, u, d, p)[0].full().ravel()
@@ -295,7 +296,7 @@ class HighwayTrafficEnv(
         cost = tts + var + cvi
 
         # step the dynamics
-        d = self.demand.next(EC.steps).T
+        d = next(self.demand).T
         s_next, flows = self.dynamics_mapaccum(s[:, -1], a, d, self.realpars.values())
         self.state = s_next.full()
         self.last_action = a
