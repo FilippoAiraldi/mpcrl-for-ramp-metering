@@ -318,7 +318,6 @@ class HighwayTrafficEnv(
     @classmethod
     def wrapped(
         cls: Type[EnvType],
-        monitor_infos: bool = True,
         monitor_deques_size: Optional[int] = None,
         normalize_rewards: bool = True,
         normalization_gamma: float = 0.99,
@@ -334,8 +333,6 @@ class HighwayTrafficEnv(
         ----------
         cls : Type[EnvType]
             The type of env to instantiate.
-        monitor_infos : bool, optional
-            Whether to wrap the env in an instance of `MonitorInfos` or not.
         monitor_deques_size : int, optional
             Size of the monitor deques. Only valid if `monitor_infos=True`.
         normalize_rewards : bool, optional
@@ -350,8 +347,7 @@ class HighwayTrafficEnv(
             Wrapped instance of the environment.
         """
         env = cls(*env_args, **env_kwargs)
-        if monitor_infos:
-            env = MonitorInfos(env, monitor_deques_size)
+        env = MonitorInfos(env, monitor_deques_size)
         if normalize_rewards:
             env = NormalizeReward(  # type: ignore[assignment]
                 env, normalization_gamma, 1e-6

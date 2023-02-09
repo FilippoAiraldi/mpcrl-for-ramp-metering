@@ -30,7 +30,7 @@ def _update_fixed_parameters(
 
 def _wrap_agent(
     agent: Agent,
-    record_updateds: bool,
+    record_updates: bool,
     verbose: Literal[0, 1, 2, 3],
 ) -> Wrapper:
     """Allows to build an instance of the agent that can be wrapped in the following
@@ -38,7 +38,7 @@ def _wrap_agent(
         - `RecordUpdates`
         - `Log`
     """
-    if record_updateds:
+    if record_updates:
         agent = RecordUpdates(agent)
     if verbose > 0:
         level = INFO
@@ -134,7 +134,6 @@ class HighwayTrafficLstdQLearningAgent(LstdQLearningAgent[SymType, float]):
     @classmethod
     def wrapped(
         cls: Type[AgentType],
-        record_udpates: bool,
         verbose: Literal[0, 1, 2, 3],
         *agent_args,
         **agent_kwargs,
@@ -148,8 +147,6 @@ class HighwayTrafficLstdQLearningAgent(LstdQLearningAgent[SymType, float]):
         ----------
         cls : Type[AgentType]
             The type of env to instantiate.
-        record_udpates : bool
-            Whether to record RL updates history.
         verbose : {0, 1, 2,  3}
             The level of verbosity for the logging wrapper.
 
@@ -158,4 +155,4 @@ class HighwayTrafficLstdQLearningAgent(LstdQLearningAgent[SymType, float]):
         AgentType
             Wrapped instance of the agent.
         """
-        return _wrap_agent(cls(*agent_args, **agent_kwargs), record_udpates, verbose)
+        return _wrap_agent(cls(*agent_args, **agent_kwargs), True, verbose)
