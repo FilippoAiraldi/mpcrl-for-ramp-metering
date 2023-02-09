@@ -272,7 +272,7 @@ class HighwayTrafficEnv(
         )
         assert self.observation_space.contains(state), "Invalid reset state."
         self._last_initial_state = state  # save to warmstart next reset steady-state
-        self.state = np.tile(state, (EC.steps, 1)).T
+        self.state = state.reshape(-1, 1).repeat(EC.steps, 1)
 
         # now get the actual control action sufficient for the steady-state state
         self.last_action = self.dynamics(state, u, d, p)[1][-1].full().reshape(self.na)

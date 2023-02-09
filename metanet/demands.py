@@ -62,7 +62,7 @@ class Demands:
         if future_demands.shape[0] < length:
             gap = length - future_demands.shape[0]
             future_demands = np.append(
-                future_demands, np.tile(future_demands[-1, None], (gap, 1)), axis=0
+                future_demands, future_demands[-1, None].repeat(gap, 0), 0
             )
         return future_demands
 
