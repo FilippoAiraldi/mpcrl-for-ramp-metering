@@ -19,13 +19,9 @@ AgentType = TypeVar("AgentType", bound="HighwayTrafficPkAgent")
 def _update_fixed_parameters(
     parameters: dict[str, npt.ArrayLike], env: HighwayTrafficEnv,
 ) -> None:
-    """Updates the internal demand as the forecasted demands, and the last action
-    taken in the env. If the episode is over, deletes them instead."""
-    if env.demand.exhausted:
-        del parameters["d"], parameters["a-"]
-    else:
-        parameters["d"] = env.demand.forecast(MC.prediction_horizon).T
-        parameters["a-"] = env.last_action
+    """Updates the internal demand forecasts and the last action taken in the env."""
+    parameters["d"] = env.demand.forecast(MC.prediction_horizon).T
+    parameters["a-"] = env.last_action
 
 
 def _wrap_agent(

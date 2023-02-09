@@ -44,7 +44,7 @@ class Demands:
     @property
     def exhausted(self) -> bool:
         """Gets whether the whole demands have been iterated through."""
-        return self.t >= self.demands.shape[0]
+        return self.t + 1 >= self.demands.shape[0]
 
     def forecast(self, length: int) -> npt.NDArray[np.floating]:
         """Gets the forecast of the demands from the current time up to the horizon of
