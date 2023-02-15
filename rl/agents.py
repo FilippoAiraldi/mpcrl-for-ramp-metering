@@ -17,7 +17,7 @@ AgentType = TypeVar("AgentType", bound="HighwayTrafficPkAgent")
 
 
 def _update_fixed_parameters(
-    parameters: dict[str, npt.ArrayLike], env: HighwayTrafficEnv,
+    parameters: dict[str, npt.ArrayLike], env: HighwayTrafficEnv
 ) -> None:
     """Updates the internal demand forecasts and the last action taken in the env."""
     parameters["d"] = env.demand.forecast(MC.prediction_horizon).T

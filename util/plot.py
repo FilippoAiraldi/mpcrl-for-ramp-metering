@@ -62,15 +62,15 @@ def _plot_population(
     y_avg = (np.median if use_median else np.mean)(y, axis=0)  # type: ignore[operator]
     y_std = np.std(y, axis=0)
     if method == "fill_between":
+        o = ax.plot(
+            x, y_avg, label=label, marker=marker, ls=ls, lw=OPTS["plot.lw"], color=color
+        )[0]
         ax.fill_between(
             x,
             y_avg - y_std,
             y_avg + y_std,
             alpha=OPTS["fill_between.alpha"],
-            color=color,
-        )
-        ax.plot(
-            x, y_avg, label=label, marker=marker, ls=ls, lw=OPTS["plot.lw"], color=color
+            color=o.get_color(),
         )
     elif method == "errorbar":
         ax.errorbar(
@@ -104,10 +104,11 @@ def plot_traffic_quantities(
 
     # reduce number of points to plot
     if reduce > 1:
-        envsdata_ = {}
         raxis = 2  # reduction axis
-        for k, v in envsdata.items():
-            envsdata_[k] = v.take(range(0, v.shape[raxis], reduce), raxis)
+        envsdata_ = {
+            k: v.take(range(0, v.shape[raxis], reduce), raxis)
+            for k, v in envsdata.items()
+        }
     else:
         envsdata_ = envsdata
 
@@ -151,6 +152,7 @@ def plot_traffic_quantities(
         ax.set_ylabel(ylbl)
     _set_axis_opts(axs)
     return fig
+    # mean_demand = envsdata_["demands"].reshape(10, -1, 120, 3).reshape(-1, 120, 3)
 
 
 def plot_costs(
