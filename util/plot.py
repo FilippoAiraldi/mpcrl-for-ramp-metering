@@ -56,6 +56,7 @@ def _plot_population(
     ls: Optional[str] = None,
     label: Optional[str] = None,
     method: Literal["fill_between", "errorbar"] = "fill_between",
+    color: Optional[str] = None,
 ) -> None:
     """Internal utility to plot a quantity from some population of envs/agents."""
     y_avg = (np.median if use_median else np.mean)(y, axis=0)  # type: ignore[operator]
@@ -66,8 +67,11 @@ def _plot_population(
             y_avg - y_std,
             y_avg + y_std,
             alpha=OPTS["fill_between.alpha"],
+            color=color,
         )
-        ax.plot(x, y_avg, label=label, marker=marker, ls=ls, lw=OPTS["plot.lw"])
+        ax.plot(
+            x, y_avg, label=label, marker=marker, ls=ls, lw=OPTS["plot.lw"], color=color
+        )
     elif method == "errorbar":
         ax.errorbar(
             x,
@@ -79,6 +83,7 @@ def _plot_population(
             lw=OPTS["plot.lw"],
             errorevery=x.size // 10,
             capsize=5,
+            color=color,
         )
     else:
         raise ValueError(f"unsupported plotting method {method}.")
