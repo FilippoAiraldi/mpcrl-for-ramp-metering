@@ -39,18 +39,12 @@ def _wrap_agent(
     if verbose > 0:
         level = INFO
         frequencies: dict[str, int] = {}
-        excluded: list[str] = []
         if verbose >= 2:
             frequencies["on_episode_end"] = 1
             level = DEBUG
         if verbose >= 3:
             frequencies["on_env_step"] = int(EC.Tfin / EC.T / EC.steps)
-        agent = Log(
-            agent,
-            level=level,
-            log_frequencies=frequencies,
-            exclude_mandatory=excluded,
-        )
+        agent = Log(agent, level=level, log_frequencies=frequencies)
     return agent
 
 
