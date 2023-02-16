@@ -71,16 +71,11 @@ class HighwayTrafficMpc(Mpc[SymType]):
         )
 
         # create (soft) constraints on queue(s)
-        # NOTE: no constraint on w[:, 0], since this must be equal to init conditions.
-        # For this reason, we prepend a column of zeros to make it equal size to state
         for oi, origin in enumerate(env.network.origins_by_name):
-            if origin in EC.w_max:
-                self.constraint(
-                    f"w_max_O{oi + 1}", w[oi, 1:], "<=", EC.w_max[origin], soft=True
-                )
-        slacks = cs.horzcat(
-            self.nlp.sym_type.zeros(self.nslacks, 1), cs.vertcat(*self.slacks.values())
-        )
+            w_max_ = EC.w_max.get(origin, None)
+            if w_max_ is not None:
+                self.constraint(f"w_max_O{oi + 1}", w[oi, :], "<=", w_max_, soft=True)
+        slacks = cs.vertcat(*self.slacks.values())
 
         # set dynamics
         p = cs.vertcat(*pars.values())
