@@ -67,12 +67,7 @@ def evaluate_pk_agent(
     )
 
     # launch evaluation
-    agent.evaluate(
-        env,
-        episodes,
-        seed=seed,
-        raises=False,
-    )
+    agent.evaluate(env, episodes, seed=seed, raises=False)
     return env
 
 
@@ -173,10 +168,5 @@ def train_lstdq_agent(
     )
 
     # launch training
-    agent.train(
-        env,
-        episodes,
-        seed=seed,
-        raises=False,
-    )
+    agent.train(env, episodes, seed=seed, raises=False)
     return env, agent

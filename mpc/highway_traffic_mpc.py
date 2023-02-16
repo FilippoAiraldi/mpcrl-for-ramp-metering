@@ -39,9 +39,9 @@ class HighwayTrafficMpc(Mpc[SymType]):
         """
         starts = MC.multistart
         nlp = (
-            Nlp(sym_type=env.sym_type)
+            Nlp(env.sym_type)
             if starts == 1
-            else StackedMultistartNlp(starts=starts, sym_type=env.sym_type)
+            else StackedMultistartNlp(env.sym_type, starts=starts)
         )
         Np = MC.prediction_horizon * EC.steps
         Nc = MC.control_horizon * EC.steps
