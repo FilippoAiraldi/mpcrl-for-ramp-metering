@@ -1,5 +1,5 @@
 joblib==1.2.0
 matplotlib
-mpcrl==1.1.1
+mpcrl==1.1.2
 sym-metanet[all]==1.0.2
 tqdm==4.64.1

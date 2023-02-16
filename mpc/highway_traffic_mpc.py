@@ -2,7 +2,7 @@ from typing import TypeVar
 
 import casadi as cs
 import numpy as np
-from csnlp import MultistartNlp, Nlp
+from csnlp import StackedMultistartNlp, Nlp
 from csnlp.wrappers import Mpc
 
 from metanet.highway_traffic_env import HighwayTrafficEnv
@@ -41,7 +41,7 @@ class HighwayTrafficMpc(Mpc[SymType]):
         nlp = (
             Nlp(sym_type=env.sym_type)
             if starts == 1
-            else MultistartNlp(starts=starts, sym_type=env.sym_type)
+            else StackedMultistartNlp(starts=starts, sym_type=env.sym_type)
         )
         Np = MC.prediction_horizon * EC.steps
         Nc = MC.control_horizon * EC.steps
