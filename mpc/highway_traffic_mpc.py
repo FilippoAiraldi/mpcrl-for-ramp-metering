@@ -109,12 +109,12 @@ class HighwayTrafficMpc(Mpc[SymType]):
             v_free_T = self.parameter("v_free_terminal")
             J += init_cost(s[:, 0], weight_V)
             J += cs.dot(
-                gammas[1:-1], stage_cost(s[:, :-1], rho_crit_L, v_free_L, weight_L)
+                gammas[:-1], stage_cost(s[:, :-1], rho_crit_L, v_free_L, weight_L)
             )
             J += gammas[-1] * terminal_cost(s[:, -1], rho_crit_T, v_free_T, weight_T)
 
         # set the MPC objective
-        self.minimize(J)
+        self.minimize(cs.simplify(J))
 
         # initialize solver
         self.init_solver(MC.solver_opts)
