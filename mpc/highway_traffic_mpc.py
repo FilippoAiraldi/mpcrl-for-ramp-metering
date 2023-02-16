@@ -94,12 +94,10 @@ class HighwayTrafficMpc(Mpc[SymType]):
         # slack penalty
         weight_slack = self.parameter("weight_slack", (slacks.shape[0], 1))
         weight_slack_T = self.parameter("weight_slack_terminal", (slacks.shape[0], 1))
-        J += cs.dot(gammas[:-1], weight_slack.T @ slacks[:, :-1]) + gammas[-1] * cs.dot(
-            weight_slack_T, slacks[:, -1]
-        )
+        J += cs.dot(gammas[:-1], weight_slack.T @ slacks[:, :-1])
+        J += gammas[-1] * cs.dot(weight_slack_T, slacks[:, -1])
 
         # add the additional parametric costs
-        # NOTE: should terminal cost have separate tracking values from stage cost?
         if parametric_cost_terms:
             init_cost, stage_cost, terminal_cost = get_parametric_cost(env.network)
             weight_V = self.parameter("weight_V", init_cost.size_in("weight"))
@@ -109,13 +107,11 @@ class HighwayTrafficMpc(Mpc[SymType]):
             v_free_L = self.parameter("v_free_stage")
             rho_crit_T = self.parameter("rho_crit_terminal")
             v_free_T = self.parameter("v_free_terminal")
-            J += (
-                init_cost(s[:, 0], weight_V)
-                + cs.dot(
-                    gammas[1:-1], stage_cost(s[:, 1:-1], rho_crit_L, v_free_L, weight_L)
-                )
-                + gammas[-1] * terminal_cost(s[:, -1], rho_crit_T, v_free_T, weight_T)
+            J += init_cost(s[:, 0], weight_V)
+            J += cs.dot(
+                gammas[1:-1], stage_cost(s[:, :-1], rho_crit_L, v_free_L, weight_L)
             )
+            J += gammas[-1] * terminal_cost(s[:, -1], rho_crit_T, v_free_T, weight_T)
 
         # set the MPC objective
         self.minimize(J)
