@@ -1,6 +1,8 @@
+from itertools import chain, repeat
 from typing import Iterable, Literal, Optional
 
 import matplotlib as mpl
+import matplotlib.gridspec as gridspec
 import matplotlib.pyplot as plt
 import numpy as np
 import numpy.typing as npt
@@ -191,7 +193,114 @@ def plot_agent_quantities(
     agentsdata: dict[str, npt.NDArray[np.floating]],
     fig: Figure = None,
     label: Optional[str] = None,
+    reduce: int = 1,
     **_,
 ) -> Figure:
-    # TODO:
-    raise NotImplementedError
+    # sourcery skip: low-code-quality
+    a_key, td_errors_key = None, None
+    v_free_keys, rho_crit_keys, weight_keys = [], [], []
+    for key in agentsdata:
+        if key == "a":
+            a_key = key
+        elif key == "td_errors":
+            td_errors_key = key
+        elif key.startswith("v_free"):
+            v_free_keys.append(key)
+        elif key.startswith("rho_crit"):
+            rho_crit_keys.append(key)
+        elif key.startswith("weight_"):
+            weight_keys.append(key)
+        else:
+            raise RuntimeError(f"unexpected key '{key}' in agent's data.")
+    nplots = (
+        (a_key is not None)
+        + (td_errors_key is not None)
+        + (len(v_free_keys) > 0)
+        + (len(rho_crit_keys) > 0)
+        + len(weight_keys)
+    )
+    assert nplots > 0, "No agent's quantities to plot."
+    ncols = int(np.round(np.sqrt(nplots)))
+    nrows = int(np.ceil(nplots / ncols))
+    if fig is None:
+        fig = plt.figure(constrained_layout=True)
+        G = gridspec.GridSpec(nrows, ncols, figure=fig)
+        axs = [
+            fig.add_subplot(G[idx])
+            for idx in zip(*np.unravel_index(range(nplots), (nrows, ncols)))
+        ]
+    else:
+        axs = fig.axes
+    axs_iter = iter(axs)
+
+    # plot a
+    if a_key is not None:
+        ax = next(axs_iter)
+        a = agentsdata[a_key][..., 0]
+        updates = np.arange(a.shape[1])
+        _plot_population(ax, updates, a, label=f"a ({label})")
+        ax.hlines(EC.a, *ax.get_xlim(), colors="k", ls="--", lw=OPTS["plot.lw"] / 2)
+        ax.set_ylabel(r"$a$")
+
+    # plot rho_crit
+    if rho_crit_keys:
+        ax = next(axs_iter)
+        for rho_crit_key in rho_crit_keys:
+            rho_crit = agentsdata[rho_crit_key][..., 0]
+            updates = np.arange(rho_crit.shape[1])
+            _plot_population(ax, updates, rho_crit, label=f"{rho_crit_key} ({label})")
+        ax.hlines(
+            EC.rho_crit, *ax.get_xlim(), colors="k", ls="--", lw=OPTS["plot.lw"] / 2
+        )
+        ax.set_ylabel(r"$\rho_{crit}$")
+
+    # plot v_free
+    if v_free_keys:
+        ax = next(axs_iter)
+        for v_free_key in v_free_keys:
+            v_free = agentsdata[v_free_key][..., 0]
+            updates = np.arange(v_free.shape[1])
+            _plot_population(ax, updates, v_free, label=f"{v_free_key} ({label})")
+        ax.hlines(
+            EC.v_free, *ax.get_xlim(), colors="k", ls="--", lw=OPTS["plot.lw"] / 2
+        )
+        ax.set_ylabel(r"$v_{free}$")
+
+    # plot other weights
+    for weight_key in weight_keys:
+        ax = next(axs_iter)
+        weight = np.rollaxis(agentsdata[weight_key], 2)
+        updates = np.arange(weight.shape[2])
+        N = weight.shape[0]
+        if N == 1:
+            _plot_population(ax, updates, weight[0], label=label)
+        else:
+            for weight_, marker, ls in zip(weight, MARKERS, LINESTYLES):
+                _plot_population(
+                    ax,
+                    updates,
+                    weight_,
+                    marker=marker,
+                    ls=ls,
+                    label=label,
+                )
+        ax.set_ylabel(weight_key.replace("_", " "), fontsize=9)
+
+    # plot td_error
+    if td_errors_key is not None:
+        ax = next(axs_iter)
+        td_errors = agentsdata[td_errors_key][:, ::reduce]
+        time = np.arange(td_errors.shape[1]) * EC.T * EC.steps * reduce
+        _plot_population(ax, time, td_errors, label=label)
+        ax.set_ylabel(r"$\delta$")
+    _set_axis_opts(axs, bottom=None, intx=True)
+
+    # set x labels in bottom axes
+    nxlbls = ncols - (ncols * nrows - nplots)
+    xlbls = chain(
+        (("update" if td_errors_key is None else "time (h)"),),
+        repeat("update", nxlbls - 1),
+    )
+    for ax, xlbl in zip(reversed(axs), xlbls):
+        ax.set_xlabel(xlbl)
+    return fig
