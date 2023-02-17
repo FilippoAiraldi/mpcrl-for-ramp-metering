@@ -43,7 +43,7 @@ def postprocess_env_data(
     processed = {}
     for k, v in processed_.items():
         a = np.asarray(v)
-        nans = np.isnan(a).sum()
+        nans = int(np.isnan(a).sum())
         if nans > 0:
             warn(f"{nans} NaN detected in env save (entry: '{k}').", RuntimeWarning)
         processed[k] = a
@@ -91,7 +91,7 @@ def postprocess_agent_data(
     processed = {}
     for k, v in processed_.items():
         a = np.asarray(v)
-        nans = np.isnan(a).sum()
+        nans = int(np.isnan(a).sum())
         if nans > 0:
             warn(f"{nans} NaN detected in agent save (entry: '{k}').", RuntimeWarning)
         processed[k] = a
