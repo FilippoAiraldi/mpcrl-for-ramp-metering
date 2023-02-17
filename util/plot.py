@@ -134,7 +134,7 @@ def plot_traffic_quantities(
         r"$d$ (veh/h, veh/km/lane)",
     )
     for ax, datum, ylbl in zip(axs, data, ylbls):
-        time = np.arange(datum.shape[1], step=reduce) * EC.T * EC.steps  # type: ignore
+        time = np.arange(datum.shape[1]) * EC.T * EC.steps * reduce  # type: ignore
         datum = np.rollaxis(datum, 2)
         N = datum.shape[0]
         if N == 1:
