@@ -49,8 +49,8 @@ def _set_axis_opts(
 
 def _plot_population(
     ax: Axes,
-    x: npt.NDArray[np.floating],
-    y: npt.NDArray[np.floating],
+    x: npt.NDArray,
+    y: npt.NDArray,
     use_median: bool = False,
     marker: Optional[str] = None,
     ls: Optional[str] = None,
@@ -59,8 +59,8 @@ def _plot_population(
     color: Optional[str] = None,
 ) -> None:
     """Internal utility to plot a quantity from some population of envs/agents."""
-    y_avg = (np.median if use_median else np.mean)(y, axis=0)  # type: ignore[operator]
-    y_std = np.std(y, axis=0)
+    y_avg = (np.nanmedian if use_median else np.nanmean)(y, 0)  # type: ignore[operator]
+    y_std = np.nanstd(y, 0)
     if method == "fill_between":
         o = ax.plot(
             x, y_avg, label=label, marker=marker, ls=ls, lw=OPTS["plot.lw"], color=color
@@ -71,6 +71,7 @@ def _plot_population(
             y_avg + y_std,
             alpha=OPTS["fill_between.alpha"],
             color=o.get_color(),
+            label=None,
         )
     elif method == "errorbar":
         ax.errorbar(
@@ -134,7 +135,7 @@ def plot_traffic_quantities(
         r"$d$ (veh/h, veh/km/lane)",
     )
     for ax, datum, ylbl in zip(axs, data, ylbls):
-        time = np.arange(datum.shape[1]) * EC.T * EC.steps * reduce  # type: ignore
+        time = np.arange(datum.shape[1]) * EC.T * EC.steps * reduce
         datum = np.rollaxis(datum, 2)
         N = datum.shape[0]
         if N == 1:
@@ -182,7 +183,7 @@ def plot_costs(
     # set axis options
     _set_axis_opts(axs, intx=True)
     for i in (2, 3):
-        axs[i].set_xlabel("Episode")
+        axs[i].set_xlabel("episode")
     return fig
 
 
