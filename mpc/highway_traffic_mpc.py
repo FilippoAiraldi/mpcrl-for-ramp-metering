@@ -2,7 +2,7 @@ from typing import TypeVar
 
 import casadi as cs
 import numpy as np
-from csnlp import StackedMultistartNlp, Nlp
+from csnlp import Nlp, StackedMultistartNlp
 from csnlp.wrappers import Mpc
 
 from metanet.highway_traffic_env import HighwayTrafficEnv
