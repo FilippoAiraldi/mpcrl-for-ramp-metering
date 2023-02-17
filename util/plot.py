@@ -113,11 +113,10 @@ def plot_traffic_quantities(
         envsdata_ = envsdata
 
     # flatten episodes along time
-    Na, Nep, Nscen = envsdata["state"].shape[:3]
-    Ntime = Nep * Nscen
-    time = np.arange(Ntime, step=reduce) * EC.T * EC.steps  # type: ignore
-    Ntime //= reduce
-    envsdata_ = {k: v.reshape(Na, Ntime, -1) for k, v in envsdata_.items()}
+    envsdata_ = {
+        k: v.reshape(v.shape[0], v.shape[1] * v.shape[2], -1)
+        for k, v in envsdata_.items()
+    }
 
     # make plots
     data = (
@@ -135,6 +134,7 @@ def plot_traffic_quantities(
         r"$d$ (veh/h, veh/km/lane)",
     )
     for ax, datum, ylbl in zip(axs, data, ylbls):
+        time = np.arange(datum.shape[1], step=reduce) * EC.T * EC.steps  # type: ignore
         datum = np.rollaxis(datum, 2)
         N = datum.shape[0]
         if N == 1:
@@ -151,6 +151,8 @@ def plot_traffic_quantities(
                 )
         ax.set_ylabel(ylbl)
     _set_axis_opts(axs)
+    for i in (4, 5):
+        axs[i].set_xlabel("time (h)")
     return fig
     # mean_demand = envsdata_["demands"].reshape(10, -1, 120, 3).reshape(-1, 120, 3)
 
