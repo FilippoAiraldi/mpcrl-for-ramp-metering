@@ -44,33 +44,29 @@ def get_parametric_cost(
     )
 
     # create stage cost function
-    weight_stage1_rho = symvar.sym("weight_stage1_rho", n_segments, 1)
-    weight_stage2_rho = symvar.sym("weight_stage2_rho", n_segments, 1)
+    weight_stage_rho = symvar.sym("weight_stage_rho", n_segments, 1)
     weight_stage_v = symvar.sym("weight_stage_v", n_segments, 1)
-    stage_term1_rho = quad_form(weight_stage1_rho, rho - rho_crit)
-    stage_term2_rho = quad_form(weight_stage2_rho, rho)
+    stage_term_rho = cs.dot(weight_stage_rho, rho * (rho - rho_crit)**2)
     stage_term_v = quad_form(weight_stage_v, v - v_free)
-    weight_stage = cs.vertcat(weight_stage1_rho, weight_stage2_rho, weight_stage_v)
+    weight_stage = cs.vertcat(weight_stage_rho, weight_stage_v)
     stage_cost = cs.Function(
         "stage_cost",
         (s, rho_crit, v_free, weight_stage),
-        (stage_term1_rho * stage_term2_rho + stage_term_v,),
+        (stage_term_rho + stage_term_v,),
         ("s", "rho_crit", "v_free", "weight"),
         ("J_stage",),
     )
 
     # create terminal cost function
-    weight_fin1_rho = symvar.sym("weight_fin1_rho", n_segments, 1)
-    weight_fin2_rho = symvar.sym("weight_fin2_rho", n_segments, 1)
+    weight_fin_rho = symvar.sym("weight_fin_rho", n_segments, 1)
     weight_fin_v = symvar.sym("weight_fin_v", n_segments, 1)
-    fin_term1_rho = quad_form(weight_fin1_rho, rho - rho_crit)
-    fin_term2_rho = quad_form(weight_fin2_rho, rho)
+    fin_term_rho = cs.dot(weight_fin_rho, rho * (rho - rho_crit)**2)
     fin_term_v = quad_form(weight_fin_v, v - v_free)
-    weight_fin = cs.vertcat(weight_fin1_rho, weight_fin2_rho, weight_fin_v)
+    weight_fin = cs.vertcat(weight_fin_rho, weight_fin_v)
     fin_cost = cs.Function(
         "terminal_cost",
         (s, rho_crit, v_free, weight_fin),
-        (fin_term1_rho * fin_term2_rho + fin_term_v,),
+        (fin_term_rho + fin_term_v,),
         ("s", "rho_crit", "v_free", "weight"),
         ("J_terminal",),
     )
