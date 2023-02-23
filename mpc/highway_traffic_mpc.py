@@ -85,7 +85,8 @@ class HighwayTrafficMpc(Mpc[SymType]):
         # build objective terms related to traffic, control action, and slacks
         gammas = cs.DM(discount ** np.arange(Np + 1).reshape(1, -1))
         # total-time spent
-        J = cs.dot(gammas, env.stage_cost(s, 0, 0)[0])
+        weight_tts = self.parameter("weight_tts")
+        J = weight_tts * cs.dot(gammas, env.stage_cost(s, 0, 0)[0])
         # control action variability
         a_last = self.parameter("a-", (env.na, 1))
         a_lasts = cs.horzcat(a_last, a[:, :-1])

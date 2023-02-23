@@ -84,6 +84,7 @@ class RlConstants:
         "v_free": (EC.v_free * 1.3, True, (30, 250)),
         "v_free_stage": (EC.v_free * 1.3, True, (30, 250)),
         "v_free_terminal": (EC.v_free * 1.3, True, (30, 250)),
+        "weight_tts": (EC.stage_cost_weights["tts"], True, (1e-3, np.inf)),
         "weight_var": (EC.stage_cost_weights["var"], True, (1e-8, np.inf)),
         "weight_slack": (EC.stage_cost_weights["cvi"], True, (1e-3, np.inf)),
         "weight_slack_terminal": (EC.stage_cost_weights["cvi"], True, (1e-3, np.inf)),
