@@ -5,8 +5,8 @@ import numpy as np
 from csnlp import Nlp, StackedMultistartNlp
 from csnlp.wrappers import Mpc
 
-from metanet.highway_traffic_env import HighwayTrafficEnv
-from mpc.costs import get_parametric_cost
+from metanet import HighwayTrafficEnv
+from mpc.costs import add_parametric_costs
 from util.constants import EnvConstants as EC
 from util.constants import MpcConstants as MC
 
@@ -100,19 +100,7 @@ class HighwayTrafficMpc(Mpc[SymType]):
 
         # add the additional parametric costs
         if parametric_cost_terms:
-            init_cost, stage_cost, terminal_cost = get_parametric_cost(env.network)
-            weight_V = self.parameter("weight_V", init_cost.size_in("weight"))
-            weight_L = self.parameter("weight_L", stage_cost.size_in("weight"))
-            weight_T = self.parameter("weight_T", terminal_cost.size_in("weight"))
-            rho_crit_L = self.parameter("rho_crit_stage")
-            v_free_L = self.parameter("v_free_stage")
-            rho_crit_T = self.parameter("rho_crit_terminal")
-            v_free_T = self.parameter("v_free_terminal")
-            J += init_cost(s[:, 0], weight_V)
-            J += cs.dot(
-                gammas[:-1], stage_cost(s[:, :-1], rho_crit_L, v_free_L, weight_L)
-            )
-            J += gammas[-1] * terminal_cost(s[:, -1], rho_crit_T, v_free_T, weight_T)
+            J += add_parametric_costs(self, env, gammas)
 
         # set the MPC objective
         self.minimize(cs.simplify(J))
