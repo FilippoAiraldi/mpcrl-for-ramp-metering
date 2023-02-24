@@ -39,3 +39,7 @@ The work provided in this repository can be cited as TODO
 ---
 ## Author
 Filippo Airaldi [filippoairaldi@gmail.com | f.airaldi@tudelft.nl]
+
+Copyright (c) 2023 Filippo Airaldi.
+
+Copyright notice: Technische Universiteit Delft hereby disclaims all copyright interest in the program “TODO” (TODO) written by the Author(s). Prof. Dr. Ir. Fred van Keulen, Dean of 3mE.
