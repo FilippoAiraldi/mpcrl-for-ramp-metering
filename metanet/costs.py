@@ -36,6 +36,7 @@ def get_stage_cost(
         Raises if an origin name cannot be found in the given network.
     """
     symvar = cs.MX  # faster function evaluations with MX
+    origins = network.origins
 
     # compute Total-Time-Spent for the current state
     TTS = symvar.zeros(1, 1)
@@ -47,7 +48,7 @@ def get_stage_cost(
         vs.append(v)
         TTS += cs.sum1(rho) * link.lam * link.L
     ws = []
-    for origin in network.origins:
+    for origin in origins:
         w = symvar.sym(f"w_{origin.name}", 1, 1)
         ws.append(w)
         TTS += cs.sum1(w)
@@ -60,11 +61,7 @@ def get_stage_cost(
 
     # compute constraint violations for origins
     CVI = cs.vertcat(
-        *(
-            w - w_max[origin]
-            for origin, w in zip(network.origins, ws)
-            if origin in w_max
-        )
+        *(w - w_max[origin] for origin, w in zip(origins, ws) if origin in w_max)
     )
 
     # pack into function L(s,a) (with a third argument for the previous action)
