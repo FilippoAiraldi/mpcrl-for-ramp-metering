@@ -38,7 +38,9 @@ class EnvConstants:
         "tts": 1.0,
         "var": 0.4 * 1e-6,
         "cvi": 10.0,
+        "erm": 100.0,
     }
+    erm_robustness: ClassVar[float] = 0.2  # in [0, 1]
 
 
 class MpcConstants:
