@@ -162,7 +162,7 @@ def create_demands(
         data = (
             ((0.00, 0.35, 1.0, 1.35), (1000, 3000, 3000, 1000)),  # demand at O1
             ((0.15, 0.35, 0.6, 0.80), (500, 1500, 1500, 500)),  # demand at O2
-            ((0.50, 0.70, 1.0, 1.20), (20, 60, 60, 20)),  # demand at D1
+            ((0.50, 0.70, 1.0, 1.20), (20, 60, 60, 20)),  # congestion at D1
         )
         o1 = create_demand(time, *data[0], reps)
         o2 = create_demand(time, *data[1], reps)

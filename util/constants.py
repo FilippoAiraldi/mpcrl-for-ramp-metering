@@ -31,7 +31,7 @@ class EnvConstants:
     eta: ClassVar[float] = 60  # model parameter (km^2/lane)
     delta: ClassVar[float] = 0.0122  # merging phenomenum parameter
     #
-    demands_type: ClassVar[str] = "random"  # (or "constant") type of demand generation
+    demands_type: ClassVar[str] = "constant"  # (or "random") type of demand generation
     #
     w_max: ClassVar[dict[str, int]] = {"O2": 50}  # max queue on ramp O2
     stage_cost_weights: ClassVar[dict[str, float]] = {  # weight of each contribution
