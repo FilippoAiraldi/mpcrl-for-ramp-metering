@@ -54,7 +54,7 @@ def parse_train_args() -> argparse.Namespace:
         "--replaymem-size",
         "--replaymem_size",
         type=int,
-        default=K * 5,
+        default=K * 10,
         help="Maximum size of the experience replay buffer.",
     )
     group.add_argument(

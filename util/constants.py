@@ -58,7 +58,7 @@ class MpcConstants:
         # "jit_options": {"flags": ["-O1"], "verbose": True},
         "ipopt": {
             "max_iter": 5e2,
-            "tol": 1e-7,
+            "tol": 1e-6,
             "barrier_tol_factor": 4,
             # "linear_solver": "pardiso",
             "sb": "yes",
@@ -82,7 +82,7 @@ class RlConstants:
         "rho_crit": (EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9)),
         "rho_crit_stage": (EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9)),
         "rho_crit_terminal": (EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9)),
-        "a": (EC.a * 1.3, False, (1.0, 3.0)),
+        "a": (EC.a * 1.3, True, (1.0, 3.0)),
         "v_free": (EC.v_free * 1.3, True, (30, 250)),
         "v_free_stage": (EC.v_free * 1.3, True, (30, 250)),
         "v_free_terminal": (EC.v_free * 1.3, True, (30, 250)),
