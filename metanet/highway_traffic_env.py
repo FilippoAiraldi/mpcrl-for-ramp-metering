@@ -157,7 +157,7 @@ class HighwayTrafficEnv(
         self.reward_range = (0.0, float("inf"))
         w_max = {self.network.origins_by_name[n]: v for n, v in EC.w_max.items()}
         self.stage_cost = get_stage_cost(
-            self.network, na, EC.T, w_max, (self.network.origins_by_name["O2"],)
+            self.network, na, EC.T, w_max, self.network.origins_by_name["O2"]
         )
 
         # create initial solution to steady-state search (used in reset)
@@ -285,12 +285,12 @@ class HighwayTrafficEnv(
         s = self.state
 
         # step the dynamics
-        d = next(self.demand).T
+        d = cs.DM(next(self.demand).T)
         s_next, flows = self.dynamics_mapaccum(s[:, -1], a, d, self.realpars.values())
 
         # compute cost of current state L(s,a) (actually, over the last bunch of states)
         # NOTE: since the action is only applied every EC.steps, penalize var_ only once
-        tts_, var_, cvi_, erm_ = self.stage_cost(s, a, self.last_action, flows)
+        tts_, var_, cvi_, erm_ = self.stage_cost(s, a, self.last_action, d[1, :])
         tts = np.sum(tts_).item() * EC.stage_cost_weights["tts"]
         var = float(var_[0]) * EC.stage_cost_weights["var"]
         cvi = np.maximum(0, cvi_).sum().item() * EC.stage_cost_weights["cvi"]

@@ -1,9 +1,9 @@
-from itertools import accumulate
-from typing import Iterable, TypeVar
+from typing import TypeVar
 
 import casadi as cs
 import numpy as np
-from sym_metanet import Link, MeteredOnRamp, Network, Origin
+from sym_metanet import MeteredOnRamp, Network, Origin
+from sym_metanet import engine as sm_engine
 
 from util import EnvConstants as EC
 
@@ -15,7 +15,7 @@ def get_stage_cost(
     n_actions: int,
     T: float,
     w_max: dict[Origin, int],
-    ramps_with_erm: Iterable[MeteredOnRamp],
+    ramp_with_erm: MeteredOnRamp,
 ) -> cs.Function:
     """Returns the stage cost function to compute for each state-action pair the
     corresponding cost.
@@ -30,8 +30,8 @@ def get_stage_cost(
         Simulation timestep.
     w_max : dict[sym_metanet.Origins, int]
         A dictionary of origins and their corresponding threshold on the queue size.
-    ramps_with_erm : iterable of sym_metanet.MeteredOnRamp
-        Ramps in which effective ramp metering rate will be rewarded.
+    ramp_with_erm : sym_metanet.MeteredOnRamp
+        Ramp in which effective ramp metering rate will be rewarded.
 
     Returns
     -------
@@ -48,19 +48,18 @@ def get_stage_cost(
         Raises if an origin name cannot be found in the given network.
     """
     symvar = cs.MX  # faster function evaluations with MX
+    links = network.nodes_by_link.keys()
     origins = network.origins
 
     # compute Total-Time-Spent for the current state
     TTS = symvar.zeros(1, 1)
     rhos, vs = [], []
-    n_segments = 0
-    for _, _, link in network.links:
+    for link in links:
         rho = symvar.sym(f"rho_{link.name}", link.N, 1)
         v = symvar.sym(f"v_{link.name}", link.N, 1)
         rhos.append(rho)
         vs.append(v)
         TTS += cs.sum1(rho) * link.lam * link.L
-        n_segments += link.N
     ws = []
     for origin in origins:
         w = symvar.sym(f"w_{origin.name}", 1, 1)
@@ -79,21 +78,20 @@ def get_stage_cost(
     )
 
     # compute effective ramp metering
-    ERM = symvar.zeros(1, 1)
-    q = symvar.sym("q", n_segments + len(origins), 1)
-    links_idx: dict[Link, int] = dict(
-        zip(network.nodes_by_link, accumulate(link.N for link in network.nodes_by_link))
+    upstream_links = list(network.in_links(origins[ramp_with_erm]))
+    assert len(upstream_links) == 1, "Multiple upstream links for ramp with ERM."
+    link = upstream_links[0][2]
+    link_idx = list(links).index(link)
+    origin_idx = list(origins).index(ramp_with_erm)
+    d_ramp = symvar.sym(f"d_{ramp_with_erm.name}")
+    ERM = _get_effective_ramp_metering(
+        d_ramp,
+        ws[origin_idx],
+        sm_engine.links.get_flow(rhos[link_idx][-1], vs[link_idx][-1], link.lam),
+        0,
+        ramp_with_erm.C,
+        2000 * link.N,
     )
-    origins_idx: dict[Origin, int] = dict(
-        map(reversed, enumerate(origins, n_segments + 1))  # type: ignore[arg-type]
-    )
-    for ramp in ramps_with_erm:
-        upstream_links = list(network.in_links(network.origins[ramp]))
-        assert len(upstream_links) == 1, "Multiple upstream links."
-        link = upstream_links[0][2]
-        ERM += _get_effective_ramp_metering(
-            q[origins_idx[ramp] - 1], q[links_idx[link] - 1], 0, ramp.C, 2000 * link.N
-        )
 
     # pack into function L(s,a) (with a third argument for the previous action)
     assert (
@@ -102,15 +100,16 @@ def get_stage_cost(
     s = cs.vertcat(*rhos, *vs, *ws)
     return cs.Function(
         "L",
-        (s, a, a_prev, q),
+        (s, a, a_prev, d_ramp),
         (TTS, VAR, CVI, ERM),
-        ("s", "a", "a-", "q"),
+        ("s", "a", "a-", d_ramp.name()),
         ("tts", "var", "cvi", "erm"),
     )
 
 
 def _get_effective_ramp_metering(
-    q_ramp: SymType,
+    d_ramp: SymType,
+    w_ramp: SymType,
     q_link: SymType,
     ramp_min_flow: int,
     ramp_max_flow: int,
@@ -119,6 +118,7 @@ def _get_effective_ramp_metering(
     """Internal utility to compute the ERM boolean for the current ramp and link."""
     # find the three points defining the triangle containg all flows for which ramp
     # metering is effective (areas X and W in pag. 87, A. Hegyi's PhD Thesis)
+    q_ramp = d_ramp + w_ramp / EC.T
     q_drop = 0.9 * link_capacity
     points = np.asarray(
         (
