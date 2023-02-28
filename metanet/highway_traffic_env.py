@@ -156,7 +156,7 @@ class HighwayTrafficEnv(
         # set reward/cost ranges and functions
         self.reward_range = (0.0, float("inf"))
         w_max = {self.network.origins_by_name[n]: v for n, v in EC.w_max.items()}
-        )
+        self.stage_cost = get_stage_cost(self.network, na, EC.T, w_max)
 
         # create initial solution to steady-state search (used in reset)
         n_segments, n_origins = self.n_segments, self.n_origins
