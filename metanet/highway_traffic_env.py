@@ -310,6 +310,7 @@ class HighwayTrafficEnv(
             "tts": tts,
             "var": var,
             "cvi": cvi,
+            "erm": erm,
         }
         return observation, cost, False, self.demand.exhausted, info
 
