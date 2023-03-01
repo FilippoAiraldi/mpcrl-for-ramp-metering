@@ -167,24 +167,28 @@ def plot_costs(
     **_,
 ) -> Figure:
     if fig is None:
-        fig, axs = plt.subplots(2, 2, constrained_layout=True, sharex=True)
-        axs = axs.flatten()
+        fig = plt.figure(constrained_layout=True)
+        G = gridspec.GridSpec(3, 2, figure=fig)
+        axs = [
+            *(fig.add_subplot(G[i]) for i in zip(*np.unravel_index(range(4), (2, 2)))),
+            fig.add_subplot(G[2, :]),
+        ]
     else:
         axs = fig.axes
 
-    costnames = ("total", "tts", "var", "cvi")
-    costs = np.stack([envsdata[n] for n in costnames[1:]], axis=-1)
+    costnames = ("tts", "var", "cvi", "erm", "total")
+    costs = np.stack([envsdata[n] for n in costnames[:-1]], axis=-1)
     costs = costs.sum(2)  # sum costs per episodes
-    J = costs.sum(-1, keepdims=True)  # tot cost per episode per agent
-    all_costs = np.concatenate((J, costs), axis=-1)
+    J = costs.sum(-1, keepdims=True)  # total cost per episode per agent
+    all_costs = np.concatenate((costs, J), axis=-1)
     ep = np.arange(1, all_costs.shape[1] + 1)
     for costname, cost, ax in zip(costnames, np.rollaxis(all_costs, 2), axs):
         _plot_population(ax, ep, cost, label=label)
-        ax.set_ylabel(f"{costname} cost")
+        ax.set_ylabel(costname)
 
     # set axis options
     _set_axis_opts(axs, intx=True)
-    for i in (2, 3):
+    for i in range(2, 5):
         axs[i].set_xlabel("episode")
     return fig
 
