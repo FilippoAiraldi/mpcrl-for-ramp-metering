@@ -16,7 +16,7 @@ MARKERS = ("o", "s", "v")
 LINESTYLES = ("-", "--", "-.")
 OPTS = {
     "fill_between.alpha": 0.25,
-    "plot.lw": 2.5,
+    "plot.lw": 2,
 }
 
 
@@ -25,7 +25,8 @@ def set_mpl_defaults() -> None:
     np.set_printoptions(precision=4)
     plt.style.use("bmh")  # 'seaborn-darkgrid'
     mpl.rcParams["lines.solid_capstyle"] = "round"
-    mpl.rcParams["lines.linewidth"] = 3
+    mpl.rcParams["lines.linewidth"] = 2
+    mpl.rcParams["lines.markersize"] = 3
     mpl.rcParams["savefig.dpi"] = 600
 
 
