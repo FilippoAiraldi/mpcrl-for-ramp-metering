@@ -294,8 +294,8 @@ class HighwayTrafficEnv(
         tts = np.sum(tts_).item() * EC.stage_cost_weights["tts"]
         var = float(var_[0]) * EC.stage_cost_weights["var"]
         cvi = np.maximum(0, cvi_).sum().item() * EC.stage_cost_weights["cvi"]
-        erm = np.sum(erm_).item() * EC.stage_cost_weights["erm"]
-        cost = tts + var + cvi - erm
+        erm = -np.sum(erm_).item() * EC.stage_cost_weights["erm"]
+        cost = tts + var + cvi + erm
 
         # save next state and add information in dict to be saved
         # NOTE: save only last state and flow for sake of reducing size of results
