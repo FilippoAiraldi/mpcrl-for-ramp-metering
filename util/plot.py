@@ -201,6 +201,17 @@ def plot_agent_quantities(
     **_,
 ) -> Figure:
     # sourcery skip: low-code-quality
+
+    def plot_parameters(key: str, ax: Axes, label: Optional[str] = None) -> None:
+        weight = np.rollaxis(agentsdata[key], 2)
+        updates = np.arange(weight.shape[2])
+        N = weight.shape[0]
+        if N == 1:
+            _plot_population(ax, updates, weight[0], label=label)
+        else:
+            for w_, mkr, ls in zip(weight, MARKERS, LINESTYLES):
+                _plot_population(ax, updates, w_, marker=mkr, ls=ls, label=label)
+
     a_key, td_errors_key = None, None
     v_free_keys, rho_crit_keys, weight_keys = [], [], []
     for key in agentsdata:
@@ -240,19 +251,14 @@ def plot_agent_quantities(
     # plot a
     if a_key is not None:
         ax = next(axs_iter)
-        a = agentsdata[a_key][..., 0]
-        updates = np.arange(a.shape[1])
-        _plot_population(ax, updates, a, label=f"a ({label})")
-        ax.hlines(EC.a, *ax.get_xlim(), colors="k", ls="--", lw=OPTS["plot.lw"] / 2)
+        plot_parameters(a_key, ax, f"a ({label})")
         ax.set_ylabel(r"$a$")
 
     # plot rho_crit
     if rho_crit_keys:
         ax = next(axs_iter)
         for rho_crit_key in rho_crit_keys:
-            rho_crit = agentsdata[rho_crit_key][..., 0]
-            updates = np.arange(rho_crit.shape[1])
-            _plot_population(ax, updates, rho_crit, label=f"{rho_crit_key} ({label})")
+            plot_parameters(rho_crit_key, ax, label=f"{rho_crit_key} ({label})")
         ax.hlines(
             EC.rho_crit, *ax.get_xlim(), colors="k", ls="--", lw=OPTS["plot.lw"] / 2
         )
@@ -262,9 +268,7 @@ def plot_agent_quantities(
     if v_free_keys:
         ax = next(axs_iter)
         for v_free_key in v_free_keys:
-            v_free = agentsdata[v_free_key][..., 0]
-            updates = np.arange(v_free.shape[1])
-            _plot_population(ax, updates, v_free, label=f"{v_free_key} ({label})")
+            plot_parameters(v_free_key, ax, label=f"{v_free_key} ({label})")
         ax.hlines(
             EC.v_free, *ax.get_xlim(), colors="k", ls="--", lw=OPTS["plot.lw"] / 2
         )
@@ -273,21 +277,7 @@ def plot_agent_quantities(
     # plot other weights
     for weight_key in weight_keys:
         ax = next(axs_iter)
-        weight = np.rollaxis(agentsdata[weight_key], 2)
-        updates = np.arange(weight.shape[2])
-        N = weight.shape[0]
-        if N == 1:
-            _plot_population(ax, updates, weight[0], label=label)
-        else:
-            for weight_, marker, ls in zip(weight, MARKERS, LINESTYLES):
-                _plot_population(
-                    ax,
-                    updates,
-                    weight_,
-                    marker=marker,
-                    ls=ls,
-                    label=label,
-                )
+        plot_parameters(weight_key, ax)
         ax.set_ylabel(weight_key.replace("_", " "), fontsize=9)
 
     # plot td_error
@@ -297,7 +287,9 @@ def plot_agent_quantities(
         time = np.arange(td_errors.shape[1]) * EC.T * EC.steps * reduce
         _plot_population(ax, time, td_errors, label=label)
         ax.set_ylabel(r"$\delta$")
-    _set_axis_opts(axs, bottom=None, intx=True)
+
+    # set all axes' options
+    _set_axis_opts(axs, bottom=None, intx=True, legend=False)
 
     # set x labels in bottom axes
     nxlbls = ncols - (ncols * nrows - nplots)
