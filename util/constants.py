@@ -36,9 +36,9 @@ class EnvConstants:
     w_max: ClassVar[dict[str, int]] = {"O2": 50}  # max queue on ramp O2
     stage_cost_weights: ClassVar[dict[str, float]] = {  # weight of each contribution
         "tts": 1.0,
-        "var": 0.4 * 1e-6,
+        "var": 0.4,
         "cvi": 10.0,
-        "erm": 100.0,
+        "erm": 10.0,
     }
     erm_robustness: ClassVar[float] = 0.2  # in [0, 1]
 
@@ -70,6 +70,10 @@ class MpcConstants:
 EC = EnvConstants
 assert EC.Tfin / EC.T % EC.steps == 0.0, "Incompatible simulation length and step size."
 
+w_norm = EC.w_max["O2"]
+rho_norm = EC.rho_max
+v_norm = EC.v_free * 1.3
+
 
 class RlConstants:
     """Constant parameters of the highway traffic RL agents."""
@@ -90,13 +94,13 @@ class RlConstants:
         "weight_var": (EC.stage_cost_weights["var"], True, (1e-8, np.inf)),
         "weight_slack": (EC.stage_cost_weights["cvi"], True, (1e-3, np.inf)),
         "weight_slack_terminal": (EC.stage_cost_weights["cvi"], True, (1e-3, np.inf)),
-        "weight_init_rho": (1e-2, True, (-np.inf, np.inf)),
-        "weight_init_v": (1e-3, True, (-np.inf, np.inf)),
-        "weight_init_w": (1e-1, True, (-np.inf, np.inf)),
-        "weight_stage_v": (1e-3, True, (1e-5, np.inf)),
-        "weight_stage_rho_scale": (1e-2, True, (1e-5, np.inf)),
+        "weight_init_rho": (1.0 / rho_norm, True, (-np.inf, np.inf)),
+        "weight_init_v": (1.0 / v_norm, True, (-np.inf, np.inf)),
+        "weight_init_w": (1.0 / w_norm, True, (-np.inf, np.inf)),
+        "weight_stage_v": (1.0 / v_norm**2, True, (1e-5, np.inf)),
+        "weight_stage_rho_scale": (1.0 / rho_norm**2, True, (1e-5, np.inf)),
         "weight_stage_rho_threshold": (1e-1, True, (1e-5, np.inf)),
-        "weight_terminal_v": (1e-3, True, (1e-5, np.inf)),
-        "weight_terminal_rho_scale": (1e-2, True, (1e-5, np.inf)),
+        "weight_terminal_v": (1.0 / v_norm**2, True, (1e-5, np.inf)),
+        "weight_terminal_rho_scale": (1.0 / rho_norm**2, True, (1e-5, np.inf)),
         "weight_terminal_rho_threshold": (1e-1, True, (1e-5, np.inf)),
     }
