@@ -88,7 +88,7 @@ def get_stage_cost(
         d_ramp,
         ws[origin_idx],
         sm_engine.links.get_flow(rhos[link_idx][-1], vs[link_idx][-1], link.lam),
-        0,
+        ramp_with_erm.C / 10,
         ramp_with_erm.C,
         2000 * link.N,
     )

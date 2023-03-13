@@ -60,6 +60,8 @@ class HighwayTrafficMpc(Mpc[SymType]):
         rho, _, w = cs.vertsplit(s, np.cumsum((0, n_segments, n_segments, n_origins)))
 
         # create action and upper-constrain it dynamically
+        # NOTE: infeasible problems may occur if demands are too low, due to the fact
+        # that neither upper- nor lower-bounds are soft
         assert env.na == 1, "only 1 action is assumed."
         ramp = env.network.origins_by_name["O2"]
         link_with_O2 = next(iter(env.network.out_links(env.network.origins[ramp])))[2]
@@ -69,7 +71,7 @@ class HighwayTrafficMpc(Mpc[SymType]):
             for link in takewhile(lambda l: l[2] is not link_with_O2, env.network.links)
         )
         C = EC.origin_capacities[idx_ramp]  # capacity of O2
-        a, a_exp = self.action("a", env.na, lb=0, ub=C)  # control action of O2
+        a, a_exp = self.action("a", env.na, lb=C / 10, ub=C)  # control action of O2
         self.constraint(
             "a_min_1", a_exp, "<=", d[idx_ramp, :] + w[idx_ramp, :-1] / EC.T
         )
