@@ -1,3 +1,4 @@
+from itertools import takewhile
 from typing import TypeVar
 
 import casadi as cs
@@ -59,15 +60,24 @@ class HighwayTrafficMpc(Mpc[SymType]):
         rho, _, w = cs.vertsplit(s, np.cumsum((0, n_segments, n_segments, n_origins)))
 
         # create action and upper-constrain it dynamically
-        C = EC.origin_capacities[1]  # capacity of O2
-        si = 1  # index of segment connected to O2
+        assert env.na == 1, "only 1 action is assumed."
+        ramp = env.network.origins_by_name["O2"]
+        link_with_O2 = next(iter(env.network.out_links(env.network.origins[ramp])))[2]
+        idx_ramp = list(env.network.origins).index(ramp)  # index of O2
+        idx_seg = sum(
+            link[2].N
+            for link in takewhile(lambda l: l[2] is not link_with_O2, env.network.links)
+        )
+        C = EC.origin_capacities[idx_ramp]  # capacity of O2
         a, a_exp = self.action("a", env.na, lb=0, ub=C)  # control action of O2
-        self.constraint("a_min_1", a_exp, "<=", d[si, :] + w[si, :-1] / EC.T)
+        self.constraint(
+            "a_min_1", a_exp, "<=", d[idx_ramp, :] + w[idx_ramp, :-1] / EC.T
+        )
         self.constraint(
             "a_min_2",
             (EC.rho_max - pars["rho_crit"]) * a_exp,
             "<=",
-            C * (EC.rho_max - rho[si, :-1]),
+            C * (EC.rho_max - rho[idx_seg, :-1]),
         )
 
         # create (soft) constraints on queue(s)
