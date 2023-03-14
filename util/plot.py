@@ -170,8 +170,10 @@ def plot_costs(
     else:
         axs = fig.axes
 
+    # group as: costs ∈ [n_agents, n_episodes, timesteps, type_of_costs]
     costnames = ("tts", "var", "cvi", "erm", "total")
     costs = np.stack([envsdata[n] for n in costnames[:-1]], axis=-1)
+
     costs = costs.sum(2)  # sum costs per episodes
     J = costs.sum(-1, keepdims=True)  # total cost per episode per agent
     all_costs = np.concatenate((costs, J), axis=-1)
