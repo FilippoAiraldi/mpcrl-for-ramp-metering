@@ -33,7 +33,7 @@ class EnvConstants:
     #
     demands_type: ClassVar[str] = "constant"  # (or "random") type of demand generation
     #
-    w_max: ClassVar[dict[str, int]] = {"O2": 50}  # max queue on ramp O2
+    ramp_max_queue: ClassVar[dict[str, int]] = {"O2": 50}  # max queue on ramp O2
     stage_cost_weights: ClassVar[dict[str, float]] = {  # weight of each contribution
         "tts": 1.0,
         "var": 0.4,
