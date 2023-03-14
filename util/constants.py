@@ -70,7 +70,7 @@ class MpcConstants:
 EC = EnvConstants
 assert EC.Tfin / EC.T % EC.steps == 0.0, "Incompatible simulation length and step size."
 
-w_norm = EC.w_max["O2"]
+w_norm = EC.ramp_max_queue["O2"]
 rho_norm = EC.rho_max
 v_norm = EC.v_free * 1.3
 
