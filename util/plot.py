@@ -144,15 +144,8 @@ def plot_traffic_quantities(
         if N == 1:
             _plot_population(ax, time, datum[0], label=label)
         else:
-            for datum_, marker, ls in zip(datum, MARKERS, LINESTYLES):
-                _plot_population(
-                    ax,
-                    time,
-                    datum_,
-                    marker=marker,
-                    ls=ls,
-                    label=label,
-                )
+            for datum_, ls in zip(datum, LINESTYLES):
+                _plot_population(ax, time, datum_, ls=ls, label=label)
         ax.set_ylabel(ylbl)
     _set_axis_opts(axs)
     for i in (4, 5):
@@ -210,8 +203,8 @@ def plot_agent_quantities(
         if N == 1:
             _plot_population(ax, updates, weight[0], label=label)
         else:
-            for w_, mkr, ls in zip(weight, MARKERS, LINESTYLES):
-                _plot_population(ax, updates, w_, marker=mkr, ls=ls, label=label)
+            for w, ls in zip(weight, LINESTYLES):
+                _plot_population(ax, updates, w, ls=ls, label=label)
 
     a_key, td_errors_key = None, None
     v_free_keys, rho_crit_keys, weight_keys = [], [], []
