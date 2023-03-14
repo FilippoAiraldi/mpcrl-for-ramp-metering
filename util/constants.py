@@ -37,7 +37,7 @@ class EnvConstants:
     ramp_min_flow_factor: ClassVar[int] = 10  # min queue on ram
     stage_cost_weights: ClassVar[dict[str, float]] = {  # weight of each contribution
         "tts": 1.0,
-        "var": 0.4,
+        "var": 4e-2,
         "cvi": 10.0,
         "erm": 10.0,
     }
