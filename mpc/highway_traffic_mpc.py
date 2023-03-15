@@ -9,7 +9,7 @@ from csnlp.wrappers import Mpc
 from metanet import HighwayTrafficEnv
 from mpc.costs import add_parametric_costs
 from util.constants import EnvConstants as EC
-from util.constants import MpcConstants as MC
+from util.constants import MpcRlConstants as MRC
 
 SymType = TypeVar("SymType", cs.SX, cs.MX)
 
@@ -38,14 +38,14 @@ class HighwayTrafficMpc(Mpc[SymType]):
             the MPC objective. If `False`, the objective is only made up of economic and
             traffic-related costs.
         """
-        starts = MC.multistart
+        starts = MRC.multistart
         nlp = (
             Nlp(env.sym_type)
             if starts == 1
             else StackedMultistartNlp(env.sym_type, starts=starts)
         )
-        Np = MC.prediction_horizon * EC.steps
-        Nc = MC.control_horizon * EC.steps
+        Np = MRC.prediction_horizon * EC.steps
+        Nc = MRC.control_horizon * EC.steps
         super().__init__(nlp, Np, Nc, EC.steps)
 
         # create dynamics parameters
@@ -118,7 +118,7 @@ class HighwayTrafficMpc(Mpc[SymType]):
         self.minimize(cs.simplify(J))
 
         # initialize solver
-        self.init_solver(MC.solver_opts)
+        self.init_solver(MRC.solver_opts)
 
     # TODO: override call to create multiple vals0 with some noise if multistart > 1
     # def __call__(self, *args, **kwargs):

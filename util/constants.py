@@ -4,9 +4,11 @@ and characterization of the network architecture, or that are not subject to fin
 for the learning process, i.e., mpc horizons and solver options.
 """
 
-from typing import Any, ClassVar
+from types import MappingProxyType
+from typing import Any, ClassVar, NamedTuple
 
 import numpy as np
+import numpy.typing as npt
 
 
 class EnvConstants:
@@ -44,8 +46,25 @@ class EnvConstants:
     erm_robustness: ClassVar[float] = 0.2  # in [0, 1]
 
 
-class MpcConstants:
-    """Constant parameters of the highway traffic MPC controller."""
+EC = EnvConstants
+assert EC.Tfin / EC.T % EC.steps == 0.0, "Incompatible simulation length and step size."
+
+
+class ParInfo(NamedTuple):
+    """Stores info of one of the MPC parameters, in particular
+    - value (initial, if learnable)
+    - flag indicating whether the parameter is learnable or not.
+    - bounds (only if learnable)
+    - learning rate multiplier (only if learnable)."""
+
+    value: npt.ArrayLike
+    learnable: float = False
+    bounds: tuple[npt.ArrayLike, npt.ArrayLike] = (np.nan, np.nan)
+    lr_multiplier: float = np.nan
+
+
+class MpcRlConstants:
+    """Constant settings and parameters of the highway traffic MPC-RL controller."""
 
     prediction_horizon: ClassVar[int] = 4  # prediction horizon \approx 3*L/(M*T*v_avg)
     control_horizon: ClassVar[int] = 3  # control horizon
@@ -66,38 +85,40 @@ class MpcConstants:
             "print_level": 0,
         },
     }
-
-
-EC = EnvConstants
-assert EC.Tfin / EC.T % EC.steps == 0.0, "Incompatible simulation length and step size."
-
-
-class RlConstants:
-    """Constant parameters of the highway traffic RL agents."""
-
-    # dict of parameters for the agents containing, for each key:
-    #   - initial value
-    #   - flag indicating whether it is learnable or not.
-    #   - bounds (only if learnable)
-    parameters: ClassVar[dict[str, tuple[float, bool, tuple[float, float]]]] = {
-        "rho_crit": (EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9)),
-        "rho_crit_stage": (EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9)),
-        "rho_crit_terminal": (EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9)),
-        "a": (EC.a * 1.3, True, (1.0, 3.0)),
-        "v_free": (EC.v_free * 1.3, True, (30, 250)),
-        "v_free_stage": (EC.v_free * 1.3, True, (30, 250)),
-        "v_free_terminal": (EC.v_free * 1.3, True, (30, 250)),
-        "weight_tts": (EC.stage_cost_weights["tts"], True, (1e-3, np.inf)),
-        "weight_var": (EC.stage_cost_weights["var"], True, (1e-8, np.inf)),
-        "weight_slack": (EC.stage_cost_weights["cvi"], True, (1e-3, np.inf)),
-        "weight_slack_terminal": (EC.stage_cost_weights["cvi"], True, (1e-3, np.inf)),
-        "weight_init_rho": (1e-2, True, (-np.inf, np.inf)),
-        "weight_init_v": (1e-3, True, (-np.inf, np.inf)),
-        "weight_init_w": (1e-1, True, (-np.inf, np.inf)),
-        "weight_stage_v": (1e-3, True, (1e-5, np.inf)),
-        "weight_stage_rho_scale": (1e-2, True, (1e-5, np.inf)),
-        "weight_stage_rho_threshold": (1e-1, True, (1e-5, np.inf)),
-        "weight_terminal_v": (1e-3, True, (1e-5, np.inf)),
-        "weight_terminal_rho_scale": (1e-2, True, (1e-5, np.inf)),
-        "weight_terminal_rho_threshold": (1e-1, True, (1e-5, np.inf)),
-    }
+    #
+    parameters: ClassVar[MappingProxyType[str, ParInfo]] = MappingProxyType(
+        {
+            "rho_crit": ParInfo(EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9), 1),
+            "rho_crit_stage": ParInfo(
+                EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9), 1
+            ),
+            "rho_crit_terminal": ParInfo(
+                EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9), 1
+            ),
+            "a": ParInfo(EC.a * 1.3, True, (1.0, 3.0), 1),
+            "v_free": ParInfo(EC.v_free * 1.3, True, (30, 250), 1),
+            "v_free_stage": ParInfo(EC.v_free * 1.3, True, (30, 250), 1),
+            "v_free_terminal": ParInfo(EC.v_free * 1.3, True, (30, 250), 1),
+            "weight_tts": ParInfo(
+                EC.stage_cost_weights["tts"], True, (1e-3, np.inf), 1
+            ),
+            "weight_var": ParInfo(
+                EC.stage_cost_weights["var"], True, (1e-8, np.inf), 1
+            ),
+            "weight_slack": ParInfo(
+                EC.stage_cost_weights["cvi"], True, (1e-3, np.inf), 1
+            ),
+            "weight_slack_terminal": ParInfo(
+                EC.stage_cost_weights["cvi"], True, (1e-3, np.inf), 1
+            ),
+            "weight_init_rho": ParInfo(1e-2, True, (-np.inf, np.inf), 1),
+            "weight_init_v": ParInfo(1e-3, True, (-np.inf, np.inf), 1),
+            "weight_init_w": ParInfo(1e-1, True, (-np.inf, np.inf), 1),
+            "weight_stage_v": ParInfo(1e-3, True, (1e-5, np.inf), 1),
+            "weight_stage_rho_scale": ParInfo(1e-2, True, (1e-5, np.inf), 1),
+            "weight_stage_rho_threshold": ParInfo(1e-1, True, (1e-5, np.inf), 1),
+            "weight_terminal_v": ParInfo(1e-3, True, (1e-5, np.inf), 1),
+            "weight_terminal_rho_scale": ParInfo(1e-2, True, (1e-5, np.inf), 1),
+            "weight_terminal_rho_threshold": ParInfo(1e-1, True, (1e-5, np.inf), 1),
+        }
+    )

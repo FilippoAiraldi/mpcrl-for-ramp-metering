@@ -9,8 +9,7 @@ from mpcrl.wrappers.agents import Log, RecordUpdates, Wrapper
 from metanet import HighwayTrafficEnv
 from mpc import HighwayTrafficMpc
 from util import EnvConstants as EC
-from util import MpcConstants as MC
-from util import RlConstants as RC
+from util import MpcRlConstants as MRC
 
 SymType = TypeVar("SymType", cs.SX, cs.MX)
 AgentType = TypeVar("AgentType", bound="HighwayTrafficPkAgent")
@@ -20,7 +19,7 @@ def _update_fixed_parameters(
     parameters: dict[str, npt.ArrayLike], env: HighwayTrafficEnv
 ) -> None:
     """Updates the internal demand forecasts and the last action taken in the env."""
-    parameters["d"] = env.demand.forecast(MC.prediction_horizon).T
+    parameters["d"] = env.demand.forecast(MRC.prediction_horizon).T
     parameters["a-"] = env.last_action
 
 
@@ -51,7 +50,7 @@ def _wrap_agent(
 def get_fixed_parameters() -> dict[str, npt.ArrayLike]:
     """Gets the fixed (non-learnable) parameters."""
     return {
-        n: v for n, (v, is_learnable, _) in RC.parameters.items() if not is_learnable
+        name: par.value for name, par in MRC.parameters.items() if not par.learnable
     }
 
 
@@ -67,9 +66,9 @@ def get_learnable_parameters(
 
     return LearnableParametersDict(
         (
-            get_par(name, value, bnds)
-            for name, (value, is_learnable, bnds) in RC.parameters.items()
-            if is_learnable and name in pars
+            get_par(name, par.value, par.bounds)
+            for name, par in MRC.parameters.items()
+            if par.learnable and name in pars
         )
     )
 
