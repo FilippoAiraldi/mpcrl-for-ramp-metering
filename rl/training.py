@@ -157,7 +157,7 @@ def train_lstdq_agent(
         update_strategy=update_freq,
         discount_factor=discount_factor,
         learning_rate=learning_rate,
-        learnable_parameters=get_learnable_parameters(mpc),
+        learnable_parameters=get_learnable_parameters(mpc.parameters),
         fixed_parameters=get_fixed_parameters(),
         exploration=exploration,
         experience=experience,

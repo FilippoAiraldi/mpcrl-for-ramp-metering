@@ -7,7 +7,6 @@ from mpcrl import Agent, LearnableParameter, LearnableParametersDict, LstdQLearn
 from mpcrl.wrappers.agents import Log, RecordUpdates, Wrapper
 
 from metanet import HighwayTrafficEnv
-from mpc import HighwayTrafficMpc
 from util import EnvConstants as EC
 from util import MpcRlConstants as MRC
 
@@ -55,20 +54,19 @@ def get_fixed_parameters() -> dict[str, npt.ArrayLike]:
 
 
 def get_learnable_parameters(
-    mpc: HighwayTrafficMpc[SymType],
+    mpc_parameters: dict[str, SymType],
 ) -> LearnableParametersDict[SymType]:
     """Gets the learnable parameters."""
-    pars = mpc.parameters
 
     def get_par(name, value, bnds):
-        sym = pars[name]
+        sym = mpc_parameters[name]
         return LearnableParameter(name, sym.size1(), value, *bnds, sym)
 
     return LearnableParametersDict(
         (
             get_par(name, par.value, par.bounds)
             for name, par in MRC.parameters.items()
-            if par.learnable and name in pars
+            if par.learnable and name in mpc_parameters
         )
     )
 
