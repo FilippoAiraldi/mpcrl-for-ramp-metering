@@ -8,7 +8,7 @@ from mpcrl import schedulers as S
 from metanet import HighwayTrafficEnv
 from mpc import HighwayTrafficMpc
 from rl import HighwayTrafficLstdQLearningAgent, HighwayTrafficPkAgent
-from rl.agents import get_fixed_parameters, get_learnable_parameters
+from rl.agents import get_agent_components
 from util import EnvConstants as EC
 
 
@@ -57,11 +57,11 @@ def evaluate_pk_agent(
     mpc = HighwayTrafficMpc(env, discount_factor, parametric_cost_terms=False)
 
     # initialize the agent with full knowledge of the env
-    fixed_parameters = get_learnable_parameters(mpc).value_as_dict
-    fixed_parameters.update({"rho_crit": EC.rho_crit, "a": EC.a, "v_free": EC.v_free})
+    fixed_pars = get_agent_components(mpc.parameters, float("nan"))[1].value_as_dict
+    fixed_pars.update({"rho_crit": EC.rho_crit, "a": EC.a, "v_free": EC.v_free})
     agent = HighwayTrafficPkAgent.wrapped(
         mpc=mpc,
-        fixed_parameters=fixed_parameters,
+        fixed_parameters=fixed_pars,
         name=f"PkAgent{agent_n}",
         verbose=verbose,
     )
@@ -152,13 +152,14 @@ def train_lstdq_agent(
         include_last=0.5,
         seed=seed,
     )
+    fixed_pars, learnable_pars, lr = get_agent_components(mpc.parameters, learning_rate)
     agent = HighwayTrafficLstdQLearningAgent.wrapped(
         mpc=mpc,
         update_strategy=update_freq,
         discount_factor=discount_factor,
-        learning_rate=learning_rate,
-        learnable_parameters=get_learnable_parameters(mpc.parameters),
-        fixed_parameters=get_fixed_parameters(),
+        learning_rate=lr,
+        learnable_parameters=learnable_pars,
+        fixed_parameters=fixed_pars,
         exploration=exploration,
         experience=experience,
         max_percentage_update=max_percentage_update,

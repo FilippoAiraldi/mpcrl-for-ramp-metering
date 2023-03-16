@@ -2,6 +2,7 @@ from logging import DEBUG, INFO
 from typing import Literal, Type, TypeVar
 
 import casadi as cs
+import numpy as np
 import numpy.typing as npt
 from mpcrl import Agent, LearnableParameter, LearnableParametersDict, LstdQLearningAgent
 from mpcrl.wrappers.agents import Log, RecordUpdates, Wrapper
@@ -46,29 +47,29 @@ def _wrap_agent(
     return agent
 
 
-def get_fixed_parameters() -> dict[str, npt.ArrayLike]:
-    """Gets the fixed (non-learnable) parameters."""
-    return {
-        name: par.value for name, par in MRC.parameters.items() if not par.learnable
-    }
-
-
-def get_learnable_parameters(
-    mpc_parameters: dict[str, SymType],
-) -> LearnableParametersDict[SymType]:
-    """Gets the learnable parameters."""
-
-    def get_par(name, value, bnds):
-        sym = mpc_parameters[name]
-        return LearnableParameter(name, sym.size1(), value, *bnds, sym)
-
-    return LearnableParametersDict(
-        (
-            get_par(name, par.value, par.bounds)
-            for name, par in MRC.parameters.items()
-            if par.learnable and name in mpc_parameters
-        )
-    )
+def get_agent_components(
+    mpc_parameters: dict[str, SymType], lr0: float
+) -> tuple[
+    dict[str, npt.ArrayLike], LearnableParametersDict[SymType], npt.NDArray[np.floating]
+]:
+    """Given the agent's (symbolic) parameters, gets
+    - the fixed parameters
+    - the learnable parameters
+    - the learning rate vector"""
+    fixed_pars, learnable_pars, lrs = {}, [], []
+    for name, par in MRC.parameters.items():
+        if par.learnable:
+            if name not in mpc_parameters:
+                continue
+            symbol = mpc_parameters[name]
+            size = symbol.size1()
+            learnable_pars.append(
+                LearnableParameter(name, size, par.value, *par.bounds, symbol)
+            )
+            lrs.append(np.full(size, lr0 * par.lr_multiplier))
+        else:
+            fixed_pars[name] = par.value
+    return fixed_pars, LearnableParametersDict(learnable_pars), np.concatenate(lrs)
 
 
 class HighwayTrafficPkAgent(Agent[SymType]):
