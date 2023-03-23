@@ -73,6 +73,10 @@ class MpcRlConstants:
     solver_opts: ClassVar[dict[str, Any]] = {  # solver options
         "expand": True,
         "print_time": False,
+        "bound_consistency": True,
+        "clip_inactive_lam": False,
+        "calc_lam_x": True,
+        "calc_lam_p": False,
         # "jit": True,
         # "compiler": "shell",
         # "jit_options": {"flags": ["-O1"], "verbose": True},
