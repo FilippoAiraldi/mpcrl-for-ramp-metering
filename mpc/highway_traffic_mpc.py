@@ -84,9 +84,9 @@ class HighwayTrafficMpc(Mpc[SymType]):
 
         # create (soft) constraints on queue(s)
         for oi, origin in enumerate(env.network.origins_by_name):
-            w_max_ = EC.ramp_max_queue.get(origin, None)
-            if w_max_ is not None:
-                self.constraint(f"w_max_O{oi + 1}", w[oi, :], "<=", w_max_, soft=True)
+            w_max = EC.ramp_max_queue.get(origin, None)
+            if w_max is not None:
+                self.constraint(f"w_max_{origin}", w[oi, :], "<=", w_max, soft=True)
         slacks = cs.vertcat(*self.slacks.values())
 
         # set dynamics
