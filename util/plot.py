@@ -50,6 +50,17 @@ def _set_axis_opts(
             ax.legend(loc=legendloc)
 
 
+def adjust_limits(figs: Iterable[Figure]) -> None:
+    """Adjusts the axes limits in the figures (ensures all plotted data is shown)."""
+    for fig in figs:
+        axs: list[Axes] = fig.get_axes()
+        for ax in axs:
+            min_y, max_y = ax.dataLim.ymin, ax.dataLim.ymax
+            bottom_y, top_y = ax.get_ylim()
+            if min_y < bottom_y or max_y > top_y:
+                ax.set_ylim(bottom=min_y, top=max_y)
+
+
 def _plot_population(
     ax: Axes,
     x: npt.NDArray,

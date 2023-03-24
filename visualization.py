@@ -46,4 +46,5 @@ if __name__ == "__main__":
                 label=name,
                 reduce=args.reduce,
             )
+    plot.adjust_limits(figs.values())
     plt.show()
