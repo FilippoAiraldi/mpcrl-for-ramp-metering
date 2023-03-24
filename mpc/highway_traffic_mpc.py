@@ -63,8 +63,9 @@ class HighwayTrafficMpc(Mpc[SymType]):
 
         # create state variables
         s, _ = self.state("s", env.ns, lb=0)
-        n_segments, n_origins = env.n_segments, env.n_origins
-        rho, _, w = cs.vertsplit(s, np.cumsum((0, n_segments, n_segments, n_origins)))
+        rho, _, w = cs.vertsplit(
+            s, np.cumsum((0, env.n_segments, env.n_segments, env.n_origins))
+        )
 
         # create action (flow of O2) and upper-constrain it dynamically
         # NOTE: infeasible problems may occur if demands are too low, due to the fact

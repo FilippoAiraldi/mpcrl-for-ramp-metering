@@ -78,6 +78,8 @@ class MpcRlConstants:
         "clip_inactive_lam": False,
         "calc_lam_x": True,
         "calc_lam_p": False,
+        "warn_initial_bounds": False,
+        "show_eval_warnings": True,
         # "jit": True,
         # "compiler": "shell",
         # "jit_options": {"flags": ["-O1"], "verbose": True},
