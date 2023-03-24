@@ -154,8 +154,8 @@ class HighwayTrafficMpc(Mpc[SymType]):
         pars: Optional[dict[str, npt.ArrayLike]] = None,
         vals0: Optional[dict[str, npt.ArrayLike]] = None,
     ) -> Union[Solution[SymType], list[Solution[SymType]]]:
-        if not self.is_multi:
-            return self.solve(pars, vals0)
+        if not self.nlp.is_multi:
+            return self.nlp.solve(pars, vals0)
 
         vals0_: Iterable[dict[str, npt.ArrayLike]] = ()
         if self.structured_start_points is not None:
@@ -164,4 +164,4 @@ class HighwayTrafficMpc(Mpc[SymType]):
             vals0_ = chain(vals0_, iter(self.random_start_points))
         if vals0 is not None:
             vals0_ = chain(vals0_, (vals0,))
-        return self.solve_multi(pars, vals0_)
+        return self.nlp.solve_multi(pars, vals0_)
