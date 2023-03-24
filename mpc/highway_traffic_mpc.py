@@ -1,9 +1,11 @@
-from itertools import takewhile
-from typing import TypeVar
+from itertools import chain, takewhile
+from typing import Iterable, Optional, TypeVar, Union
 
 import casadi as cs
 import numpy as np
-from csnlp import Nlp, multistart
+import numpy.typing as npt
+from csnlp import Nlp, Solution
+from csnlp import multistart as ms
 from csnlp.wrappers import Mpc
 
 from metanet import HighwayTrafficEnv
@@ -18,11 +20,14 @@ class HighwayTrafficMpc(Mpc[SymType]):
     """MPC controller for highway traffic control. This MPC formulation lends itself as
     function approximation for RL algorithms."""
 
+    __slots__ = ("structured_start_points", "random_start_points")
+
     def __init__(
         self,
         env: HighwayTrafficEnv,
         discount: float,
         parametric_cost_terms: bool,
+        seed: Optional[int] = None,
     ) -> None:
         """Builds an instance of the MPC controller for traffic control.
 
@@ -37,12 +42,14 @@ class HighwayTrafficMpc(Mpc[SymType]):
             If `True`, parametric initial, stage, and terminal cost terms are added to
             the MPC objective. If `False`, the objective is only made up of economic and
             traffic-related costs.
+        seed : int, optional
+            Optional seed for the random number generator. By default, `None`.
         """
-        starts = MRC.multistart
+        starts = MRC.structured_multistart + MRC.random_multistart + 1
         nlp = (
             Nlp(env.sym_type)
             if starts == 1
-            else multistart.StackedMultistartNlp(env.sym_type, starts=starts)
+            else ms.ParallelMultistartNlp(env.sym_type, starts=starts, n_jobs=starts)
         )
         Np = MRC.prediction_horizon * EC.steps
         Nc = MRC.control_horizon * EC.steps
@@ -120,10 +127,41 @@ class HighwayTrafficMpc(Mpc[SymType]):
         # initialize solver
         self.init_solver(MRC.solver_opts)
 
-    # TODO: override call to create multiple vals0 with some noise if multistart > 1
-    # def __call__(self, *args, **kwargs):
-    #   if multistart == 1
-    #       call normal mpc
-    #   else
-    #       create multiple different vals0
-    #       call multistart mpc
+        # initialize multistart point generators (only if multistart is on)
+        self.structured_start_points = self.random_start_points = None
+        if nlp.is_multi > 0:
+            bounds_and_size = {"s": (0, 200, s.shape), "a": (0, C, a.shape)}
+            if MRC.structured_multistart > 0:
+                self.structured_start_points = ms.StructuredStartPoints(
+                    {
+                        n: ms.StructuredStartPoint(lb, ub)
+                        for n, (lb, ub, _) in bounds_and_size.items()
+                    },
+                    MRC.structured_multistart,
+                )
+            if MRC.random_multistart > 0:
+                self.random_start_points = ms.RandomStartPoints(
+                    {
+                        n: ms.RandomStartPoint("uniform", *args)
+                        for n, args in bounds_and_size.items()
+                    },
+                    MRC.random_multistart,
+                    seed,
+                )
+
+    def __call__(
+        self,
+        pars: Optional[dict[str, npt.ArrayLike]] = None,
+        vals0: Optional[dict[str, npt.ArrayLike]] = None,
+    ) -> Union[Solution[SymType], list[Solution[SymType]]]:
+        if not self.is_multi:
+            return self.solve(pars, vals0)
+
+        vals0_: Iterable[dict[str, npt.ArrayLike]] = ()
+        if self.structured_start_points is not None:
+            vals0_ = chain(vals0_, iter(self.structured_start_points))
+        if self.random_start_points is not None:
+            vals0_ = chain(vals0_, iter(self.random_start_points))
+        if vals0 is not None:
+            vals0_ = chain(vals0_, (vals0,))
+        return self.solve_multi(pars, vals0_)

@@ -137,7 +137,7 @@ def train_lstdq_agent(
     )
 
     # create controller
-    mpc = HighwayTrafficMpc(env, discount_factor, parametric_cost_terms=True)
+    mpc = HighwayTrafficMpc(env, discount_factor, parametric_cost_terms=True, seed=seed)
 
     # initialize the agent's components
     exploration = E.EpsilonGreedyExploration(
