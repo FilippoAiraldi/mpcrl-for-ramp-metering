@@ -102,7 +102,7 @@ class MpcRlConstants:
             "rho_crit_terminal": ParInfo(
                 EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9), 1
             ),
-            "a": ParInfo(EC.a * 1.3, True, (1.0, 3.0), 1),
+            "a": ParInfo(EC.a * 1.3, True, (1.1, 3.0), 1),  # NOTE: should always be >1
             "v_free": ParInfo(EC.v_free * 1.3, True, (30, 250), 1),
             "v_free_stage": ParInfo(EC.v_free * 1.3, True, (30, 250), 1),
             "v_free_terminal": ParInfo(EC.v_free * 1.3, True, (30, 250), 1),
