@@ -1,9 +1,3 @@
-"""
-This file contains all the quantities that are constant, i.e., used in the definition
-and characterization of the network architecture, or that are not subject to fine-tuning
-for the learning process, i.e., mpc horizons and solver options.
-"""
-
 from types import MappingProxyType
 from typing import Any, ClassVar, NamedTuple
 
