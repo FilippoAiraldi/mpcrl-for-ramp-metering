@@ -123,16 +123,11 @@ class HighwayTrafficEnv(
             eta=EC.eta,
             kappa=EC.kappa,
             delta=EC.delta,
+            positive_next_speed=True,
+            positive_next_queue=True,
         )
         self.dynamics: cs.Function = sym_metanet.engine.to_function(
-            net=self.network,
-            T=EC.T,
-            parameters=sympars,
-            more_out=True,
-            force_positive_speed=True,
-            # force_positive_density=True,
-            force_positive_queue=True,
-            compact=2,
+            net=self.network, T=EC.T, parameters=sympars, more_out=True, compact=2
         )
         self.dynamics_mapaccum = self.dynamics.mapaccum(EC.steps)
         self.realpars = {n: getattr(EC, n) for n in sympars}
