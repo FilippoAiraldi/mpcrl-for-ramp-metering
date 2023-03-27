@@ -63,8 +63,8 @@ class MpcRlConstants:
     prediction_horizon: ClassVar[int] = 4  # prediction horizon \approx 3*L/(M*T*v_avg)
     control_horizon: ClassVar[int] = 3  # control horizon
     #
-    structured_multistart: ClassVar[int] = 3  # number of NMPC structured multistarts
-    random_multistart: ClassVar[int] = 4  # number of NMPC random multistarts
+    structured_multistart: ClassVar[int] = 0  # number of NMPC structured multistarts
+    random_multistart: ClassVar[int] = 0  # number of NMPC random multistarts
     solver_opts: ClassVar[dict[str, Any]] = {  # solver options
         "expand": True,
         "print_time": False,
