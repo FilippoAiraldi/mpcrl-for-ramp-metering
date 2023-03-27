@@ -131,7 +131,10 @@ class HighwayTrafficMpc(Mpc[SymType]):
         # initialize multistart point generators (only if multistart is on)
         self.structured_start_points = self.random_start_points = None
         if nlp.is_multi > 0:
-            bounds_and_size = {"s": (0, 200, s.shape), "a": (0, C, a.shape)}
+            bounds_and_size = {
+                "s": (1e-3, 200, s.shape),
+                "a": (C / EC.ramp_min_flow_factor, C, a.shape),
+            }
             if MRC.structured_multistart > 0:
                 self.structured_start_points = ms.StructuredStartPoints(
                     {

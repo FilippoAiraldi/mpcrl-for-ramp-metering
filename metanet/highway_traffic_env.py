@@ -123,8 +123,9 @@ class HighwayTrafficEnv(
             eta=EC.eta,
             kappa=EC.kappa,
             delta=EC.delta,
-            positive_next_speed=True,
-            positive_next_queue=True,
+            positive_init_density=True,  # because of the NaNs in jac_g_x (power of < 0)
+            positive_next_speed=True,  # because they are prone to get negative
+            positive_next_queue=True,  # because of unlimited ramp flow
         )
         self.dynamics: cs.Function = sym_metanet.engine.to_function(
             net=self.network, T=EC.T, parameters=sympars, more_out=True, compact=2
