@@ -4,7 +4,7 @@ from itertools import repeat
 from util.constants import EnvConstants as EC
 from util.runs import get_runname
 
-K = int(EC.Tfin / EC.T / EC.steps)  # 120, i.e., steps in a single demand scenario
+K = int(EC.Tscenario / EC.T / EC.steps)  # 120, i.e., steps in a single demand scenario
 
 
 def parse_train_args() -> argparse.Namespace:

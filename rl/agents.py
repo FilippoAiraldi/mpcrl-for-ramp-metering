@@ -42,7 +42,7 @@ def _wrap_agent(
             frequencies["on_episode_end"] = 1
             level = DEBUG
         if verbose >= 3:
-            frequencies["on_env_step"] = int(EC.Tfin / EC.T / EC.steps)
+            frequencies["on_env_step"] = int(EC.Tscenario / EC.T / EC.steps)
         agent = Log(agent, level=level, log_frequencies=frequencies)
     return agent
 

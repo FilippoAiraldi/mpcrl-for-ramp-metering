@@ -9,7 +9,7 @@ class EnvConstants:
     """Constant parameters of the highway traffic network."""
 
     T: ClassVar[float] = 10 / 3600  # simulation step size (h)
-    Tfin: ClassVar[float] = 2.0  # duration of each demand scenario
+    Tscenario: ClassVar[float] = 2.0  # duration of each demand scenario
     steps: ClassVar[int] = 6  # timesteps to simulate at each env.step calls
     #
     segment_length: ClassVar[float] = 1  # length of links segments (km)
@@ -41,7 +41,7 @@ class EnvConstants:
 
 
 EC = EnvConstants
-assert EC.Tfin / EC.T % EC.steps == 0.0, "Incompatible simulation length and step size."
+assert EC.Tscenario / EC.T % EC.steps == 0.0, "Incompatible sim length and step size."
 
 
 class ParInfo(NamedTuple):
