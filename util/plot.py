@@ -173,7 +173,7 @@ def plot_costs(
 ) -> Figure:
     if fig is None:
         fig = plt.figure(constrained_layout=True)
-        G = gridspec.GridSpec(3, 2, figure=fig)
+        G = gridspec.GridSpec(2, 2, figure=fig)
         axs = [
             *(fig.add_subplot(G[i]) for i in zip(*np.unravel_index(range(4), (2, 2)))),
             fig.add_subplot(G[2, :]),
@@ -182,7 +182,7 @@ def plot_costs(
         axs = fig.axes
 
     # group as: costs ∈ [n_agents, n_episodes, timesteps, type_of_costs]
-    costnames = ("tts", "var", "cvi", "erm", "total")
+    costnames = ("tts", "var", "cvi", "total")
     costs = np.stack([envsdata[n] for n in costnames[:-1]], axis=-1)
 
     costs = costs.sum(2)  # sum costs per episodes
@@ -195,8 +195,8 @@ def plot_costs(
 
     # set axis options
     _set_axis_opts(axs, intx=True)
-    for i in range(2, 5):
-        axs[i].set_xlabel("episode")
+    for ax in axs[-2:]:
+        ax.set_xlabel("episode")
     return fig
 
 

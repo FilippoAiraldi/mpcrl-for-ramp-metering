@@ -106,12 +106,12 @@ class HighwayTrafficMpc(Mpc[SymType]):
         gammas = cs.DM(discount ** np.arange(Np + 1).reshape(1, -1))
         # total-time spent
         weight_tts = self.parameter("weight_tts")
-        J = weight_tts * cs.dot(gammas, env.stage_cost(s, 0, 0, 0)[0])
+        J = weight_tts * cs.dot(gammas, env.stage_cost(s, 0, 0)[0])
         # control action variability
         a_last = self.parameter("a-", (env.na, 1))
         a_lasts = cs.horzcat(a_last, a[:, :-1])
         weight_var = self.parameter("weight_var")
-        J += weight_var * cs.sum2(env.stage_cost(0, a, a_lasts, 0)[1])
+        J += weight_var * cs.sum2(env.stage_cost(0, a, a_lasts)[1])
         # slack penalty
         weight_slack = self.parameter("weight_slack", (slacks.shape[0], 1))
         weight_slack_T = self.parameter("weight_slack_terminal", (slacks.shape[0], 1))
