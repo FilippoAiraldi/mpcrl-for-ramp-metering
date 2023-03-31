@@ -38,8 +38,14 @@ class EnvConstants:
     }
 
 
+# perform some checks
 EC = EnvConstants
 assert EC.Tscenario / EC.T % EC.steps == 0.0, "Incompatible sim length and step size."
+
+# initialize approximated model parameters (with some mismatch w.r.t. perfect model)
+rho_crit_ = EC.rho_crit * 0.7
+a_ = EC.a * 1.3
+v_free_ = EC.v_free * 1.3
 
 
 class ParInfo(NamedTuple):
@@ -85,21 +91,28 @@ class MpcRlConstants:
         },
     }
     #
+    normalization: ClassVar[dict[str, float]] = {  # normalization factors for...
+        "rho": EC.rho_max,  # density
+        "v": v_free_,  # speed
+        "w": EC.ramp_max_queue["O2"],  # queue
+        "a": EC.origin_capacities[1],  # action
+    }
+    #
     parameters: ClassVar[MappingProxyType[str, ParInfo]] = MappingProxyType(
         {
-            "rho_crit": ParInfo(EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9), 1),
+            "rho_crit": ParInfo(rho_crit_, True, (10, EC.rho_max * 0.9), 1),
             "rho_crit_stage": ParInfo(
                 EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9), 1
             ),
             "rho_crit_terminal": ParInfo(
                 EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9), 1
             ),
-            "a": ParInfo(EC.a * 1.3, True, (1.1, 3.0), 1),  # NOTE: should always be >1
-            "v_free": ParInfo(EC.v_free * 1.3, True, (30, 250), 1),
+            "a": ParInfo(a_, True, (1.1, 3.0), 1),  # NOTE: should always be >1
+            "v_free": ParInfo(v_free_, True, (30, 250), 1),
             "v_free_stage": ParInfo(EC.v_free * 1.3, True, (30, 250), 1),
             "v_free_terminal": ParInfo(EC.v_free * 1.3, True, (30, 250), 1),
             "weight_tts": ParInfo(
-                EC.stage_cost_weights["tts"], True, (1e-3, np.inf), 1
+                EC.stage_cost_weights["tts"], False, (1e-3, np.inf), 1
             ),
             "weight_var": ParInfo(
                 EC.stage_cost_weights["var"], True, (1e-8, np.inf), 1
