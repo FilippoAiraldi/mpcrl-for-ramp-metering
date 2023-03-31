@@ -287,7 +287,7 @@ class HighwayTrafficEnv(
         tts_, var_, cvi_ = self.stage_cost(s, a, self.last_action)
         tts = np.sum(tts_).item()
         var = float(var_[0])
-        cvi = np.maximum(0, cvi_).sum().item()
+        cvi = np.sum(cvi_).item()
         cost = tts + var + cvi
 
         # step the dynamics

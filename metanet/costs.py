@@ -1,11 +1,10 @@
 from typing import TypeVar
 
 import casadi as cs
-import numpy as np
-from sym_metanet import MeteredOnRamp, Network, Origin
-from sym_metanet import engine as sm_engine
+from sym_metanet import Network, Origin
 
-from util import EnvConstants as EC
+from util.constants import EnvConstants as EC
+from util.constants import MpcRlConstants as MRC
 
 SymType = TypeVar("SymType", cs.SX, cs.MX)
 
@@ -40,36 +39,38 @@ def get_stage_cost(
     ValueError
         Raises if an origin name cannot be found in the given network.
     """
-    symvar = cs.MX  # faster function evaluations with MX
     links = network.nodes_by_link.keys()
     origins = network.origins
 
     # compute Total-Time-Spent for the current state
-    TTS = symvar.zeros(1, 1)
+    TTS = cs.SX.zeros(1, 1)
     rhos, vs = [], []
     for link in links:
-        rho = symvar.sym(f"rho_{link.name}", link.N, 1)
-        v = symvar.sym(f"v_{link.name}", link.N, 1)
+        rho = cs.SX.sym(f"rho_{link.name}", link.N, 1)
+        v = cs.SX.sym(f"v_{link.name}", link.N, 1)
         rhos.append(rho)
         vs.append(v)
         TTS += cs.sum1(rho) * link.lam * link.L
     ws = []
     for origin in origins:
-        w = symvar.sym(f"w_{origin.name}", 1, 1)
+        w = cs.SX.sym(f"w_{origin.name}", 1, 1)
         ws.append(w)
         TTS += cs.sum1(w)
-    TTS *= T
+    TTS *= EC.stage_cost_weights["tts"] * T
 
     # compute control input variability
-    a = symvar.sym("a", n_actions, 1)
-    a_prev = symvar.sym("a_prev", n_actions, 1)
-    VAR = cs.sumsqr(a - a_prev)
+    a = cs.SX.sym("a", n_actions, 1)
+    a_prev = cs.SX.sym("a_prev", n_actions, 1)
+    VAR = EC.stage_cost_weights["var"] * cs.sumsqr(
+        (a - a_prev) / MRC.normalization["a"]
+    )
 
     # compute constraint violations for origins
-    CVI = cs.vertcat(
-        *(w - w_max[origin] for origin, w in zip(origins, ws) if origin in w_max)
+    CVI = EC.stage_cost_weights["cvi"] * sum(
+        cs.fmax(0, w - w_max[origin])
+        for origin, w in zip(origins, ws)
+        if origin in w_max
     )
-    
 
     # pack into function L(s,a) (with a third argument for the previous action)
     assert TTS.shape == VAR.shape == (1, 1), "Non-scalar costs."
