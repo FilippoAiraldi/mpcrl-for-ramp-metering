@@ -106,7 +106,7 @@ class HighwayTrafficEnv(
         SupportsDeepcopyAndPickle.__init__(self)
         self.sym_type = sym_type
         self.n_scenarios = n_scenarios
-        self.time = np.arange(0.0, EC.Tfin, EC.T)
+        self.time = np.arange(0.0, EC.Tscenario, EC.T)
 
         # create dynamics
         self.network, sympars = get_network(
