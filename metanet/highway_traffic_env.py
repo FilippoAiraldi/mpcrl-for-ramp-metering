@@ -123,7 +123,7 @@ class HighwayTrafficEnv(
             eta=EC.eta,
             kappa=EC.kappa,
             delta=EC.delta,
-            positive_init_density=True,  # because of the NaNs in jac_g_x (power of < 0)
+            positive_next_density=True,
             positive_next_speed=True,  # because they are prone to get negative
             positive_next_queue=True,  # because of unlimited ramp flow
         )
