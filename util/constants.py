@@ -101,16 +101,9 @@ class MpcRlConstants:
     parameters: ClassVar[MappingProxyType[str, ParInfo]] = MappingProxyType(
         {
             "rho_crit": ParInfo(rho_crit_, True, (10, EC.rho_max * 0.9), 1),
-            "rho_crit_stage": ParInfo(
-                EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9), 1
-            ),
-            "rho_crit_terminal": ParInfo(
-                EC.rho_crit * 0.7, True, (10, EC.rho_max * 0.9), 1
-            ),
             "a": ParInfo(a_, True, (1.1, 3.0), 1),  # NOTE: should always be >1
             "v_free": ParInfo(v_free_, True, (30, 250), 1),
-            "v_free_stage": ParInfo(EC.v_free * 1.3, True, (30, 250), 1),
-            "v_free_terminal": ParInfo(EC.v_free * 1.3, True, (30, 250), 1),
+            "v_free_tracking": ParInfo(EC.v_free * 1.3, True, (30, 250), 1),
             "weight_tts": ParInfo(
                 EC.stage_cost_weights["tts"], False, (1e-3, np.inf), 1
             ),
@@ -120,17 +113,12 @@ class MpcRlConstants:
             "weight_slack": ParInfo(
                 EC.stage_cost_weights["cvi"], True, (1e-3, np.inf), 1
             ),
-            "weight_slack_terminal": ParInfo(
-                EC.stage_cost_weights["cvi"], True, (1e-3, np.inf), 1
-            ),
             "weight_init_rho": ParInfo(1e-2, True, (-np.inf, np.inf), 1),
             "weight_init_v": ParInfo(1e-3, True, (-np.inf, np.inf), 1),
             "weight_init_w": ParInfo(1e-1, True, (-np.inf, np.inf), 1),
+            "weight_stage_rho": ParInfo(1e-2, True, (1e-5, np.inf), 1),
             "weight_stage_v": ParInfo(1e-3, True, (1e-5, np.inf), 1),
-            "weight_stage_rho_scale": ParInfo(1e-2, True, (1e-5, np.inf), 1),
-            "weight_stage_rho_threshold": ParInfo(1e-1, True, (1e-5, np.inf), 1),
+            "weight_terminal_rho": ParInfo(1e-2, True, (1e-5, np.inf), 1),
             "weight_terminal_v": ParInfo(1e-3, True, (1e-5, np.inf), 1),
-            "weight_terminal_rho_scale": ParInfo(1e-2, True, (1e-5, np.inf), 1),
-            "weight_terminal_rho_threshold": ParInfo(1e-1, True, (1e-5, np.inf), 1),
         }
     )

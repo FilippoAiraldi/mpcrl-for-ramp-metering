@@ -5,6 +5,7 @@ import numpy as np
 from csnlp.util.math import quad_form
 
 from metanet import HighwayTrafficEnv
+from util.constants import MpcRlConstants as MRC
 
 if TYPE_CHECKING:
     from mpc.highway_traffic_mpc import HighwayTrafficMpc
@@ -40,49 +41,39 @@ def add_parametric_costs(
     n_segments, n_origins = env.n_segments, env.n_origins
     rho, v, _ = cs.vertsplit(s, np.cumsum((0, n_segments, n_segments, n_origins)))
 
-    # add initial cost (affine in s)
+    # get normalization factors
+    norm_rho, norm_v, norm_w = (
+        MRC.normalization["rho"],
+        MRC.normalization["v"],
+        MRC.normalization["w"],
+    )
+
+    # add initial cost (affine in s[0])
     w_init_rho = mpc.parameter("weight_init_rho", (n_segments, 1))
     w_init_v = mpc.parameter("weight_init_v", (n_segments, 1))
     w_init_w = mpc.parameter("weight_init_w", (n_origins, 1))
-    W = cs.vertcat(w_init_rho, w_init_v, w_init_w)
+    W = cs.vertcat(w_init_rho / norm_rho, w_init_v / norm_v, w_init_w / norm_w)
     J = cs.dot(W, s[:, 0])
 
-    # add stage and terminal costs for speed (quadratic)
-    v_free_stage = mpc.parameter("v_free_stage", (n_segments, 1))
-    v_free_terminal = mpc.parameter("v_free_terminal", (n_segments, 1))
+    # add stage cost (quadratic in rho and v[1:-1])
+    # NOTE: stage cost does not include first state s[0]
+    w_stage_rho = mpc.parameter("weight_stage_rho", (n_segments, 1))
     w_stage_v = mpc.parameter("weight_stage_v", (n_segments, 1))
+    rho_crit_tracking = mpc.parameters["rho_crit"]
+    v_free_tracking = mpc.parameter("v_free_tracking", (1, 1))
+    for k in range(1, Np):
+        J += gammas[k] * (
+            quad_form(w_stage_rho, (rho[:, k] - rho_crit_tracking) / norm_rho)
+            + quad_form(w_stage_v, (v[:, k] - v_free_tracking) / norm_v)
+        )
+
+    # add terminal cost (quadratic in rho and v[-1])
+    w_terminal_rho = mpc.parameter("weight_terminal_rho", (n_segments, 1))
     w_terminal_v = mpc.parameter("weight_terminal_v", (n_segments, 1))
-    W = cs.horzcat(
-        *(gammas[k] * w_stage_v for k in range(Np)), gammas[-1] * w_terminal_v
+    J += gammas[-1] * (
+        quad_form(w_terminal_rho, (rho[:, -1] - rho_crit_tracking) / norm_rho)
+        + quad_form(w_terminal_v, (v[:, -1] - v_free_tracking) / norm_v)
     )
-    V_FREE = cs.horzcat(cs.repmat(v_free_stage, 1, Np), v_free_terminal)
-    J += quad_form(cs.vec(W), cs.vec(v - V_FREE))
-
-    # add stage and terminal costs for speed (left-sided huber penalties as QPs)
-    Z = mpc.variable("z", rho.shape)[0]  # auxiliary variable
-    rho_crit_stage = mpc.parameter("rho_crit_stage", (n_segments, 1))
-    rho_crit_terminal = mpc.parameter("rho_crit_terminal", (n_segments, 1))
-    w_stage_rho_scale = mpc.parameter("weight_stage_rho_scale", (n_segments, 1))
-    w_terminal_rho_scale = mpc.parameter("weight_terminal_rho_scale", (n_segments, 1))
-    w_stage_rho_threshold = mpc.parameter("weight_stage_rho_threshold", (n_segments, 1))
-    w_terminal_rho_threshold = mpc.parameter(
-        "weight_terminal_rho_threshold", (n_segments, 1)
-    )
-    W_SCALE = cs.horzcat(
-        *(gammas[k] * w_stage_rho_scale for k in range(Np)),
-        gammas[-1] * w_terminal_rho_scale,
-    )
-    W_THRES = cs.horzcat(
-        cs.repmat(w_stage_rho_threshold, 1, Np), w_terminal_rho_threshold
-    )
-    RHO_CRIT = cs.horzcat(cs.repmat(rho_crit_stage, 1, Np), rho_crit_terminal)
-    J += quad_form(cs.vec(W_SCALE), cs.vec(Z)) - 2 * cs.dot(
-        W_SCALE * W_THRES, rho - RHO_CRIT + Z
-    )
-
-    # add constraints on auxiliary variables
-    mpc.constraint("Z_ineq_1", Z, "<=", W_THRES)
-    mpc.constraint("Z_ineq_2", Z, "<=", RHO_CRIT - rho)
 
     # check parametric cost is scalar and return it
     assert J.is_scalar(), "Invalid parametric cost."
