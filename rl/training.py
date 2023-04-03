@@ -148,7 +148,7 @@ def train_lstdq_agent(
     exploration = E.EpsilonGreedyExploration(
         epsilon=S.ExponentialScheduler(exploration_chance, exploration_decay),
         strength=S.ExponentialScheduler(exploration_strength, exploration_decay),
-        hook="on_update",
+        hook="on_episode_end",
         seed=seed,
     )
     experience = ExperienceReplay(

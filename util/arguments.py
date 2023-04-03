@@ -74,21 +74,21 @@ def parse_train_args() -> argparse.Namespace:
         "--exp-chance",
         "--exp_chance",
         type=float,
-        default=0.75,
+        default=0.1,
         help="Chance of exploration (epsilon-greedy strategy).",
     )
     group.add_argument(
         "--exp-strength",
         "--exp_strength",
         type=float,
-        default=1e-3,
+        default=1e2,
         help="Strength of exploration.",
     )
     group.add_argument(
         "--exp-decay",
         "--exp_decay",
         type=float,
-        default=0.85,
+        default=exp(-1 / 5),
         help="Multiplicative decay rate of exploration chance and strength.",
     )
 
