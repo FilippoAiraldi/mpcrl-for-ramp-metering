@@ -7,8 +7,8 @@ import numpy.typing as npt
 from csnlp import Nlp, Solution
 from csnlp import multistart as ms
 from csnlp.wrappers import Mpc
-
 from sym_metanet import Network
+
 from metanet import HighwayTrafficEnv
 from mpc.costs import add_parametric_costs
 from util.constants import EnvConstants as EC

@@ -3,7 +3,6 @@ from typing import TypeVar
 import casadi as cs
 from sym_metanet import Network, Origin
 
-from util.constants import EnvConstants as EC
 from util.constants import MpcRlConstants as MRC
 
 SymType = TypeVar("SymType", cs.SX, cs.MX)
