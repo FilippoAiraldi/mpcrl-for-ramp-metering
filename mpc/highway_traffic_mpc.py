@@ -8,6 +8,7 @@ from csnlp import Nlp, Solution
 from csnlp import multistart as ms
 from csnlp.wrappers import Mpc
 
+from sym_metanet import Network
 from metanet import HighwayTrafficEnv
 from mpc.costs import add_parametric_costs
 from util.constants import EnvConstants as EC
@@ -70,24 +71,16 @@ class HighwayTrafficMpc(Mpc[SymType]):
         # create action (flow of O2) and upper-constrain it dynamically
         # NOTE: infeasible problems may occur if demands are too low, due to the fact
         # that neither upper- nor lower-bounds are soft
-        assert env.na == 1, "only 1 action is assumed."
-        ramp = env.network.origins_by_name["O2"]
-        link_with_O2 = next(iter(env.network.out_links(env.network.origins[ramp])))[2]
-        idx_ramp = list(env.network.origins).index(ramp)  # index of O2
-        idx_seg = sum(
-            link[2].N
-            for link in takewhile(lambda l: l[2] is not link_with_O2, env.network.links)
-        )
-        C = EC.origin_capacities[idx_ramp]  # capacity of O2
+        assert env.na == 1, "only 1 action is supported."
+        i_ramp, i_seg = _find_index_of_ramp_and_segment(env.network, "O2")
+        C = EC.origin_capacities[i_ramp]  # capacity of O2
         a, a_exp = self.action("a", env.na, lb=C / EC.ramp_min_flow_factor, ub=C)
-        self.constraint(
-            "a_min_1", a_exp, "<=", d[idx_ramp, :] + w[idx_ramp, :-1] / EC.T
-        )
+        self.constraint("a_min_1", a_exp, "<=", d[i_ramp, :] + w[i_ramp, :-1] / EC.T)
         self.constraint(
             "a_min_2",
             (EC.rho_max - pars["rho_crit"]) * a_exp,
             "<=",
-            C * (EC.rho_max - rho[idx_seg, :-1]),
+            C * (EC.rho_max - rho[i_seg, :-1]),
         )
 
         # create (soft) constraints on queue(s)
@@ -169,3 +162,15 @@ class HighwayTrafficMpc(Mpc[SymType]):
         if vals0 is not None:
             vals0_ = chain(vals0_, (vals0,))
         return self.nlp.solve_multi(pars, vals0_)
+
+
+def _find_index_of_ramp_and_segment(network: Network, rampname: str) -> tuple[int, int]:
+    """Internal utility to find the index of a ramp and associated segment."""
+    ramp = network.origins_by_name[rampname]
+    link_with_ramp = next(iter(network.out_links(network.origins[ramp])))[2]
+    idx_ramp = list(network.origins).index(ramp)  # index of O2
+    idx_seg = sum(
+        link[2].N
+        for link in takewhile(lambda l: l[2] is not link_with_ramp, network.links)
+    )
+    return idx_ramp, idx_seg
