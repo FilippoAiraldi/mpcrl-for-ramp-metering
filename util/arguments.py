@@ -1,10 +1,9 @@
 import argparse
 from itertools import repeat
+from math import exp
 
-from util.constants import EnvConstants as EC
+from util.constants import STEPS_PER_SCENARIO
 from util.runs import get_runname
-
-K = int(EC.Tscenario / EC.T / EC.steps)  # 120, i.e., steps in a single demand scenario
 
 
 def parse_train_args() -> argparse.Namespace:
@@ -37,24 +36,24 @@ def parse_train_args() -> argparse.Namespace:
         "--update-freq",
         "--update_freq",
         type=int,
-        default=K // 1,
+        default=STEPS_PER_SCENARIO // 2,
         help="Update frequency of the learning agent (in terms of env-steps)",
     )
     group.add_argument(
-        "--lr", type=float, default=1e-2, help="Learning rate of the agent."
+        "--lr", type=float, default=1e-1, help="Learning rate of the agent."
     )
     group.add_argument(
         "--max-update",
         "--max_update",
         type=float,
-        default=float("inf"),
+        default=1 / 5,
         help="Maximum value parameters can be updated as percentage of current value.",
     )
     group.add_argument(
         "--replaymem-size",
         "--replaymem_size",
         type=int,
-        default=K * 10,
+        default=STEPS_PER_SCENARIO * 10,
         help="Maximum size of the experience replay buffer.",
     )
     group.add_argument(
@@ -63,6 +62,13 @@ def parse_train_args() -> argparse.Namespace:
         type=float,
         default=0.5,
         help="Size of the replay memory samples as percentage of maximum replay size.",
+    )
+    group.add_argument(
+        "--replaymem-sample-latest",
+        "--replaymem_sample_latest",
+        type=float,
+        default=0.2,
+        help="Size of the replay memory sample to dedicate to latest transitions.",
     )
     group.add_argument(
         "--exp-chance",

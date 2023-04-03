@@ -1,7 +1,7 @@
 from typing import Literal
 
 from gymnasium import Env
-from mpcrl import ExperienceReplay, RlLearningAgent
+from mpcrl import ExperienceReplay, RlLearningAgent, UpdateStrategy
 from mpcrl import exploration as E
 from mpcrl import schedulers as S
 
@@ -9,6 +9,7 @@ from metanet import HighwayTrafficEnv
 from mpc import HighwayTrafficMpc
 from rl import HighwayTrafficLstdQLearningAgent, HighwayTrafficPkAgent
 from rl.agents import get_agent_components
+from util import STEPS_PER_SCENARIO as K
 from util import EnvConstants as EC
 
 
@@ -83,6 +84,7 @@ def train_lstdq_agent(
     exploration_decay: float,
     experience_replay_size: int,
     experience_replay_sample: float,
+    experience_replay_sample_latest: float,
     max_percentage_update: float,
     sym_type: Literal["SX", "MX"],
     seed: int,
@@ -115,6 +117,8 @@ def train_lstdq_agent(
         Maximum size of the experience replay memory.
     experience_replay_sample : float
         Size of experience samples (in terms of percentage of max size) per update.
+    experience_replay_sample_latest: float
+        Size of experience sample to dedicate to latest transitions.
     max_percentage_update : float
         Maximum percentage parameters update at each RL update.
     sym_type : {"SX", "MX"}
@@ -140,6 +144,7 @@ def train_lstdq_agent(
     mpc = HighwayTrafficMpc(env, discount_factor, parametric_cost_terms=True, seed=seed)
 
     # initialize the agent's components
+    update_strategy = UpdateStrategy(update_freq, skip_first=K // update_freq)
     exploration = E.EpsilonGreedyExploration(
         epsilon=S.ExponentialScheduler(exploration_chance, exploration_decay),
         strength=S.ExponentialScheduler(exploration_strength, exploration_decay),
@@ -149,13 +154,13 @@ def train_lstdq_agent(
     experience = ExperienceReplay(
         maxlen=experience_replay_size,
         sample_size=experience_replay_sample,
-        include_last=0.5,
+        include_latest=experience_replay_sample_latest,
         seed=seed,
     )
     fixed_pars, learnable_pars, lr = get_agent_components(mpc.parameters, learning_rate)
     agent = HighwayTrafficLstdQLearningAgent.wrapped(
         mpc=mpc,
-        update_strategy=update_freq,
+        update_strategy=update_strategy,
         discount_factor=discount_factor,
         learning_rate=lr,
         learnable_parameters=learnable_pars,

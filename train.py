@@ -33,6 +33,7 @@ if __name__ == "__main__":
             exploration_decay=args.exp_decay,
             experience_replay_size=args.replaymem_size,
             experience_replay_sample=args.replaymem_sample,
+            experience_replay_sample_latest=args.replaymem_sample_latest,
             max_percentage_update=args.max_update,
             sym_type=args.sym_type,
             seed=args.seed + (args.episodes + 1) * n,

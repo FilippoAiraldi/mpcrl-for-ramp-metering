@@ -41,6 +41,8 @@ class EnvConstants:
 # perform some checks
 EC = EnvConstants
 assert EC.Tscenario / EC.T % EC.steps == 0.0, "Incompatible sim length and step size."
+STEPS_PER_SCENARIO = int(EC.Tscenario / EC.T / EC.steps)  # 120 by default
+
 
 # initialize approximated model parameters (with some mismatch w.r.t. perfect model)
 rho_crit_ = EC.rho_crit * 0.7
