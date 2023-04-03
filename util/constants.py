@@ -101,24 +101,24 @@ class MpcRlConstants:
     parameters: ClassVar[MappingProxyType[str, ParInfo]] = MappingProxyType(
         {
             "rho_crit": ParInfo(rho_crit_, True, (10, EC.rho_max * 0.9), 1),
-            "a": ParInfo(a_, True, (1.1, 3.0), 1),  # NOTE: should always be >1
-            "v_free": ParInfo(v_free_, True, (30, 250), 1),
-            "v_free_tracking": ParInfo(EC.v_free * 1.3, True, (30, 250), 1),
+            "a": ParInfo(a_, False, (1.1, 3.0), 1),  # NOTE: should always be >1
+            "v_free": ParInfo(v_free_, True, (30, 300), 1),
+            "v_free_tracking": ParInfo(v_free_, True, (30, 300), 1),
             "weight_tts": ParInfo(
                 EC.stage_cost_weights["tts"], False, (1e-3, np.inf), 1
             ),
             "weight_var": ParInfo(
-                EC.stage_cost_weights["var"], True, (1e-8, np.inf), 1
+                EC.stage_cost_weights["var"], True, (1e-3, np.inf), 1
             ),
             "weight_slack": ParInfo(
                 EC.stage_cost_weights["cvi"], True, (1e-3, np.inf), 1
             ),
-            "weight_init_rho": ParInfo(1e-2, True, (-np.inf, np.inf), 1),
-            "weight_init_v": ParInfo(1e-3, True, (-np.inf, np.inf), 1),
-            "weight_init_w": ParInfo(1e-1, True, (-np.inf, np.inf), 1),
-            "weight_stage_rho": ParInfo(1e-2, True, (1e-5, np.inf), 1),
-            "weight_stage_v": ParInfo(1e-3, True, (1e-5, np.inf), 1),
-            "weight_terminal_rho": ParInfo(1e-2, True, (1e-5, np.inf), 1),
-            "weight_terminal_v": ParInfo(1e-3, True, (1e-5, np.inf), 1),
+            "weight_init_rho": ParInfo(1, True, (-np.inf, np.inf), 1),
+            "weight_init_v": ParInfo(1, True, (-np.inf, np.inf), 1),
+            "weight_init_w": ParInfo(1, True, (-np.inf, np.inf), 1),
+            "weight_stage_rho": ParInfo(1, True, (1e-6, np.inf), 1),
+            "weight_stage_v": ParInfo(1, True, (1e-6, np.inf), 1),
+            "weight_terminal_rho": ParInfo(1, True, (1e-6, np.inf), 1),
+            "weight_terminal_v": ParInfo(1, True, (1e-6, np.inf), 1),
         }
     )
