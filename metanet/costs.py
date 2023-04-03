@@ -56,21 +56,15 @@ def get_stage_cost(
         w = cs.SX.sym(f"w_{origin.name}", 1, 1)
         ws.append(w)
         TTS += cs.sum1(w)
-    TTS *= EC.stage_cost_weights["tts"] * T
+    TTS *= T
 
     # compute control input variability
     a = cs.SX.sym("a", n_actions, 1)
     a_prev = cs.SX.sym("a_prev", n_actions, 1)
-    VAR = EC.stage_cost_weights["var"] * cs.sumsqr(
-        (a - a_prev) / MRC.normalization["a"]
-    )
+    VAR = cs.sumsqr((a - a_prev) / MRC.normalization["a"])
 
     # compute constraint violations for origins
-    CVI = EC.stage_cost_weights["cvi"] * sum(
-        cs.fmax(0, w - w_max[origin])
-        for origin, w in zip(origins, ws)
-        if origin in w_max
-    )
+    CVI = sum(cs.fmax(0, w - w_max[o]) for o, w in zip(origins, ws) if o in w_max)
 
     # pack into function L(s,a) (with a third argument for the previous action)
     assert TTS.shape == VAR.shape == (1, 1), "Non-scalar costs."
