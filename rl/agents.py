@@ -62,11 +62,11 @@ def get_agent_components(
             if name not in mpc_parameters:
                 continue
             symbol = mpc_parameters[name]
-            size = symbol.size1()
-            learnable_pars.append(
-                LearnableParameter(name, size, par.value, *par.bounds, symbol)
+            learnable_par = LearnableParameter(
+                name, symbol.shape, par.value, *par.bounds, symbol
             )
-            lrs.append(np.full(size, lr0 * par.lr_multiplier))
+            learnable_pars.append(learnable_par)
+            lrs.append(np.full(learnable_par.size, lr0 * par.lr_multiplier))
         else:
             fixed_pars[name] = par.value
     return fixed_pars, LearnableParametersDict(learnable_pars), np.concatenate(lrs)
