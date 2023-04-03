@@ -102,7 +102,7 @@ def parse_train_args() -> argparse.Namespace:
     group.add_argument(
         "--scenarios",
         type=int,
-        default=6,
+        default=2,
         help="Number of demands' scenarios per training episode.",
     )
 
