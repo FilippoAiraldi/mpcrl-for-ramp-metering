@@ -96,20 +96,22 @@ class HighwayTrafficMpc(Mpc[SymType]):
         self.set_dynamics(F, n_in=3, n_out=1)
 
         # build objective terms related to traffic, control action, and slacks
+        J = self.nlp.sym_type.zeros(1, 1)
         gammas = cs.DM(discount ** np.arange(Np + 1).reshape(1, -1))
+
         # total-time spent
         weight_tts = self.parameter("weight_tts")
-        J = weight_tts * cs.dot(gammas, env.stage_cost(s, 0, 0)[0])
+        J += weight_tts * cs.dot(gammas, env.stage_cost(s, 0, 0)[0])
+
         # control action variability
         a_last = self.parameter("a-", (env.na, 1))
         a_lasts = cs.horzcat(a_last, a[:, :-1])
         weight_var = self.parameter("weight_var")
         J += weight_var * cs.sum2(env.stage_cost(0, a, a_lasts)[1])
+
         # slack penalty
-        weight_slack = self.parameter("weight_slack", (slacks.shape[0], 1))
-        weight_slack_T = self.parameter("weight_slack_terminal", (slacks.shape[0], 1))
-        J += cs.dot(gammas[:-1], weight_slack.T @ slacks[:, :-1])
-        J += gammas[-1] * cs.dot(weight_slack_T, slacks[:, -1])
+        weight_slack = self.parameter("weight_slack", slacks.shape)
+        J += cs.dot(gammas * weight_slack, slacks)
 
         # add the additional parametric costs
         if parametric_cost_terms:
