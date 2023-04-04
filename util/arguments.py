@@ -81,7 +81,7 @@ def parse_train_args() -> argparse.Namespace:
         "--exp-strength",
         "--exp_strength",
         type=float,
-        default=1e2,
+        default=5e-2,  # 100 / 2000
         help="Strength of exploration.",
     )
     group.add_argument(
