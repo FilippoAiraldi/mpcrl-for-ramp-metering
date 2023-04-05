@@ -137,7 +137,7 @@ def train_lstdq_agent(
     env = HighwayTrafficEnv.wrapped(
         sym_type=sym_type,
         n_scenarios=scenarios,
-        normalize_rewards=True,
+        normalize_rewards=False,
     )
 
     # create controller
