@@ -11,6 +11,7 @@ from matplotlib.figure import Figure
 from matplotlib.ticker import MaxNLocator
 
 from util.constants import EnvConstants as EC
+from util.constants import STEPS_PER_SCENARIO as K
 
 MARKERS = ("o", "s", "v")
 LINESTYLES = ("-", "--", "-.")
@@ -174,10 +175,7 @@ def plot_costs(
     if fig is None:
         fig = plt.figure(constrained_layout=True)
         G = gridspec.GridSpec(2, 2, figure=fig)
-        axs = [
-            *(fig.add_subplot(G[i]) for i in zip(*np.unravel_index(range(4), (2, 2)))),
-            fig.add_subplot(G[2, :]),
-        ]
+        axs = [fig.add_subplot(G[i]) for i in zip(*np.unravel_index(range(4), (2, 2)))]
     else:
         axs = fig.axes
 
@@ -185,7 +183,15 @@ def plot_costs(
     costnames = ("tts", "var", "cvi", "total")
     costs = np.stack([envsdata[n] for n in costnames[:-1]], axis=-1)
 
-    costs = costs.sum(2)  # sum costs per episodes
+    # sum over time - either by episode or by scenario
+    # costs = costs.sum(2)  # sum costs per episodes
+    tax = 2  # time axis
+    n_scenarios = np.ceil(costs.shape[tax] / K).astype(int)
+    costs = np.concatenate(
+        [sc.sum(tax, keepdims=True) for sc in np.array_split(costs, n_scenarios, tax)],
+        axis=tax,
+    ).reshape(-1, n_scenarios, 3)
+
     J = costs.sum(-1, keepdims=True)  # total cost per episode per agent
     all_costs = np.concatenate((costs, J), axis=-1)
     ep = np.arange(1, all_costs.shape[1] + 1)
@@ -210,8 +216,9 @@ def plot_agent_quantities(
     # sourcery skip: low-code-quality
 
     def plot_parameters(key: str, ax: Axes, label: Optional[str] = None) -> None:
-        weight = np.rollaxis(agentsdata[key], 2)
-        updates = np.arange(weight.shape[2])
+        n_agents, n_updates = agentsdata[key].shape[:2]
+        updates = np.arange(n_updates)
+        weight = np.rollaxis(agentsdata[key].reshape(n_agents, n_updates, -1), 2)
         N = weight.shape[0]
         if N == 1:
             _plot_population(ax, updates, weight[0], label=label)
