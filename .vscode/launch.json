@@ -1,0 +1,60 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Autoconfig",
+            "type": "auto-debug",
+            "request": "launch",
+            "map": {
+                "train.py": "Launch Training",
+                "visualization.py": "Launch Visualization",
+                "*.py": "Launch Current File",
+            }
+        },
+        {
+            "name": "Launch Training",
+            "type": "python",
+            "request": "launch",
+            "program": "train.py",
+            "console": "integratedTerminal",
+            "justMyCode": false,
+            "args": [
+                "--agent-type=lstdq",
+                "--agents=1",
+                "--episodes=1",
+                "--scenarios=2",
+                "--lr=0.1",
+                "--sym_type=SX",
+                "--seed=1909",
+                "--verbose=2",
+            ],
+        },
+        {
+            "name": "Launch Visualization",
+            "type": "python",
+            "request": "launch",
+            "program": "visualization.py",
+            "console": "integratedTerminal",
+            "justMyCode": true,
+            "args": [
+                "sims/win32.xz",
+                // "--traffic",
+                // "--cost",
+                // "--agent",
+                "--all",
+                "--reduce=1",
+            ]
+        },
+        {
+            "name": "Launch Current File",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "justMyCode": false
+        },
+    ]
+}

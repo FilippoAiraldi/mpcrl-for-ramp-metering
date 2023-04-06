@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # Others
-.vscode
+vscode
 /_*
 venv
 jit_tmp*.c
@@ -139,4 +139,3 @@ libpardiso.lib
 pardiso.lic
 tmp_casadi_compiler*.o
 tmp_casadi_compiler*.so
-
