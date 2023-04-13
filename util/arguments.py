@@ -112,7 +112,7 @@ def parse_train_args() -> argparse.Namespace:
         "--sym_type",
         type=str,
         choices=("SX", "MX"),
-        default="MX",
+        default="SX",
         help="Type of CasADi symbolic variable.",
     )
     group.add_argument(
