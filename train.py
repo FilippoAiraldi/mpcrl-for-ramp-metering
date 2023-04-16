@@ -46,7 +46,7 @@ if __name__ == "__main__":
         data = Parallel(n_jobs=args.n_jobs)(delayed(fun)(i) for i in range(args.agents))
 
     # save results
-    print(f"[Simulated {args.agents} agents]")
+    print(f"[Simulated {args.runname.upper()} with {args.agents} agents]")
     save_data(
         filename=args.runname,
         agent_type=args.agent_type,
