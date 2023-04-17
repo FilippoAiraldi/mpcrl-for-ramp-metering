@@ -48,14 +48,14 @@ def _set_axis_opts(
 def _adjust_limits(axs: Iterable[Axes]) -> None:
     """Adjusts the axes limits (ensures all plotted data is shown)."""
     for ax in axs:
-        min_y, max_y = ax.dataLim.ymin, ax.dataLim.ymax
-        bottom_y, top_y = ax.get_ylim()
-        if min_y < bottom_y or max_y > top_y:
-            ax.set_ylim(bottom=min_y, top=max_y)
+        ax.autoscale(enable=True, axis='x', tight=True)
+        ax.autoscale(enable=True, axis='y', tight=False)
 
 
 def _add_title(fig: Figure, labels: Sequence[str]) -> None:
     """Adds a title to the figure."""
+    if len(labels) == 1:
+        return
     fig.suptitle(" vs ".join(f"{lb} ({ls})" for lb, ls in zip(labels, LINESTYLES)))
 
 
@@ -181,7 +181,7 @@ def plot_costs(
         costs = np.stack([envsdatum[n] for n in costnames[:-1]], axis=-1)
 
         # sum over time - either by episode or by scenario
-        # thiscosts = thiscosts.sum(2)  # sum costs per episodes
+        # costs = costs.sum(2)  # sum costs per episodes
         tax = 2  # time axis
         n_scenarios = np.ceil(costs.shape[tax] / K).astype(int)
         splitted_costs = np.array_split(costs, n_scenarios, tax)
@@ -198,7 +198,7 @@ def plot_costs(
 
     # make plotting
     for costs, ls in zip(envscosts, LINESTYLES):
-        ep = np.arange(1, costs.shape[1] + 1)
+        ep = np.arange(costs.shape[1]) / n_scenarios
         for costname, cost, ax in zip(costnames, np.rollaxis(costs, 2), axs):
             _plot_population(ax, ep, cost, ls=ls)
             ax.set_ylabel(costname)
@@ -245,7 +245,7 @@ def plot_agent_quantities(
             # plot
             if N == 1:
                 if len(keys) == 1:
-                    marker = None
+                    marker = None  # type: ignore[assignment]
                 else:
                     marker = next(markers)
                     labels_and_markers.append((key, marker))
