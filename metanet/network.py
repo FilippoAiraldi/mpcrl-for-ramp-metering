@@ -100,10 +100,10 @@ def steady_state(
     iters
         The actual number of iterations performed by the algorithm.
     """
-    err_previous = float("inf")
+    err_previous = float("+inf")
     for k in range(maxiter):
         x0_ss = f(x0)
-        err = float(np.linalg.norm(x0_ss - x0))  # type: ignore[operator]
+        err = float(np.linalg.norm(x0_ss - x0))
         if err < tol:
             return x0_ss, err, k
         elif err > err_previous:

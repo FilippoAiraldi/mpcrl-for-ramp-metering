@@ -64,26 +64,6 @@ class HighwayTrafficEnv(
     been simulated.
     """
 
-    __slots__ = (
-        "sym_type",
-        "reward_range",
-        "observation_space",
-        "action_space",
-        "n_scenarios",
-        "network",
-        "realpars",
-        "dynamics",
-        "dynamics_mapaccum",
-        "time",
-        "demand",
-        "demands",
-        "state",
-        "stage_cost",
-        "_last_initial_state",
-        "last_action",
-        "_np_random",
-    )
-
     def __init__(
         self,
         sym_type: Literal["SX", "MX"],

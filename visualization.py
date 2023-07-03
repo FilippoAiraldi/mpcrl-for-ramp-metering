@@ -1,10 +1,12 @@
 from pathlib import Path
 from typing import Iterable, Iterator
+from itertools import repeat
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-from util import load_data, parse_visualization_args, plot
+from util import load_data, plot
+import argparse
 
 
 def load_all_data(
@@ -21,11 +23,7 @@ def load_all_data(
         yield name, envsdata, agentsdata
 
 
-if __name__ == "__main__":
-    # parse args and set default values for plotting
-    args = parse_visualization_args()
-    plot.set_mpl_defaults()
-
+def launch_visualization(args: argparse.Namespace):
     # load all data and print simulation details
     names, envsdata, agentsdata = zip(*load_all_data(args.filenames))
 
@@ -37,3 +35,65 @@ if __name__ == "__main__":
     if args.agent:
         plot.plot_agent_quantities(agentsdata, names, reduce=args.reduce)
     plt.show()
+
+
+if __name__ == "__main__":
+    plot.set_mpl_defaults()
+
+    # construct parser
+    parser = argparse.ArgumentParser(
+        description="Launches visualization for different MPC-based agents.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+
+    group = parser.add_argument_group("Data")
+    group.add_argument(
+        "filenames", type=str, nargs="+", help="Simulation data to be visualized."
+    )
+    group = parser.add_argument_group("Plots")
+    group.add_argument(
+        "-t",
+        "--traffic",
+        action="store_true",
+        help="Plots the traffic-related quantities.",
+    )
+    group.add_argument(
+        "-c",
+        "--cost",
+        action="store_true",
+        help="Plots the stage cost the agent witnessed during the simulation.",
+    )
+    group.add_argument(
+        "-a",
+        "--agent",
+        action="store_true",
+        help="Plots agent-specific quantities.",
+    )
+    group.add_argument(
+        "-A",
+        "--all",
+        action="store_true",
+        help="Plots all the available plots.",
+    )
+    group = parser.add_argument_group("Others")
+    group.add_argument(
+        "-r",
+        "--reduce",
+        type=int,
+        default=1,
+        help="Step-size to reduce the amount of points to plot.",
+    )
+
+    args = parser.parse_args()
+
+    # remove duplicate but keep order
+    args.filenames = list(dict(zip(args.filenames, repeat(None))))
+
+    if args.all:
+        args.traffic = args.cost = args.agent = True
+    del args.all
+    if args.reduce <= 0:
+        raise argparse.ArgumentTypeError("--reduce must be a positive integer.")
+
+    # load all data and show simulation results
+    launch_visualization(args)

@@ -11,13 +11,11 @@ class Demands:
     """Class containing the demands of the highway stretch at the mainstream origin O1,
     on-ramp O2, and the congestion at destination D1."""
 
-    __slots__ = ("demands", "t")
-
     def __init__(self, demands: npt.NDArray[np.floating]):
         # demands : 3d array where
         #   - 1st dim: amount of iterations to simulate all the demands
         #   - 2nd dim: timesteps per iteration (the same step size used by MPC)
-        #   - 3rd dim: number of demand quantities (i.e., 3)
+        #   - 3rd dim: number of demand quantities, i.e., 3
         assert demands.ndim == 3 and demands.shape[2] == 3, "Invalid demands array."
         self.demands = demands
         self.reset()

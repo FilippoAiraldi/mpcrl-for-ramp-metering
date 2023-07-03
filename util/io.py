@@ -27,27 +27,27 @@ def postprocess_env_data(
     # convert data into lists
     dataiter = iter(data)
     datum = next(dataiter)
-    processed_ = {k: [v] for k, v in datum.finalized_step_infos(np.nan).items()}
-    step_info_keys = list(processed_.keys())  # keys without "demands"
-    processed_["demands"] = [datum.demands]
+    processed = {k: [v] for k, v in datum.finalized_step_infos(np.nan).items()}
+    step_info_keys = list(processed.keys())  # keys without "demands"
+    processed["demands"] = [datum.demands]
     for datum in dataiter:
         # append step info
         info = datum.finalized_step_infos(np.nan)
         for k in step_info_keys:
-            processed_[k].append(info[k])
+            processed[k].append(info[k])
 
         # append demands
-        processed_["demands"].append(datum.demands)
+        processed["demands"].append(datum.demands)
 
     # convert lists to arrays, adjust some shapes, and check for nans
-    processed = {}
-    for k, v in processed_.items():
+    out = {}
+    for k, v in processed.items():
         a = np.asarray(v)
         nans = np.isnan(a).sum()
         if nans > 0:
             warn(f"{nans} NaN detected in env save (entry: '{k}').", RuntimeWarning)
-        processed[k] = a
-    return processed
+        out[k] = a
+    return out
 
 
 def postprocess_agent_data(
@@ -128,7 +128,6 @@ def save_data(
         Collection of simulation results, either a list of envs or (envs, agents).
     compression : {"lzma", "bz2", "gzip", "brotli", "blosc2", "matlab"]}
         Type of compression to apply to the file.
-
     info
         Any other piece of information to add to the file.
     """

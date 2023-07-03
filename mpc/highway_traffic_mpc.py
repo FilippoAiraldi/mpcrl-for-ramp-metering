@@ -21,8 +21,6 @@ class HighwayTrafficMpc(Mpc[SymType]):
     """MPC controller for highway traffic control. This MPC formulation lends itself as
     function approximation for RL algorithms."""
 
-    __slots__ = ("structured_start_points", "random_start_points")
-
     def __init__(
         self,
         env: HighwayTrafficEnv,
@@ -125,7 +123,7 @@ class HighwayTrafficMpc(Mpc[SymType]):
 
         # initialize multistart point generators (only if multistart is on)
         self.structured_start_points = self.random_start_points = None
-        if nlp.is_multi > 0:
+        if nlp.is_multi:
             bounds_and_size = {
                 "s": (1e-3, 200, s.shape),
                 "a": (C / EC.ramp_min_flow_factor, C, a.shape),

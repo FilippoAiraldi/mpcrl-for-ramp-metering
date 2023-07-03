@@ -48,8 +48,8 @@ def _set_axis_opts(
 def _adjust_limits(axs: Iterable[Axes]) -> None:
     """Adjusts the axes limits (ensures all plotted data is shown)."""
     for ax in axs:
-        ax.autoscale(enable=True, axis='x', tight=True)
-        ax.autoscale(enable=True, axis='y', tight=False)
+        ax.autoscale(enable=True, axis="x", tight=True)
+        ax.autoscale(enable=True, axis="y", tight=False)
 
 
 def _add_title(fig: Figure, labels: Sequence[str]) -> None:

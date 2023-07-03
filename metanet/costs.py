@@ -69,5 +69,10 @@ def get_stage_cost(
     assert TTS.shape == VAR.shape == (1, 1), "Non-scalar costs."
     s = cs.vertcat(*rhos, *vs, *ws)
     return cs.Function(
-        "L", (s, a, a_prev), (TTS, VAR, CVI), ("s", "a", "a-"), ("tts", "var", "cvi")
+        "L",
+        (s, a, a_prev),
+        (TTS, VAR, CVI),
+        ("s", "a", "a-"),
+        ("tts", "var", "cvi"),
+        {"cse": True},
     ).expand()

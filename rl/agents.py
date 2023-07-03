@@ -18,15 +18,13 @@ AgentType = TypeVar("AgentType", bound="HighwayTrafficPkAgent")
 def _update_fixed_parameters(
     parameters: dict[str, npt.ArrayLike], env: HighwayTrafficEnv
 ) -> None:
-    """Updates the internal demand forecasts and the last action taken in the env."""
+    """Updates the internal demand forecast and the last action taken in the env."""
     parameters["d"] = env.demand.forecast(MRC.prediction_horizon).T
     parameters["a-"] = env.last_action
 
 
 def _wrap_agent(
-    agent: Agent,
-    record_updates: bool,
-    verbose: Literal[0, 1, 2, 3],
+    agent: Agent, record_updates: bool, verbose: Literal[0, 1, 2, 3]
 ) -> Wrapper:
     """Allows to build an instance of the agent that can be wrapped in the following
     wrappers (from inner to outer, where the outer returns last):
@@ -87,10 +85,7 @@ class HighwayTrafficPkAgent(Agent[SymType]):
 
     @classmethod
     def wrapped(
-        cls: Type[AgentType],
-        verbose: Literal[0, 1, 2, 3],
-        *agent_args,
-        **agent_kwargs,
+        cls: Type[AgentType], verbose: Literal[0, 1, 2, 3], *agent_args, **agent_kwargs
     ) -> AgentType:
         """Allows to build an instance of the agent that can be wrapped in the following
         wrappers (from inner to outer, where the outer returns last):
@@ -122,10 +117,7 @@ class HighwayTrafficLstdQLearningAgent(LstdQLearningAgent[SymType, float]):
 
     @classmethod
     def wrapped(
-        cls: Type[AgentType],
-        verbose: Literal[0, 1, 2, 3],
-        *agent_args,
-        **agent_kwargs,
+        cls: Type[AgentType], verbose: Literal[0, 1, 2, 3], *agent_args, **agent_kwargs
     ) -> AgentType:
         """Allows to build an instance of the agent that can be wrapped in the following
         wrappers (from inner to outer, where the outer returns last):

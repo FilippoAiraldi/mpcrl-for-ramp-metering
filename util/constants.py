@@ -44,14 +44,14 @@ assert EC.Tscenario / EC.T % EC.steps == 0.0, "Incompatible sim length and step 
 STEPS_PER_SCENARIO = int(EC.Tscenario / EC.T / EC.steps)  # 120 by default
 
 
-# initialize approximated model parameters (with some mismatch w.r.t. perfect model)
+# initialize approximated model parameters (with some mismatches w.r.t. perfect model)
 rho_crit_ = EC.rho_crit * 0.7
 a_ = EC.a * 1.3
 v_free_ = EC.v_free * 1.3
 
 
 class ParInfo(NamedTuple):
-    """Stores info of one of the MPC parameters, in particular
+    """Stores information on a parameter in the MPC scheme, in particular
     - value (initial, if learnable)
     - flag indicating whether the parameter is learnable or not.
     - bounds (only if learnable)
