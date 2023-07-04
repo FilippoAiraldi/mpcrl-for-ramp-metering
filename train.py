@@ -1,8 +1,9 @@
-from datetime import datetime
-from time import perf_counter
 import argparse
+from datetime import datetime
 from math import exp
+from time import perf_counter
 
+import numpy as np
 from joblib import Parallel, delayed
 
 from rl import evaluate_pk_agent, train_lstdq_agent
@@ -12,8 +13,7 @@ from util.runs import get_runname
 
 
 def launch_training(args: argparse.Namespace) -> None:
-    date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    start = perf_counter()
+    seeds = np.random.SeedSequence(args.seed).generate_state(args.agents)
     if args.agent_type == "pk":
         fun = lambda n: evaluate_pk_agent(
             agent_n=n,
@@ -21,7 +21,7 @@ def launch_training(args: argparse.Namespace) -> None:
             scenarios=args.scenarios,
             discount_factor=args.gamma,
             sym_type=args.sym_type,
-            seed=args.seed + (args.episodes + 1) * n,
+            seed=seeds[n],
             verbose=args.verbose,
         )
     elif args.agent_type == "lstdq":
@@ -40,11 +40,13 @@ def launch_training(args: argparse.Namespace) -> None:
             experience_replay_sample_latest=args.replaymem_sample_latest,
             max_percentage_update=args.max_update,
             sym_type=args.sym_type,
-            seed=args.seed + (args.episodes + 1) * n,
+            seed=seeds[n],
             verbose=args.verbose,
         )
 
     # launch simulations
+    date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    start = perf_counter()
     print(f"[Simulation {args.runname.upper()} started at {date}]\nArgs: {args}")
     with tqdm_joblib(desc="Simulation", total=args.agents):
         data = Parallel(n_jobs=args.n_jobs)(delayed(fun)(i) for i in range(args.agents))

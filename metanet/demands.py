@@ -1,4 +1,4 @@
-from typing import Literal, Optional
+from typing import Literal, Union
 
 import numpy as np
 import numpy.typing as npt
@@ -122,7 +122,7 @@ def create_demands(
     steps_per_iteration: int = 1,
     kind: Literal["constant", "random"] = "constant",
     noise: tuple[float, float, float] = (100.0, 100.0, 2.5),
-    np_random: Optional[np.random.Generator] = None,
+    seed: Union[None, int, np.random.SeedSequence, np.random.Generator] = None,
 ) -> Demands:
     """Creates the demands for the highway origins O1 and O2, and the destination D1.
 
@@ -140,8 +140,8 @@ def create_demands(
     noise : 3-tuple of floats, optional
         The noise levels for the three demand scenarios, by default (100.0, 100.0, 2.5).
         This noise only partially affects the demand and is used to make them realistic.
-    np_random : Optional[np.random.Generator], optional
-        A (possibly seed) random engine. By default, one with no seed is initialized.
+    seed : None, int, seed sequence or generator, optional
+        A random seed.
 
     Returns
     -------
@@ -153,8 +153,7 @@ def create_demands(
     ValueError
         Raises if `kind` is neither `"constant"` nor `"random"`.
     """
-    if np_random is None:
-        np_random = np.random.Generator(np.random.PCG64())
+    np_random = np.random.default_rng(seed)
 
     if kind == "constant":
         data = (

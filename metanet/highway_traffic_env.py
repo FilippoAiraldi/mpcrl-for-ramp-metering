@@ -227,7 +227,7 @@ class HighwayTrafficEnv(
             steps_per_iteration=EC.steps,
             kind=options.get("demands_kind", EC.demands_type),
             noise=options.get("demands_noise", (95.0, 95.0, 1.7)),
-            np_random=self.np_random,
+            seed=self.np_random,
         )
         if self.demands is not None:
             # NOTE: do not save all demands (only 0) to reduce size of results

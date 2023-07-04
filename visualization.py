@@ -1,12 +1,12 @@
+import argparse
+from itertools import repeat
 from pathlib import Path
 from typing import Iterable, Iterator
-from itertools import repeat
 
 import matplotlib.pyplot as plt
 import numpy as np
 
 from util import load_data, plot
-import argparse
 
 
 def load_all_data(
