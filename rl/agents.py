@@ -94,7 +94,7 @@ class HighwayTrafficPkAgent(Agent[SymType]):
         Parameters
         ----------
         cls : Type[AgentType]
-            The type of env to instantiate.
+            The type of agent to instantiate.
         verbose : {0, 1, 2,  3}
             The level of verbosity for the logging wrapper.
 
@@ -127,7 +127,7 @@ class HighwayTrafficLstdQLearningAgent(LstdQLearningAgent[SymType, float]):
         Parameters
         ----------
         cls : Type[AgentType]
-            The type of env to instantiate.
+            The type of agent to instantiate.
         verbose : {0, 1, 2,  3}
             The level of verbosity for the logging wrapper.
 
