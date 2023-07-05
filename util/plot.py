@@ -99,6 +99,13 @@ def _plot_population(
         raise ValueError(f"unsupported plotting method {method}.")
 
 
+def _moving_average(x: np.ndarray, w: int) -> np.ndarray:
+    """Computes the moving average of x (along axis=1) with window size w."""
+    return np.asarray(
+        [np.convolve(x[i], np.ones(w), 'valid') / w for i in range(x.shape[0])]
+    )
+
+
 def plot_traffic_quantities(
     envsdata: list[dict[str, npt.NDArray[np.floating]]],
     labels: list[str],
@@ -329,7 +336,7 @@ def plot_agent_quantities(
         # plot td_error
         if td_errors_key is not None:
             ax = next(axs_iter)
-            td_errors = agentsdatum[td_errors_key][:, ::reduce]
+            td_errors = _moving_average(agentsdatum[td_errors_key][:, ::reduce], K)
             time = np.arange(td_errors.shape[1]) * EC.T * EC.steps * reduce
             _plot_population(ax, time, td_errors, ls=ls)
             ax.set_ylabel(r"$\delta$")
