@@ -103,9 +103,7 @@ class HighwayTrafficEnv(
             eta=EC.eta,
             kappa=EC.kappa,
             delta=EC.delta,
-            positive_next_density=True,
             positive_next_speed=True,  # because they are prone to get negative
-            positive_next_queue=True,  # because of unlimited ramp flow
         )
         self.dynamics: cs.Function = sym_metanet.engine.to_function(
             net=self.network, T=EC.T, parameters=sympars, more_out=True, compact=2
@@ -277,6 +275,7 @@ class HighwayTrafficEnv(
         # save next state and add information in dict to be saved
         # NOTE: save only last state and flow for sake of reducing size of results
         self.state = s_next.full()
+        self.state[(self.state < 0.0) & np.isclose(self.state, 0.0)] = 0.0
         self.last_action = a
         observation = self.state[:, -1]
         assert self.observation_space.contains(observation), "Invalid state after step."
