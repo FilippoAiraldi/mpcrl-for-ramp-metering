@@ -39,7 +39,7 @@ def add_parametric_costs(
     s = mpc.states["s"]
     Np = s.shape[1] - 1
     n_segments, n_origins = env.n_segments, env.n_origins
-    rho, v, _ = cs.vertsplit(s, np.cumsum((0, n_segments, n_segments, n_origins)))
+    rho, v, w = cs.vertsplit(s, np.cumsum((0, n_segments, n_segments, n_origins)))
 
     # get normalization factors
     norm_rho, norm_v, norm_w = (
@@ -59,20 +59,24 @@ def add_parametric_costs(
     # NOTE: stage cost does not include first state s[0]
     w_stage_rho = mpc.parameter("weight_stage_rho", (n_segments, 1))
     w_stage_v = mpc.parameter("weight_stage_v", (n_segments, 1))
+    w_stage_w = mpc.parameter("weight_stage_w", (n_origins, 1))
     rho_crit_tracking = mpc.parameters["rho_crit"]
     v_free_tracking = mpc.parameter("v_free_tracking", (1, 1))
     for k in range(1, Np):
         J += gammas[k] * (
             quad_form(w_stage_rho, (rho[:, k] - rho_crit_tracking) / norm_rho)
             + quad_form(w_stage_v, (v[:, k] - v_free_tracking) / norm_v)
+            + quad_form(w_stage_w, w[:, k] / norm_w)
         )
 
     # add terminal cost (quadratic in rho and v[-1])
     w_terminal_rho = mpc.parameter("weight_terminal_rho", (n_segments, 1))
     w_terminal_v = mpc.parameter("weight_terminal_v", (n_segments, 1))
+    w_terminal_w = mpc.parameter("weight_terminal_w", (n_origins, 1))
     J += gammas[-1] * (
         quad_form(w_terminal_rho, (rho[:, -1] - rho_crit_tracking) / norm_rho)
         + quad_form(w_terminal_v, (v[:, -1] - v_free_tracking) / norm_v)
+        + quad_form(w_terminal_w, w[:, -1] / norm_w)
     )
 
     # check parametric cost is scalar and return it

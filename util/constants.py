@@ -103,7 +103,7 @@ class MpcRlConstants:
     parameters: ClassVar[MappingProxyType[str, ParInfo]] = MappingProxyType(
         {
             "rho_crit": ParInfo(rho_crit_, True, (10, EC.rho_max * 0.9), 1),
-            "a": ParInfo(a_, True, (1.1, 3.0), 0.1),  # NOTE: should always be >1
+            "a": ParInfo(a_, True, (1.1, 3.0), 1),  # NOTE: should always be >1
             "v_free": ParInfo(v_free_, True, (30, 300), 1),
             "v_free_tracking": ParInfo(v_free_, True, (30, 300), 1),
             "weight_tts": ParInfo(
@@ -120,7 +120,9 @@ class MpcRlConstants:
             "weight_init_w": ParInfo(1, True, (-np.inf, np.inf), 1),
             "weight_stage_rho": ParInfo(1, True, (1e-6, np.inf), 1),
             "weight_stage_v": ParInfo(1, True, (1e-6, np.inf), 1),
+            "weight_stage_w": ParInfo(1, True, (1e-6, np.inf), 1),
             "weight_terminal_rho": ParInfo(1, True, (1e-6, np.inf), 1),
             "weight_terminal_v": ParInfo(1, True, (1e-6, np.inf), 1),
+            "weight_terminal_w": ParInfo(1, True, (1e-6, np.inf), 1),
         }
     )
