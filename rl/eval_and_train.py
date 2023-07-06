@@ -1,7 +1,7 @@
 from typing import Literal
 
 from gymnasium import Env
-from mpcrl import ExperienceReplay, RlLearningAgent, UpdateStrategy
+from mpcrl import ExperienceReplay, LearningRate, RlLearningAgent, UpdateStrategy
 from mpcrl import exploration as E
 from mpcrl import schedulers as S
 
@@ -79,6 +79,7 @@ def train_lstdq_agent(
     update_freq: int,
     discount_factor: float,
     learning_rate: float,
+    learning_rate_decay: float,
     exploration_chance: float,
     exploration_strength: float,
     exploration_decay: float,
@@ -107,6 +108,8 @@ def train_lstdq_agent(
         Discount factor (used only in the MPC; no learning occurs in the PK agent).
     learning_rate : float
         The learning rate of the RL algorithm.
+    learning_rate_decay : float
+        The rate at which the learning rate decays (exponentially, after each update).
     exploration_chance : float
         Probability of exploration (epsilon-greedy strategy).
     exploration_strength : float
@@ -162,7 +165,9 @@ def train_lstdq_agent(
         mpc=mpc,
         update_strategy=update_strategy,
         discount_factor=discount_factor,
-        learning_rate=lr,
+        learning_rate=LearningRate(
+            S.ExponentialScheduler(lr, learning_rate_decay), hook="on_episode_end"
+        ),
         learnable_parameters=learnable_pars,
         fixed_parameters=fixed_pars,
         exploration=exploration,

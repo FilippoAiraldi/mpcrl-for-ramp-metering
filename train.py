@@ -32,6 +32,7 @@ def launch_training(args: argparse.Namespace) -> None:
             update_freq=args.update_freq,
             discount_factor=args.gamma,
             learning_rate=args.lr,
+            learning_rate_decay=args.lr_decay,
             exploration_chance=args.exp_chance,
             exploration_strength=args.exp_strength,
             exploration_decay=args.exp_decay,
@@ -90,6 +91,9 @@ if __name__ == "__main__":
     )
     group.add_argument(
         "--lr", type=float, default=1e-1, help="Learning rate of the agent."
+    )
+    group.add_argument(
+        "--lr-decay", "--lr_decay", type=float, default=1.0, help="Learning rate decay."
     )
     group.add_argument(
         "--max-update",
