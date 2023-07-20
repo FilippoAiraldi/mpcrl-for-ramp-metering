@@ -336,7 +336,7 @@ def plot_agent_quantities(
         # plot td_error
         if td_errors_key is not None:
             ax = next(axs_iter)
-            td_errors = _moving_average(agentsdatum[td_errors_key][:, ::reduce], K)
+            td_errors = _moving_average(agentsdatum[td_errors_key], K)
             time = np.arange(td_errors.shape[1]) * EC.T * EC.steps * reduce
             _plot_population(ax, time, td_errors, ls=ls)
             ax.set_ylabel(r"$\delta$")
