@@ -99,11 +99,11 @@ def _plot_population(
         raise ValueError(f"unsupported plotting method {method}.")
 
 
-def _moving_average(x: np.ndarray, w: int) -> np.ndarray:
-    """Computes the moving average of x (along axis=1) with window size w."""
-    return np.asarray(
-        [np.convolve(x[i], np.ones(w), "valid") / w for i in range(x.shape[0])]
-    )
+# def _moving_average(x: np.ndarray, w: int) -> np.ndarray:
+#     """Computes the moving average of x (along axis=1) with window size w."""
+#     return np.asarray(
+#         [np.convolve(x[i], np.ones(w), "valid") / w for i in range(x.shape[0])]
+#     )
 
 
 def plot_traffic_quantities(
@@ -336,7 +336,16 @@ def plot_agent_quantities(
         # plot td_error
         if td_errors_key is not None:
             ax = next(axs_iter)
-            td_errors = _moving_average(agentsdatum[td_errors_key], K)
+            # TODO: decide which TD error plot is better
+            # td_errors = _moving_average(agentsdatum[td_errors_key], K)
+            td_data = agentsdatum[td_errors_key]
+            n_agents, n_timesteps = td_data.shape
+            n_scenarios_per_episode = next(
+                i for i in range(1, 11) if n_timesteps % (K * i - 1) == 0
+            )
+            td_errors = np.nanmean(
+                td_data.reshape(n_agents, -1, n_scenarios_per_episode * K - 1), -1
+            )
             time = np.arange(td_errors.shape[1]) * EC.T * EC.steps * reduce
             _plot_population(ax, time, td_errors, ls=ls)
             ax.set_ylabel(r"$\delta$")
