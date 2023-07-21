@@ -274,7 +274,7 @@ class HighwayTrafficEnv(
 
         # save next state and add information in dict to be saved
         # NOTE: save only last state and flow for sake of reducing size of results
-        self.state = s_next.full()
+        self.state = np.maximum(0, s_next)
         self.state[(self.state < 0.0) & np.isclose(self.state, 0.0)] = 0.0
         self.last_action = a
         observation = self.state[:, -1]
