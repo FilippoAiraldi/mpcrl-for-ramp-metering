@@ -197,7 +197,9 @@ def create_demands(
     # apply noise and positivity
     D = np.stack((o1, o2, d1), axis=-1)
     b, a = butter(3, 0.1)
-    D = filtfilt(b, a, D + np_random.normal(scale=noise, size=D.shape), 0)
+    D = filtfilt(
+        b, a, D + np_random.normal(scale=noise, size=D.shape), axis=0, method="gust"
+    )
     D = np.maximum(0, D)
 
     # reshape and return
