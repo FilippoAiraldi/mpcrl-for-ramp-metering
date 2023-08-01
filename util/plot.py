@@ -42,7 +42,7 @@ def _set_axis_opts(
         ax.set_xlim(left=left, right=right)
         ax.set_ylim(bottom=bottom, top=top)
         if intx and not getattr(ax.xaxis.get_major_locator(), "_integer", False):
-            ax.xaxis.set_major_locator(MaxNLocator(integer=True))
+            ax.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=5))
 
 
 def _adjust_limits(axs: Iterable[Axes]) -> None:
@@ -346,8 +346,8 @@ def plot_agent_quantities(
             td_errors = np.nanmean(
                 td_data.reshape(n_agents, -1, n_scenarios_per_episode * K - 1), -1
             )
-            time = np.arange(td_errors.shape[1]) * EC.T * EC.steps * reduce
-            _plot_population(ax, time, td_errors, ls=ls)
+            episodes = np.arange(td_errors.shape[1])
+            _plot_population(ax, episodes, td_errors, ls=ls)
             ax.set_ylabel(r"$\delta$")
 
     # set axis options
@@ -355,7 +355,7 @@ def plot_agent_quantities(
     # set x labels in bottom axes
     nxlbls = ncols - (ncols * nrows - nplots)
     xlbls = chain(
-        (("update" if td_errors_key is None else "time (h)"),),
+        (("update" if td_errors_key is None else "episode"),),
         repeat("update", nxlbls - 1),
     )
     for ax, xlbl in zip(reversed(axs), xlbls):
