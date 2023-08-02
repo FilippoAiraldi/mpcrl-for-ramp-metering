@@ -137,3 +137,9 @@ class HighwayTrafficLstdQLearningAgent(LstdQLearningAgent[SymType, float]):
             Wrapped instance of the agent.
         """
         return _wrap_agent(cls(*agent_args, **agent_kwargs), True, verbose)
+
+    def _post_setup_V_and_Q(self) -> None:
+        # super()._post_setup_V_and_Q()
+        # remove constraints on the first action in Q
+        self._Q.nlp.remove_constraints("a_min_1", ((0, k) for k in range(EC.steps)))
+        self._Q.nlp.remove_constraints("a_min_2", ((0, k) for k in range(EC.steps)))
