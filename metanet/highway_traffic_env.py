@@ -221,6 +221,7 @@ class HighwayTrafficEnv(
         # create demands (and record them in storage)
         self.demand = create_demands(
             time=self.time,
+            tf=EC.Tscenario,
             reps=self.n_scenarios,
             steps_per_iteration=EC.steps,
             kind=options.get("demands_kind", EC.demands_type),

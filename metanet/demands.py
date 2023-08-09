@@ -1,3 +1,4 @@
+from itertools import chain
 from typing import Literal, Union
 
 import numpy as np
@@ -118,6 +119,7 @@ def create_demand(
 
 def create_demands(
     time: _ArrayLikeFloat_co,
+    tf: float,
     reps: int = 1,
     steps_per_iteration: int = 1,
     kind: Literal["constant", "random"] = "constant",
@@ -129,7 +131,9 @@ def create_demands(
     Parameters
     ----------
     time : array of floats
-        _description_
+        The time vector.
+    tf : float
+        The final time of the scenario, i.e., how long a scenario is.
     reps : int, optional
         How many scenario repetitions to create, by default 1.
     steps_per_iteration : int, optional
@@ -154,43 +158,44 @@ def create_demands(
         Raises if `kind` is neither `"constant"` nor `"random"`.
     """
     np_random = np.random.default_rng(seed)
+    lows = np.asarray((1000, 500, 20), float)
+    highs = np.asarray((3000, 1500, 60), float)
+    knees = np.asarray([(0, 0.35, 1, 1.35), (0.15, 0.35, 0.6, 0.8), (0.5, 0.7, 1, 1.2)])
+    assert (knees <= tf).all() and time[-1] <= tf, "invalid time specifications"
 
     if kind == "constant":
-        data = (
-            ((0.00, 0.35, 1.0, 1.35), (1000, 3000, 3000, 1000)),  # demand at O1
-            ((0.15, 0.35, 0.6, 0.80), (500, 1500, 1500, 500)),  # demand at O2
-            ((0.50, 0.70, 1.0, 1.20), (20, 60, 60, 20)),  # congestion at D1
-        )
-        o1 = create_demand(time, *data[0], reps)
-        o2 = create_demand(time, *data[1], reps)
-        d1 = create_demand(time, *data[2], reps)
+        o1 = create_demand(time, knees[0], (lows[0], highs[0], highs[0], lows[0]), reps)
+        o2 = create_demand(time, knees[1], (lows[1], highs[1], highs[1], lows[1]), reps)
+        d1 = create_demand(time, knees[2], (lows[2], highs[2], highs[2], lows[2]), reps)
 
     elif kind == "random":
-        lows = np_random.uniform((900, 400, 20), (1200, 600, 30), (reps + 1, 3))
-        highs = np_random.uniform((2750, 1250, 45), (3500, 2000, 80), (reps, 3))
-        centers = np_random.uniform((0.5, 0.3, 0.7), (0.9, 0.7, 1.0), (reps, 3))
-        # NOTE: max width_low must fit in time[-1]
-        widths_high = np_random.uniform((0.1, 0.05, 0.05), (0.2, 0.2, 0.25), (reps, 3))
-        widths_low = np_random.uniform(widths_high * 1.5, widths_high * 3)
+        time_ = np.concatenate([time + tf * r for r in range(reps)])
+        alpha = 5 / 100  # 5% of the range
+        lows_ = np.tile(lows, (reps, 2, 1))
+        highs_ = np.tile(highs, (reps, 2, 1))
+        knees_ = np.concatenate([knees + tf * r for r in range(reps)], -1)
+        lows_ += np_random.uniform(-lows_ * alpha, lows_ * alpha)
+        highs_ += np_random.uniform(-highs_ * alpha, highs_ * alpha)
+        knees_ += np_random.uniform(-tf * alpha / 2, +tf * alpha / 2, knees_.shape)
+        knees_[:, 0] = np.maximum(knees_[:, 0], 0)
+        knees_[:, -1] = np.minimum(knees_[:, -1], tf * reps)
+        assert (np.diff(knees_) >= 0).all(), "internal error during demand generation"
 
-        o1_, o2_, d1_ = [], [], []
-        for i in range(reps):
-            x = np.stack(
-                (
-                    centers[i] - widths_low[i],
-                    centers[i] - widths_high[i],
-                    centers[i] + widths_high[i],
-                    centers[i] + widths_low[i],
-                ),
-                axis=-1,
-            )
-            y = np.stack((lows[i], highs[i], highs[i], lows[i + 1]), axis=-1)
-            o1_.append(create_demand(time, x[0], y[0]))
-            o2_.append(create_demand(time, x[1], y[1]))
-            d1_.append(create_demand(time, x[2], y[2]))
-        o1 = np.concatenate(o1_)
-        o2 = np.concatenate(o2_)
-        d1 = np.concatenate(d1_)
+        xp = chain.from_iterable(
+            (lows_[r, 0, 0], highs_[r, 0, 0], highs_[r, 1, 0], lows_[r, 1, 0])
+            for r in range(reps)
+        )
+        o1 = create_demand(time_, knees_[0], list(xp))
+        xp = chain.from_iterable(
+            (lows_[r, 0, 1], highs_[r, 0, 1], highs_[r, 1, 1], lows_[r, 1, 1])
+            for r in range(reps)
+        )
+        o2 = create_demand(time_, knees_[1], list(xp))
+        xp = chain.from_iterable(
+            (lows_[r, 0, 2], highs_[r, 0, 2], highs_[r, 1, 2], lows_[r, 1, 2])
+            for r in range(reps)
+        )
+        d1 = create_demand(time_, knees_[2], list(xp))
     else:
         raise ValueError(f"Unrecognized demand kind '{kind}'.")
 

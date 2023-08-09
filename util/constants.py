@@ -27,7 +27,7 @@ class EnvConstants:
     eta: ClassVar[float] = 60  # model parameter (km^2/lane)
     delta: ClassVar[float] = 0.0122  # merging phenomenum parameter
     #
-    demands_type: ClassVar[str] = "constant"  # (or "random") type of demand generation
+    demands_type: ClassVar[str] = "random"  # type of demand generation
     #
     ramp_max_queue: ClassVar[dict[str, int]] = {"O2": 50}  # max queues (only ramp O2)
     ramp_min_flow_factor: ClassVar[int] = 10  # min queue on ram
