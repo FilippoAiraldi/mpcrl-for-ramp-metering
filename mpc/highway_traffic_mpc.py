@@ -105,7 +105,9 @@ class HighwayTrafficMpc(Mpc[SymType]):
         a_last = self.parameter("a-", (env.na, 1))
         a_lasts = cs.horzcat(a_last, a[:, :-1])
         weight_var = self.parameter("weight_var")
-        J += weight_var * cs.dot(gammas[:Nc:EC.steps], env.stage_cost(0, a, a_lasts)[1])
+        J += weight_var * cs.dot(
+            gammas[: Nc : EC.steps], env.stage_cost(0, a, a_lasts)[1]
+        )
 
         # slack penalty
         weight_slack = self.parameter("weight_slack", slacks.shape)
