@@ -20,6 +20,7 @@ def launch_training(args: argparse.Namespace) -> None:
             episodes=args.episodes,
             scenarios=args.scenarios,
             discount_factor=args.gamma,
+            demands_type=args.demands_type,
             sym_type=args.sym_type,
             seed=seeds[n],
             verbose=args.verbose,
@@ -40,6 +41,7 @@ def launch_training(args: argparse.Namespace) -> None:
             experience_replay_sample=args.replaymem_sample,
             experience_replay_sample_latest=args.replaymem_sample_latest,
             max_percentage_update=args.max_update,
+            demands_type=args.demands_type,
             sym_type=args.sym_type,
             seed=seeds[n],
             verbose=args.verbose,
@@ -145,7 +147,7 @@ if __name__ == "__main__":
         help="Multiplicative decay rate of exploration chance and strength.",
     )
 
-    group = parser.add_argument_group("Simulation length")
+    group = parser.add_argument_group("Simulation details")
     group.add_argument(
         "--agents", type=int, default=1, help="Number of agent to simulate."
     )
@@ -158,8 +160,16 @@ if __name__ == "__main__":
         default=2,
         help="Number of demands' scenarios per training episode.",
     )
+    group.add_argument(
+        "--demands-type",
+        "--demands_type",
+        type=str,
+        choices=("constant", "random"),
+        default="constant",
+        help="Type of demands affecting the network.",
+    )
 
-    group = parser.add_argument_group("Simulation details")
+    group = parser.add_argument_group("Others")
     group.add_argument(
         "--sym-type",
         "--sym_type",

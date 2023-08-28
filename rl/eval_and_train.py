@@ -18,6 +18,7 @@ def evaluate_pk_agent(
     episodes: int,
     scenarios: int,
     discount_factor: float,
+    demands_type: Literal["constant", "random"],
     sym_type: Literal["SX", "MX"],
     seed: int,
     verbose: Literal[0, 1, 2, 3],
@@ -35,6 +36,8 @@ def evaluate_pk_agent(
         Number of demands' scenarios per episode.
     discount_factor : float
         Discount factor (used only in the MPC; no learning occurs in the PK agent).
+    demands_type : {"constant", "random"}
+        Type of demands affecting the network.
     sym_type : {"SX", "MX"}
         The type of casadi symbols to use during the simulation.
     seed : int
@@ -49,6 +52,7 @@ def evaluate_pk_agent(
     """
     # create env for evaluation
     env = HighwayTrafficEnv.wrapped(
+        demands_type=demands_type,
         sym_type=sym_type,
         n_scenarios=scenarios,
         normalize_rewards=False,
@@ -87,6 +91,7 @@ def train_lstdq_agent(
     experience_replay_sample: float,
     experience_replay_sample_latest: float,
     max_percentage_update: float,
+    demands_type: Literal["constant", "random"],
     sym_type: Literal["SX", "MX"],
     seed: int,
     verbose: Literal[0, 1, 2, 3],
@@ -124,6 +129,8 @@ def train_lstdq_agent(
         Size of experience sample to dedicate to latest transitions.
     max_percentage_update : float
         Maximum percentage parameters update at each RL update.
+    demands_type : {"constant", "random"}
+        Type of demands affecting the network.
     sym_type : {"SX", "MX"}
         The type of casadi symbols to use during the simulation.
     seed : int
@@ -138,6 +145,7 @@ def train_lstdq_agent(
     """
     # create env for training
     env = HighwayTrafficEnv.wrapped(
+        demands_type=demands_type,
         sym_type=sym_type,
         n_scenarios=scenarios,
         normalize_rewards=False,
