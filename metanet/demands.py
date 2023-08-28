@@ -170,7 +170,7 @@ def create_demands(
 
     elif kind == "random":
         time_ = np.concatenate([time + tf * r for r in range(reps)])
-        alpha = 5 / 100  # 5% of the range
+        alpha = 2 / 100
         lows_ = np.tile(lows, (reps, 2, 1))
         highs_ = np.tile(highs, (reps, 2, 1))
         knees_ = np.concatenate([knees + tf * r for r in range(reps)], -1)
