@@ -174,18 +174,14 @@ def plot_traffic_quantities(
 def plot_costs(
     envsdata: list[dict[str, npt.NDArray[np.floating]]], labels: list[str]
 ) -> Figure:
-    fig = plt.figure(constrained_layout=True)
-    G = gridspec.GridSpec(2, 2, figure=fig)
-    axs: list[Axes] = [
-        fig.add_subplot(G[i]) for i in zip(*np.unravel_index(range(4), (2, 2)))
-    ]
+    fig, axs = plt.subplots(1, 3, constrained_layout=True, sharex=True)
 
     # process costs
-    costnames = ("tts", "var", "cvi", "total")
+    costnames = ("tts", "var", "cvi")
     envscosts: list[np.ndarray] = []
     for envsdatum in envsdata:
         # group as: costs ∈ [n_agents, n_episodes, timesteps, cost_types]
-        costs = np.stack([envsdatum[n] for n in costnames[:-1]], axis=-1)
+        costs = np.stack([envsdatum[n] for n in costnames], axis=-1)
 
         # sum over time - either by episode or by scenario
         # costs = costs.sum(2)  # sum costs per episodes
@@ -195,10 +191,6 @@ def plot_costs(
         costs = np.concatenate(
             [c.sum(tax, keepdims=True) for c in splitted_costs], axis=tax
         ).reshape(costs.shape[0], -1, costs.shape[-1])
-
-        # add total cost
-        J = costs.sum(-1, keepdims=True)  # total cost per episode per agent
-        costs = np.concatenate((costs, J), axis=-1)
 
         # append to list
         envscosts.append(costs)
@@ -212,7 +204,7 @@ def plot_costs(
 
     # set axis options
     _set_axis_opts(axs, intx=True)
-    for ax in axs[-2:]:
+    for ax in axs:
         ax.set_xlabel("episode")
     _adjust_limits(axs)
     _add_title(fig, labels)
