@@ -1,5 +1,4 @@
 import argparse
-from itertools import repeat
 from pathlib import Path
 from typing import Iterable, Iterator
 
@@ -12,7 +11,6 @@ from util import load_data, plot
 def load_all_data(
     filenames: Iterable[str],
 ) -> Iterator[tuple[str, dict[str, np.ndarray], dict[str, np.ndarray]]]:
-    """Loads the data from the filenames and reduces their size."""
     for i, fn in enumerate(filenames):
         name = Path(fn).stem
         data = load_data(fn)
@@ -24,10 +22,8 @@ def load_all_data(
 
 
 def launch_visualization(args: argparse.Namespace):
-    # load all data and print simulation details
+    plot.set_mpl_defaults()
     names, envsdata, agentsdata = zip(*load_all_data(args.filenames))
-
-    # plot each figure at a time
     if args.traffic:
         plot.plot_traffic_quantities(envsdata, names, reduce=args.reduce)
     if args.cost:
@@ -38,14 +34,10 @@ def launch_visualization(args: argparse.Namespace):
 
 
 if __name__ == "__main__":
-    plot.set_mpl_defaults()
-
-    # construct parser
     parser = argparse.ArgumentParser(
         description="Launches visualization for different MPC-based agents.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-
     group = parser.add_argument_group("Data")
     group.add_argument(
         "filenames", type=str, nargs="+", help="Simulation data to be visualized."
@@ -85,15 +77,10 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
-    # remove duplicate but keep order
-    args.filenames = list(dict(zip(args.filenames, repeat(None))))
-
     if args.all:
         args.traffic = args.cost = args.agent = True
     del args.all
     if args.reduce <= 0:
         raise argparse.ArgumentTypeError("--reduce must be a positive integer.")
 
-    # load all data and show simulation results
     launch_visualization(args)

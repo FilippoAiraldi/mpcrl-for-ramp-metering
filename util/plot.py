@@ -99,13 +99,6 @@ def _plot_population(
         raise ValueError(f"unsupported plotting method {method}.")
 
 
-# def _moving_average(x: np.ndarray, w: int) -> np.ndarray:
-#     """Computes the moving average of x (along axis=1) with window size w."""
-#     return np.asarray(
-#         [np.convolve(x[i], np.ones(w), "valid") / w for i in range(x.shape[0])]
-#     )
-
-
 def plot_traffic_quantities(
     envsdata: list[dict[str, npt.NDArray[np.floating]]],
     labels: list[str],

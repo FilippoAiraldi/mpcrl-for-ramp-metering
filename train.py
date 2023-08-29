@@ -47,14 +47,12 @@ def launch_training(args: argparse.Namespace) -> None:
             verbose=args.verbose,
         )
 
-    # launch simulations
     date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     start = perf_counter()
     print(f"[Simulation {args.runname.upper()} started at {date}]\nArgs: {args}")
     with tqdm_joblib(desc="Simulation", total=args.agents):
         data = Parallel(n_jobs=args.n_jobs)(delayed(fun)(i) for i in range(args.agents))
 
-    # save results
     print(f"[Simulated {args.runname.upper()} with {args.agents} agents]")
     save_data(
         filename=args.runname,
@@ -68,12 +66,10 @@ def launch_training(args: argparse.Namespace) -> None:
 
 
 if __name__ == "__main__":
-    # construct parser
     parser = argparse.ArgumentParser(
         description="Launches simulation for different MPC-based RL agents.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-
     group = parser.add_argument_group("RL algorithm parameters")
     group.add_argument(
         "--agent-type",
@@ -136,7 +132,7 @@ if __name__ == "__main__":
         "--exp-strength",
         "--exp_strength",
         type=float,
-        default=5e-2,  # 100 / 2000
+        default=5e-2,
         help="Strength of exploration.",
     )
     group.add_argument(
@@ -146,7 +142,6 @@ if __name__ == "__main__":
         default=exp(-1 / 5),
         help="Multiplicative decay rate of exploration chance and strength.",
     )
-
     group = parser.add_argument_group("Simulation details")
     group.add_argument(
         "--agents", type=int, default=1, help="Number of agent to simulate."
@@ -168,7 +163,6 @@ if __name__ == "__main__":
         default="constant",
         help="Type of demands affecting the network.",
     )
-
     group = parser.add_argument_group("Others")
     group.add_argument(
         "--sym-type",
@@ -190,8 +184,6 @@ if __name__ == "__main__":
     )
 
     args = parser.parse_args()
-
-    # perform some checks and processing
     assert (
         0.0 <= args.replaymem_sample <= 1.0
     ), f"Replay sample size must be in [0,1]; got {args.replaymem_sample} instead."
@@ -205,5 +197,4 @@ if __name__ == "__main__":
     if args.agents == 1:
         args.n_jobs = 1  # don't parallelize
 
-    # launch simulation
     launch_training(args)

@@ -17,7 +17,7 @@ class EnvConstants:
     origin_capacities: ClassVar[tuple[float, float]] = (
         3500,
         2000,
-    )  # on-ramp capacities (veh/h/lane)
+    )  # on-ramp capacities (veh/h)
     rho_max: ClassVar[float] = 180  # maximum capacity (veh/km/lane)
     a: ClassVar[float] = 1.867  # model parameter (adim)
     v_free: ClassVar[float] = 102  # free flow speed (km/h)
