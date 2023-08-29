@@ -1,29 +1,13 @@
 import argparse
-from pathlib import Path
-from typing import Iterable, Iterator
 
 import matplotlib.pyplot as plt
-import numpy as np
 
-from util import load_data, plot
-
-
-def load_all_data(
-    filenames: Iterable[str],
-) -> Iterator[tuple[str, dict[str, np.ndarray], dict[str, np.ndarray]]]:
-    for i, fn in enumerate(filenames):
-        name = Path(fn).stem
-        data = load_data(fn)
-        envsdata = data.pop("envs")
-        agentsdata = data.pop("agents", {})
-        details = (f" -{k}: {v}" for k, v in data.items())
-        print(f"p{i}) {name}", *details, sep="\n")
-        yield name, envsdata, agentsdata
+from util import io, plot
 
 
 def launch_visualization(args: argparse.Namespace):
     plot.set_mpl_defaults()
-    names, envsdata, agentsdata = zip(*load_all_data(args.filenames))
+    names, envsdata, agentsdata = zip(*io.load_data(args.filenames))
     if args.traffic:
         plot.plot_traffic_quantities(envsdata, names, reduce=args.reduce)
     if args.cost:

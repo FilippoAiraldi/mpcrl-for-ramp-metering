@@ -1,4 +1,5 @@
-from typing import Any, Collection, Iterable, Literal, Optional
+from pathlib import Path
+from typing import Any, Collection, Iterable, Iterator, Literal, Optional
 from warnings import warn
 
 import numpy as np
@@ -140,4 +141,29 @@ def save_data(
     io.save(filename, compression, **info)
 
 
-load_data = io.load
+def load_data(
+    filenames: Iterable[str],
+) -> Iterator[tuple[str, dict[str, np.ndarray], dict[str, np.ndarray]]]:
+    """Loads post-processed compressed data into env and agent data.
+
+    Parameters
+    ----------
+    filenames : iterable of str
+        Filenames of the files to be loaded.
+
+    Yields
+    ------
+    iterator of (name, env data, agent data)
+        Returns an iterator with the name of the simulation, followed by env data and
+        agent data (can contain more than one env and agent, if multiple were
+        simulated).
+    """
+    for i, fn in enumerate(filenames):
+        name = Path(fn).stem
+        data = io.load(fn)
+        envsdata = data.pop("envs")
+        agentsdata = data.pop("agents", {})
+
+        details = (f" -{k}: {v}" for k, v in data.items())
+        print(f"p{i}) {name}", *details, sep="\n")
+        yield name, envsdata, agentsdata
