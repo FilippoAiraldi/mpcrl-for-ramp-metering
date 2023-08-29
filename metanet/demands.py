@@ -158,54 +158,57 @@ def create_demands(
         Raises if `kind` is neither `"constant"` nor `"random"`.
     """
     np_random = np.random.default_rng(seed)
-    lows = np.asarray((1000, 500, 20), float)
-    highs = np.asarray((3000, 1500, 60), float)
-    knees = np.asarray([(0, 0.35, 1, 1.35), (0.15, 0.35, 0.6, 0.8), (0.5, 0.7, 1, 1.2)])
-    assert (knees <= tf).all() and time[-1] <= tf, "invalid time specifications"
+    L = np.asarray((1000, 500, 20), float)  # low demand levels
+    H = np.asarray((3000, 1500, 60), float)  # high demand levels
+    K = np.asarray(  # knee points in time
+        [(0, 0.35, 1, 1.35), (0.15, 0.35, 0.6, 0.8), (0.5, 0.7, 1, 1.2)]
+    )
+    assert (K <= tf).all() and time[-1] <= tf, "invalid time specifications"
 
     if kind == "constant":
-        o1 = create_demand(time, knees[0], (lows[0], highs[0], highs[0], lows[0]), reps)
-        o2 = create_demand(time, knees[1], (lows[1], highs[1], highs[1], lows[1]), reps)
-        d1 = create_demand(time, knees[2], (lows[2], highs[2], highs[2], lows[2]), reps)
+        D = np.stack(
+            [
+                create_demand(time, K[i], (L[i], H[i], H[i], L[i]), reps)
+                for i in range(3)
+            ],
+            axis=-1,
+        )
 
     elif kind == "random":
         time_ = np.concatenate([time + tf * r for r in range(reps)])
         alpha = 2 / 100
-        lows_ = np.tile(lows, (reps, 2, 1))
-        highs_ = np.tile(highs, (reps, 2, 1))
-        knees_ = np.concatenate([knees + tf * r for r in range(reps)], -1)
-        lows_ += np_random.uniform(-lows_ * alpha, lows_ * alpha)
-        highs_ += np_random.uniform(-highs_ * alpha, highs_ * alpha)
-        knees_ += np_random.uniform(-tf * alpha / 2, +tf * alpha / 2, knees_.shape)
-        knees_[:, 0] = np.maximum(knees_[:, 0], 0)
-        knees_[:, -1] = np.minimum(knees_[:, -1], tf * reps)
-        assert (np.diff(knees_) >= 0).all(), "internal error during demand generation"
-
-        xp = chain.from_iterable(
-            (lows_[r, 0, 0], highs_[r, 0, 0], highs_[r, 1, 0], lows_[r, 1, 0])
-            for r in range(reps)
+        L_ = np.tile(L, (reps, 2, 1))
+        H_ = np.tile(H, (reps, 2, 1))
+        K_ = np.concatenate([K + tf * r for r in range(reps)], -1)
+        L_ += np_random.uniform(-L_ * alpha, L_ * alpha)
+        H_ += np_random.uniform(-H_ * alpha, H_ * alpha)
+        K_ += np_random.uniform(-tf * alpha / 2, +tf * alpha / 2, K_.shape)
+        K_[:, 0] = np.maximum(K_[:, 0], 0)
+        K_[:, -1] = np.minimum(K_[:, -1], tf * reps)
+        assert (np.diff(K_) >= 0).all(), "internal error during demand generation"
+        D = np.stack(
+            [
+                create_demand(
+                    time_,
+                    K_[i],
+                    list(
+                        chain.from_iterable(
+                            (L_[r, 0, i], H_[r, 0, i], H_[r, 1, i], L_[r, 1, i])
+                            for r in range(reps)
+                        )
+                    ),
+                )
+                for i in range(3)
+            ],
+            axis=-1,
         )
-        o1 = create_demand(time_, knees_[0], list(xp))
-        xp = chain.from_iterable(
-            (lows_[r, 0, 1], highs_[r, 0, 1], highs_[r, 1, 1], lows_[r, 1, 1])
-            for r in range(reps)
+        b, a = butter(3, 0.1)
+        D = filtfilt(
+            b, a, D + np_random.normal(scale=noise, size=D.shape), axis=0, method="gust"
         )
-        o2 = create_demand(time_, knees_[1], list(xp))
-        xp = chain.from_iterable(
-            (lows_[r, 0, 2], highs_[r, 0, 2], highs_[r, 1, 2], lows_[r, 1, 2])
-            for r in range(reps)
-        )
-        d1 = create_demand(time_, knees_[2], list(xp))
+        D = np.maximum(0, D)
     else:
         raise ValueError(f"Unrecognized demand kind '{kind}'.")
-
-    # apply noise and positivity
-    D = np.stack((o1, o2, d1), axis=-1)
-    b, a = butter(3, 0.1)
-    D = filtfilt(
-        b, a, D + np_random.normal(scale=noise, size=D.shape), axis=0, method="gust"
-    )
-    D = np.maximum(0, D)
 
     # reshape and return
     D = D.reshape(-1, steps_per_iteration, 3)
