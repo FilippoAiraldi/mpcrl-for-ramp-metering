@@ -9,11 +9,11 @@ def launch_visualization(args: argparse.Namespace):
     plot.set_mpl_defaults()
     names, envsdata, agentsdata = zip(*io.load_data(args.filenames))
     if args.traffic:
-        plot.plot_traffic_quantities(envsdata, names, reduce=args.reduce)
+        plot.plot_traffic_quantities(envsdata, names, paper=args.paper)
     if args.cost:
-        plot.plot_costs(envsdata, names)
+        plot.plot_costs(envsdata, names, paper=args.paper)
     if args.agent:
-        plot.plot_agent_quantities(agentsdata, names, reduce=args.reduce)
+        plot.plot_agent_quantities(agentsdata, names, paper=args.paper)
     plt.show()
 
 
@@ -49,22 +49,20 @@ if __name__ == "__main__":
         "-A",
         "--all",
         action="store_true",
-        help="Plots all the available plots.",
+        help="Plots all the available plots (-t, -c, -a).",
     )
-    group = parser.add_argument_group("Others")
     group.add_argument(
-        "-r",
-        "--reduce",
-        type=int,
-        default=1,
-        help="Step-size to reduce the amount of points to plot.",
+        "-P",
+        "--paper",
+        action="store_true",
+        help="Plots figures for paper.",
     )
 
     args = parser.parse_args()
     if args.all:
         args.traffic = args.cost = args.agent = True
     del args.all
-    if args.reduce <= 0:
-        raise argparse.ArgumentTypeError("--reduce must be a positive integer.")
+    if args.paper:
+        assert len(args.filenames) == 1, "can plot paper figures only for one file"
 
     launch_visualization(args)

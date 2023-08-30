@@ -99,74 +99,111 @@ def _plot_population(
         raise ValueError(f"unsupported plotting method {method}.")
 
 
+def _save2tikz(*figs: Figure) -> None:
+    """Saves the figure to a tikz file. See https://pypi.org/project/tikzplotlib/."""
+    import tikzplotlib
+
+    for fig in figs:
+        for ax in fig.axes:
+            for child in ax.get_children():
+                if isinstance(child, mpl.legend.Legend):
+                    child._ncol = child._ncols
+        tikzplotlib.save(
+            f"figure_{fig.number}.tex",
+            figure=fig,
+            extra_axis_parameters={r"tick scale binop=\times"},
+        )
+
+
 def plot_traffic_quantities(
     envsdata: list[dict[str, npt.NDArray[np.floating]]],
     labels: list[str],
-    reduce: int = 1,
-) -> Figure:
-    fig, axs_ = plt.subplots(3, 2, constrained_layout=True, sharex=True)
-    axs: Sequence[Axes] = axs_.flatten()
+    paper: bool = False,
+) -> None:
+    if paper:
+        envsdatum = envsdata[0]
 
-    # reduce number of points to plot
-    if reduce > 1:
-        raxis = 2  # reduction axis
+        # plot demands
+        np_random = np.random.default_rng(0)
+        fig1, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
+        scenarios_per_episode = int(envsdatum["demands"].shape[2] / K)
+        all_demands = envsdatum["demands"].reshape(-1, K, 3)
+        all_demands_avg = np.tile(all_demands.mean(0), (scenarios_per_episode, 1))
+        all_demands_std = np.tile(all_demands.std(0), (scenarios_per_episode, 1))
+        n_agents, n_episodes = envsdatum["demands"].shape[:2]
+        time = np.arange(all_demands_avg.shape[0]) * EC.T * EC.steps * 60
+        for i, (ax, lbl) in enumerate(
+            [(axs[0], "$O_1$"), (axs[0], "$O_2$"), (axs[1], "$D_1$")]
+        ):
+            ax.fill_between(
+                time,
+                all_demands_avg[:, i] - 2 * all_demands_std[:, i],
+                all_demands_avg[:, i] + 2 * all_demands_std[:, i],
+                alpha=OPTS["fill_between.alpha"],
+                color=f"C{i}",
+                label=None,
+            )
+            j, k = np_random.integers((n_agents, n_episodes))
+            ax.plot(time, envsdatum["demands"][j, k, :, i], color=f"C{i}", label=lbl)
+        _adjust_limits(axs)
+        axs[0].set_ylabel("Entering flow (veh/h)")
+        axs[1].set_ylabel("Downstream density\n(veh/km/lane)")
+        ax.set_xlabel("time (min)")
+        [ax.legend(loc="upper right") for ax in axs]
+        _save2tikz(fig1)
+    else:
+        fig, axs_ = plt.subplots(3, 2, constrained_layout=True, sharex=True)
+        axs: Sequence[Axes] = axs_.flatten()
+
+        # flatten episodes along time
         envsdata = [
             {
-                k: v.take(range(0, v.shape[raxis], reduce), raxis)
+                k: v.reshape(v.shape[0], v.shape[1] * v.shape[2], -1)
                 for k, v in envsdatum.items()
             }
             for envsdatum in envsdata
         ]
 
-    # flatten episodes along time
-    envsdata = [
-        {
-            k: v.reshape(v.shape[0], v.shape[1] * v.shape[2], -1)
-            for k, v in envsdatum.items()
-        }
-        for envsdatum in envsdata
-    ]
-
-    # make plots
-    ylbls = (
-        r"$\rho$ (veh/km/lane)",
-        r"$v$ (km/h)",
-        r"$w$ (veh)",
-        r"$q_O$ (veh/h)",
-        r"$a$ (veh/h)",
-        r"$d$ (veh/h, veh/km/lane)",
-    )
-    for envsdatum, ls in zip(envsdata, LINESTYLES):
-        plotdata = (
-            *np.array_split(envsdatum["state"], 3, axis=-1),  # rho, v and w
-            envsdatum["flow"][:, :, -2:],  # origin flow
-            envsdatum["action"],
-            envsdatum["demands"],
+        # make plots
+        ylbls = (
+            r"$\rho$ (veh/km/lane)",
+            r"$v$ (km/h)",
+            r"$w$ (veh)",
+            r"$q_O$ (veh/h)",
+            r"$a$ (veh/h)",
+            r"$d$ (veh/h, veh/km/lane)",
         )
-        for ax, datum, ylbl in zip(axs, plotdata, ylbls):
-            time = np.arange(datum.shape[1]) * EC.T * EC.steps * reduce
-            datum = np.rollaxis(datum, 2)
-            N = datum.shape[0]
-            if N == 1:
-                _plot_population(ax, time, datum[0], ls=ls)
-            else:
-                for d_ in datum:
-                    _plot_population(ax, time, d_, ls=ls)
-            ax.set_ylabel(ylbl)
+        for envsdatum, ls in zip(envsdata, LINESTYLES):
+            plotdata = (
+                *np.array_split(envsdatum["state"], 3, axis=-1),  # rho, v and w
+                envsdatum["flow"][:, :, -2:],  # origin flow
+                envsdatum["action"],
+                envsdatum["demands"],
+            )
+            for ax, datum, ylbl in zip(axs, plotdata, ylbls):
+                time = np.arange(datum.shape[1]) * EC.T * EC.steps
+                datum = np.rollaxis(datum, 2)
+                N = datum.shape[0]
+                if N == 1:
+                    _plot_population(ax, time, datum[0], ls=ls)
+                else:
+                    for d_ in datum:
+                        _plot_population(ax, time, d_, ls=ls)
+                ax.set_ylabel(ylbl)
 
-    # adjust some opts
-    _set_axis_opts(axs)
-    for i in (4, 5):
-        axs[i].set_xlabel("time (h)")
-    _adjust_limits(axs)
-    _add_title(fig, labels)
-    return fig
-    # mean_demand = envsdata_["demands"].reshape(10, -1, 120, 3).reshape(-1, 120, 3)
+        # adjust some opts
+        _set_axis_opts(axs)
+        for i in (4, 5):
+            axs[i].set_xlabel("time (h)")
+        _adjust_limits(axs)
+        _add_title(fig, labels)
 
 
 def plot_costs(
-    envsdata: list[dict[str, npt.NDArray[np.floating]]], labels: list[str]
-) -> Figure:
+    envsdata: list[dict[str, npt.NDArray[np.floating]]],
+    labels: list[str],
+    paper: bool = False,
+) -> None:
     fig, axs = plt.subplots(1, 3, constrained_layout=True, sharex=True)
 
     # process costs
@@ -201,14 +238,11 @@ def plot_costs(
         ax.set_xlabel("episode")
     _adjust_limits(axs)
     _add_title(fig, labels)
-    return fig
 
 
 def plot_agent_quantities(
-    agentsdata: list[dict[str, npt.NDArray[np.floating]]],
-    labels: list[str],
-    reduce: int = 1,
-) -> Figure:
+    agentsdata: list[dict[str, npt.NDArray[np.floating]]], labels: list[str]
+) -> None:
     # sourcery skip: low-code-quality
 
     def plot_pars(
@@ -353,4 +387,3 @@ def plot_agent_quantities(
     for val, ax in zip((EC.a, EC.rho_crit, EC.v_free), (a_ax, rho_ax, v_ax)):
         if ax is not None:
             plot_(val, ax)
-    return fig
