@@ -1,7 +1,7 @@
 from typing import Literal
 
 from gymnasium import Env
-from mpcrl import ExperienceReplay, LearningRate, RlLearningAgent, UpdateStrategy
+from mpcrl import ExperienceReplay, LearningRate, UpdateStrategy
 from mpcrl import exploration as E
 from mpcrl import schedulers as S
 
@@ -95,7 +95,7 @@ def train_lstdq_agent(
     sym_type: Literal["SX", "MX"],
     seed: int,
     verbose: Literal[0, 1, 2, 3],
-) -> tuple[Env, RlLearningAgent]:
+) -> tuple[Env, HighwayTrafficLstdQLearningAgent]:
     """Launches a simulation for the training of a second-order LSTD Q-learning agent in
     the traffic control environment.
 
@@ -182,7 +182,7 @@ def train_lstdq_agent(
         experience=experience,
         max_percentage_update=max_percentage_update,
         record_td_errors=True,
-        return_last_successful_action_if_fail=True,
+        use_last_action_on_fail=True,
         name=f"LstdQAgent{agent_n}",
         verbose=verbose,
     )
