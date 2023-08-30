@@ -1,6 +1,6 @@
 joblib==1.2.0
 matplotlib
 csnlp==1.5.7
-mpcrl==1.1.7rc1
+mpcrl==1.1.7rc2
 sym-metanet[all]==1.0.7
 tqdm==4.64.1

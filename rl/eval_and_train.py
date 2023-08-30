@@ -182,6 +182,7 @@ def train_lstdq_agent(
         experience=experience,
         max_percentage_update=max_percentage_update,
         record_td_errors=True,
+        return_last_successful_action_if_fail=True,
         name=f"LstdQAgent{agent_n}",
         verbose=verbose,
     )
