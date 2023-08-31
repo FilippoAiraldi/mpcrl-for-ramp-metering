@@ -121,9 +121,9 @@ def plot_traffic_quantities(
 ) -> None:
     if paper:
         envsdatum = envsdata[0]
+        np_random = np.random.default_rng(0)
 
         # plot demands
-        np_random = np.random.default_rng(0)
         fig1, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
         all_demands = envsdatum["demands"].reshape(-1, K, 3)
         all_demands_avg = all_demands.mean(0)
@@ -148,7 +148,29 @@ def plot_traffic_quantities(
         axs[1].set_ylabel("Downstream density\n(veh/km/lane)")
         ax.set_xlabel("time (min)")
         [ax.legend(loc="upper right") for ax in axs]
-        _save2tikz(fig1)
+
+        # plot 1st, middle, and last on-ramp queues
+        fig2, ax = plt.subplots(1, 1, constrained_layout=True, sharex=True)
+        idx = [0, 3, -1]
+        O2_queue = envsdatum["state"][:, idx, :, -1]
+        O2_queue_avg = O2_queue.mean(1)
+        O2_queue_std = O2_queue.std(1)
+        alpha = OPTS["fill_between.alpha"]
+        time = np.arange(O2_queue_avg.shape[1]) * EC.T * EC.steps * 60
+        ax.axhline(y=EC.ramp_max_queue["O2"], color="k", ls="--", label=None)
+        lbls = ("First episode", f"Episode {idx[1] + 1}", "Last episode")
+        for i, (avg, std, lbl) in enumerate(zip(O2_queue_avg, O2_queue_std, lbls)):
+            ax.fill_between(
+                time, avg - std, avg + std, alpha=alpha, color=f"C{i}", label=None
+            )
+            ax.plot(time, avg, color=f"C{i}", label=lbl)
+        _adjust_limits((ax,))
+        ax.set_ylim(bottom=0)
+        ax.set_ylabel("$O2$ queue (veh)")
+        ax.set_xlabel("time (min)")
+        ax.legend(loc="upper left")
+
+        _save2tikz(fig1, fig2)
     else:
         fig, axs_ = plt.subplots(3, 2, constrained_layout=True, sharex=True)
         axs: Sequence[Axes] = axs_.flatten()
