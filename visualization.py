@@ -9,11 +9,11 @@ def launch_visualization(args: argparse.Namespace):
     plot.set_mpl_defaults()
     names, envsdata, agentsdata = zip(*io.load_data(args.filenames))
     if args.traffic:
-        plot.plot_traffic_quantities(envsdata, names, paper=args.paper)
+        plot.plot_traffic_quantities(envsdata, names, args.paper)
     if args.cost:
-        plot.plot_costs(envsdata, names, paper=args.paper)
+        plot.plot_costs(envsdata, names, args.paper)
     if args.agent:
-        plot.plot_agent_quantities(agentsdata, names, paper=args.paper)
+        plot.plot_agent_quantities(agentsdata, names, args.paper)
     plt.show()
 
 

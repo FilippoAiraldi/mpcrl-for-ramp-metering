@@ -104,10 +104,9 @@ def _save2tikz(*figs: Figure) -> None:
     import tikzplotlib
 
     for fig in figs:
-        for ax in fig.axes:
-            for child in ax.get_children():
-                if isinstance(child, mpl.legend.Legend):
-                    child._ncol = child._ncols
+        mpl.lines.Line2D._us_dashSeq = property(lambda self: self._dash_pattern[1])
+        mpl.lines.Line2D._us_dashOffset = property(lambda self: self._dash_pattern[0])
+        mpl.legend.Legend._ncol = property(lambda self: self._ncols)
         tikzplotlib.save(
             f"figure_{fig.number}.tex",
             figure=fig,
@@ -118,7 +117,7 @@ def _save2tikz(*figs: Figure) -> None:
 def plot_traffic_quantities(
     envsdata: list[dict[str, npt.NDArray[np.floating]]],
     labels: list[str],
-    paper: bool = False,
+    paper: bool,
 ) -> None:
     if paper:
         envsdatum = envsdata[0]
@@ -126,11 +125,9 @@ def plot_traffic_quantities(
         # plot demands
         np_random = np.random.default_rng(0)
         fig1, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
-        scenarios_per_episode = int(envsdatum["demands"].shape[2] / K)
         all_demands = envsdatum["demands"].reshape(-1, K, 3)
-        all_demands_avg = np.tile(all_demands.mean(0), (scenarios_per_episode, 1))
-        all_demands_std = np.tile(all_demands.std(0), (scenarios_per_episode, 1))
-        n_agents, n_episodes = envsdatum["demands"].shape[:2]
+        all_demands_avg = all_demands.mean(0)
+        all_demands_std = all_demands.std(0)
         time = np.arange(all_demands_avg.shape[0]) * EC.T * EC.steps * 60
         for i, (ax, lbl) in enumerate(
             [(axs[0], "$O_1$"), (axs[0], "$O_2$"), (axs[1], "$D_1$")]
@@ -143,8 +140,9 @@ def plot_traffic_quantities(
                 color=f"C{i}",
                 label=None,
             )
-            j, k = np_random.integers((n_agents, n_episodes))
-            ax.plot(time, envsdatum["demands"][j, k, :, i], color=f"C{i}", label=lbl)
+            ax.plot(time, all_demands_avg[:, i], color=f"C{i}", ls="--", lw=0.75)
+            idx = np_random.integers(all_demands.shape[0])
+            ax.plot(time, all_demands[idx, :, i], color=f"C{i}", label=lbl)
         _adjust_limits(axs)
         axs[0].set_ylabel("Entering flow (veh/h)")
         axs[1].set_ylabel("Downstream density\n(veh/km/lane)")
@@ -202,7 +200,7 @@ def plot_traffic_quantities(
 def plot_costs(
     envsdata: list[dict[str, npt.NDArray[np.floating]]],
     labels: list[str],
-    paper: bool = False,
+    paper: bool,
 ) -> None:
     fig, axs = plt.subplots(1, 3, constrained_layout=True, sharex=True)
 
@@ -241,7 +239,7 @@ def plot_costs(
 
 
 def plot_agent_quantities(
-    agentsdata: list[dict[str, npt.NDArray[np.floating]]], labels: list[str]
+    agentsdata: list[dict[str, npt.NDArray[np.floating]]], labels: list[str], paper: bool,
 ) -> None:
     # sourcery skip: low-code-quality
 
