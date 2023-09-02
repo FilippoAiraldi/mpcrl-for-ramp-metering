@@ -71,7 +71,7 @@ def _plot_population(
 ) -> None:
     """Internal utility to plot a quantity from some population of envs/agents."""
     y_avg = (np.nanmedian if use_median else np.nanmean)(y, 0)  # type: ignore[operator]
-    y_std = np.nanstd(y, 0)
+    y_std = 2 * np.nanstd(y, 0)
     handles = ax.plot(x, y_avg, label=label, marker=marker, ls=ls, color=color)
     ax.fill_between(
         x,
@@ -80,6 +80,13 @@ def _plot_population(
         alpha=OPTS["fill_between.alpha"],
         color=handles[0].get_color(),
         label=None,
+    )
+
+
+def _moving_average(x: np.ndarray, w: int, mode: str = "full") -> np.ndarray:
+    """Computes the moving average of x (along axis=1) with window size w."""
+    return np.asarray(
+        [np.convolve(x[i], np.ones(w), mode) / w for i in range(x.shape[0])]
     )
 
 
@@ -99,42 +106,48 @@ def _save2tikz(*figs: Figure) -> None:
 
 
 def plot_traffic_quantities(
-    envsdata: list[dict[str, npt.NDArray[np.floating]]],
-    labels: list[str],
-    paper: bool,
+    envsdata: list[dict[str, npt.NDArray]], labels: list[str], paper: bool
 ) -> None:
     if paper:
-        envsdatum = envsdata[0]
         np_random = np.random.default_rng(0)
+        fig1, axs1 = plt.subplots(2, 1, constrained_layout=True, sharex=True)
+        fig2, ax2 = plt.subplots(1, 1, constrained_layout=True)
 
-        # plot demands
-        fig1, axs = plt.subplots(2, 1, constrained_layout=True, sharex=True)
-        all_demands = envsdatum["demands"].reshape(-1, K, 3)
-        time = np.arange(all_demands.shape[1]) * EC.T * EC.steps * 60
-        for i, (ax, lbl) in enumerate(
-            [(axs[0], "$O_1$"), (axs[0], "$O_2$"), (axs[1], "$D_1$")]
-        ):
-            _plot_population(ax, time, all_demands[..., i], ls="--", color=f"C{i}", )
-            idx = np_random.integers(all_demands.shape[0])
-            ax.plot(time, all_demands[idx, :, i], color=f"C{i}", label=lbl)
-        _adjust_limits(axs)
-        axs[0].set_ylabel("Entering flow (veh/h)")
-        axs[1].set_ylabel("Downstream density\n(veh/km/lane)")
-        ax.set_xlabel("time (min)")
-        [ax.legend(loc="upper right") for ax in axs]
+        for envsdatum in envsdata:
+            # plot demands
+            all_demands = envsdatum["demands"].reshape(-1, K, 3)
+            time = np.arange(all_demands.shape[1]) * EC.T * EC.steps * 60
+            for i, (ax, lbl) in enumerate(
+                [(axs1[0], "$O_1$"), (axs1[0], "$O_2$"), (axs1[1], "$D_1$")]
+            ):
+                _plot_population(
+                    ax,
+                    time,
+                    all_demands[..., i],
+                    ls="--",
+                    color=f"C{i}",
+                )
+                idx = np_random.integers(all_demands.shape[0])
+                ax.plot(time, all_demands[idx, :, i], color=f"C{i}", label=lbl)
 
-        # plot 1st, middle, and last on-ramp queues
-        fig2, ax = plt.subplots(1, 1, constrained_layout=True, sharex=True)
-        idx = [0, 1, 2, 3, 20]
-        O2_queue = envsdatum["state"][..., -1]
-        time = np.arange(O2_queue.shape[2]) * EC.T * EC.steps * 60
-        ax.axhline(y=EC.ramp_max_queue["O2"], color="k", ls="--", label=None)
-        for i, j in enumerate(idx):
-            _plot_population(ax, time, O2_queue[:, j], label=f"Ep. {j}", color=f"C{i}")
-        _adjust_limits((ax,))
-        ax.set_ylabel("$O2$ queue (veh)")
+            # plot 1st, middle, and last on-ramp queues
+            idx = [0, 1, 2, 3, 9]
+            O2_queue = envsdatum["state"][..., -1]
+            time = np.arange(O2_queue.shape[2]) * EC.T * EC.steps * 60
+            ax2.axhline(y=EC.ramp_max_queue["O2"], color="k", ls="--", label=None)
+            for i, j in enumerate(idx):
+                lbl = f"Ep. {j + 1}"
+                _plot_population(ax2, time, O2_queue[:, j], label=lbl, color=f"C{i}")
+
+        _adjust_limits(chain(axs1, (ax2,)))
+        axs1[0].set_ylabel("Entering flow (veh/h)")
+        axs1[1].set_ylabel("Downstream density\n(veh/km/lane)")
         ax.set_xlabel("time (min)")
-        ax.legend(loc="upper right", ncol=1)
+        for ax in axs1:
+            ax.legend(loc="upper right")
+        ax2.set_ylabel("$O2$ queue (veh)")
+        ax2.set_xlabel("time (min)")
+        ax2.legend(loc="upper right", ncol=1)
 
         _save2tikz(fig1, fig2)
     else:
@@ -186,7 +199,7 @@ def plot_traffic_quantities(
 
 
 def plot_costs(
-    envsdata: list[dict[str, npt.NDArray[np.floating]]], labels: list[str], paper: bool
+    envsdata: list[dict[str, npt.NDArray]], labels: list[str], paper: bool
 ) -> None:
     fig, axs = plt.subplots(3, 1, constrained_layout=True, sharex=True)
 
@@ -200,7 +213,7 @@ def plot_costs(
 
     # make plotting
     for costs, ls in zip(envscosts, LINESTYLES):
-        ep = np.arange(costs.shape[1])
+        ep = np.arange(1, costs.shape[1] + 1)
         for ylbl, cost, ax in zip(ylbls, np.rollaxis(costs, 2), axs):
             _plot_population(ax, ep, cost, ls=ls)
             ax.set_ylabel(ylbl)
@@ -208,22 +221,35 @@ def plot_costs(
     # set axis options
     axs[-1].set_xlabel("Learning episode")
     _adjust_limits(axs)
-    _set_axis_opts(axs, intx=True, right=30, bottom=None)
     _add_title(fig, labels)
     if paper:
         _save2tikz(fig)
 
 
 def plot_agent_quantities(
-    agentsdata: list[dict[str, npt.NDArray[np.floating]]],
-    labels: list[str],
-    paper: bool,
+    agentsdata: list[dict[str, npt.NDArray]], labels: list[str], paper: bool
 ) -> None:
     # sourcery skip: low-code-quality
 
     if paper:
-        # plot TD error
-        pass
+        fig1, ax = plt.subplots(1, 1, constrained_layout=True)
+        for agentsdatum in agentsdata:
+            n_agents, n_episodes = agentsdatum["a"].shape[:2]
+
+            # plot TD error
+            td_errors = agentsdatum["td_errors"]
+            # td_sum = np.nansum(td_errors.reshape(n_agents, -1, timesteps_per_ep), -1)
+            wdw = td_errors.shape[1] // n_episodes
+            td_ma = _moving_average(td_errors, wdw, "valid")
+            td_ma = td_ma[:, :: EC.steps * 2]  # reduce number of elements to plot
+            episodes = np.linspace(1, n_episodes, td_ma.shape[1])
+            _plot_population(ax, episodes, td_ma)
+
+        ax.set_xlabel("Learning episode")
+        ax.set_ylabel(r"$\tau$")
+        _adjust_limits((ax,))
+
+        _save2tikz(fig1)
     else:
 
         def plot_pars(
@@ -272,7 +298,7 @@ def plot_agent_quantities(
                 )
 
         # decide what to plot
-        a_key, td_errors_key = None, None
+        a_key = td_errors_key = None
         v_free_keys, rho_crit_keys, weight_keys = [], [], []
         for key in set(chain.from_iterable(agentsdata)):
             if key == "a":
@@ -287,6 +313,7 @@ def plot_agent_quantities(
                 weight_keys.append(key)
             else:
                 raise RuntimeError(f"unexpected key '{key}' in agent's data.")
+        weight_keys = sorted(weight_keys)
         nplots = (
             (a_key is not None)
             + (td_errors_key is not None)

@@ -62,7 +62,5 @@ if __name__ == "__main__":
     if args.all:
         args.traffic = args.cost = args.agent = True
     del args.all
-    if args.paper:
-        assert len(args.filenames) == 1, "can plot paper figures only for one file"
 
     launch_visualization(args)
