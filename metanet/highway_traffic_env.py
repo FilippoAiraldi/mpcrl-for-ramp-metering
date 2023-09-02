@@ -268,17 +268,18 @@ class HighwayTrafficEnv(
         # compute cost of current state L(s,a) (actually, over the last bunch of states)
         # NOTE: since the action is only applied every EC.steps, penalize var_ only once
         tts_, var_, cvi_ = self.stage_cost(s, a, self.last_action)
-        tts = EC.stage_cost_weights["tts"] * np.sum(tts_).item()
-        var = EC.stage_cost_weights["var"] / 100.0 * float(var_[0])
+        tts = np.sum(tts_).item()
+        var = EC.stage_cost_weights["var"] * float(var_[0])
         cvi = EC.stage_cost_weights["cvi"] * np.sum(cvi_).item()
-        cost = tts + var + cvi
+        cost = EC.stage_cost_weights["tts"] * tts + var + cvi
 
         # step the dynamics
         d = cs.DM(next(self.demand).T)
         s_next, flows = self.dynamics_mapaccum(s[:, -1], a, d, self.realpars.values())
 
         # save next state and add information in dict to be saved
-        # NOTE: save only last state and flow for sake of reducing size of results
+        # NOTE: save only last state and flow for sake of reducing size of results; and
+        # don't save the scaled tts, since we want to see its real (unscaled) value
         self.state = np.maximum(0, s_next)
         self.state[(self.state < 0.0) & np.isclose(self.state, 0.0)] = 0.0
         self.last_action = a

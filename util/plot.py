@@ -1,5 +1,5 @@
 from itertools import chain, cycle, repeat
-from typing import Iterable, Literal, Optional, Sequence
+from typing import Iterable, Optional, Sequence
 
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
