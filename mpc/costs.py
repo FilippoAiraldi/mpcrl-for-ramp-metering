@@ -60,12 +60,12 @@ def add_parametric_costs(
     w_stage_rho = mpc.parameter("weight_stage_rho", (n_segments, 1))
     w_stage_v = mpc.parameter("weight_stage_v", (n_segments, 1))
     w_stage_w = mpc.parameter("weight_stage_w", (n_origins, 1))
-    rho_crit_tracking = mpc.parameters["rho_crit"]
-    v_free_tracking = mpc.parameter("v_free_tracking", (1, 1))
+    rho_crit = mpc.parameters["rho_crit"]
+    v_free = mpc.parameters["v_free"]
     for k in range(1, Np):
         J += gammas[k] * (
-            quad_form(w_stage_rho, (rho[:, k] - rho_crit_tracking) / norm_rho)
-            + quad_form(w_stage_v, (v[:, k] - v_free_tracking) / norm_v)
+            quad_form(w_stage_rho, (rho[:, k] - rho_crit) / norm_rho)
+            + quad_form(w_stage_v, (v[:, k] - v_free) / norm_v)
             + quad_form(w_stage_w, w[:, k] / norm_w)
         )
 
@@ -74,8 +74,8 @@ def add_parametric_costs(
     w_terminal_v = mpc.parameter("weight_terminal_v", (n_segments, 1))
     w_terminal_w = mpc.parameter("weight_terminal_w", (n_origins, 1))
     J += gammas[-1] * (
-        quad_form(w_terminal_rho, (rho[:, -1] - rho_crit_tracking) / norm_rho)
-        + quad_form(w_terminal_v, (v[:, -1] - v_free_tracking) / norm_v)
+        quad_form(w_terminal_rho, (rho[:, -1] - rho_crit) / norm_rho)
+        + quad_form(w_terminal_v, (v[:, -1] - v_free) / norm_v)
         + quad_form(w_terminal_w, w[:, -1] / norm_w)
     )
 

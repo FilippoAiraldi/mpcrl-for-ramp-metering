@@ -103,7 +103,6 @@ class MpcRlConstants:
             "rho_crit": ParInfo(rho_crit_, True, (10, EC.rho_max * 0.9), 1),
             "a": ParInfo(a_, True, (1.1, 3.0), 1),  # NOTE: should always be >1
             "v_free": ParInfo(v_free_, True, (30, 300), 1),
-            "v_free_tracking": ParInfo(v_free_, True, (30, 300), 1),
             "weight_tts": ParInfo(
                 EC.stage_cost_weights["tts"], True, (1e-3, np.inf), 1
             ),
