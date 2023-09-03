@@ -17,6 +17,7 @@ from util.constants import EnvConstants as EC
 MARKERS = ("o", "s", "v", "^", ">", "<", "P", "x", "D")
 LINESTYLES = ("-", "--", "-.")
 OPTS = {"fill_between.alpha": 0.25}
+NP_RANDOM = np.random.default_rng(0)
 
 
 def set_mpl_defaults() -> None:
@@ -109,7 +110,6 @@ def plot_traffic_quantities(
     envsdata: list[dict[str, npt.NDArray]], labels: list[str], paper: bool
 ) -> None:
     if paper:
-        np_random = np.random.default_rng(0)
         fig1, axs1 = plt.subplots(2, 1, constrained_layout=True, sharex=True)
         fig2, ax2 = plt.subplots(1, 1, constrained_layout=True)
 
@@ -127,7 +127,7 @@ def plot_traffic_quantities(
                     ls="--",
                     color=f"C{i}",
                 )
-                idx = np_random.integers(all_demands.shape[0])
+                idx = NP_RANDOM.integers(all_demands.shape[0])
                 ax.plot(time, all_demands[idx, :, i], color=f"C{i}", label=lbl)
 
             # plot 1st, middle, and last on-ramp queues
@@ -142,11 +142,11 @@ def plot_traffic_quantities(
         _adjust_limits(chain(axs1, (ax2,)))
         axs1[0].set_ylabel("Entering flow (veh/h)")
         axs1[1].set_ylabel("Downstream density\n(veh/km/lane)")
-        ax.set_xlabel("time (min)")
+        ax.set_xlabel("Time (min)")
         for ax in axs1:
             ax.legend(loc="upper right")
         ax2.set_ylabel("$O2$ queue (veh)")
-        ax2.set_xlabel("time (min)")
+        ax2.set_xlabel("Time (min)")
         ax2.legend(loc="upper right", ncol=1)
 
         _save2tikz(fig1, fig2)
@@ -193,7 +193,7 @@ def plot_traffic_quantities(
         # adjust some opts
         _set_axis_opts(axs)
         for i in (4, 5):
-            axs[i].set_xlabel("time (h)")
+            axs[i].set_xlabel("Time (h)")
         _adjust_limits(axs)
         _add_title(fig, labels)
 
@@ -230,26 +230,31 @@ def plot_agent_quantities(
     agentsdata: list[dict[str, npt.NDArray]], labels: list[str], paper: bool
 ) -> None:
     # sourcery skip: low-code-quality
-
     if paper:
-        fig1, ax = plt.subplots(1, 1, constrained_layout=True)
+        fig1, ax1 = plt.subplots(1, 1, constrained_layout=True)
+        fig2, ax2 = plt.subplots(1, 1, constrained_layout=True)
         for agentsdatum in agentsdata:
             n_agents, n_episodes = agentsdatum["a"].shape[:2]
-
-            # plot TD error
             td_errors = agentsdatum["td_errors"]
-            # td_sum = np.nansum(td_errors.reshape(n_agents, -1, timesteps_per_ep), -1)
-            wdw = td_errors.shape[1] // n_episodes
-            td_ma = _moving_average(td_errors, wdw, "valid")
+
+            # plot moving average of TD error
+            timesteps_per_ep = td_errors.shape[1] // n_episodes
+            td_ma = _moving_average(td_errors, timesteps_per_ep, "valid")
             td_ma = td_ma[:, :: EC.steps * 2]  # reduce number of elements to plot
             episodes = np.linspace(1, n_episodes, td_ma.shape[1])
-            _plot_population(ax, episodes, td_ma)
+            _plot_population(ax1, episodes, td_ma)
 
-        ax.set_xlabel("Learning episode")
-        ax.set_ylabel(r"$\tau$")
-        _adjust_limits((ax,))
+            # plot example of instantaneous TD error
+            td_errors_per_ep = td_errors.reshape(n_agents, -1, timesteps_per_ep)
+            ax2.plot(td_errors_per_ep[0, 2], "o")
 
-        _save2tikz(fig1)
+        ax1.set_xlabel("Learning episode")
+        ax1.set_ylabel(r"$\tau$")
+        ax2.set_xlabel("Time (min)")
+        ax2.set_ylabel(r"$\tau$")
+        _adjust_limits((ax1, ax2))
+
+        _save2tikz(fig1, fig2)
     else:
 
         def plot_pars(

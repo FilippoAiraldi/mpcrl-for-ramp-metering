@@ -1,6 +1,9 @@
 joblib==1.2.0
-matplotlib
+numpy==1.24.4
+matplotlib==3.7.0
+casadi==3.6.3
 csnlp==1.5.7
 mpcrl==1.1.7rc3
 sym-metanet[all]==1.0.7
+scipy==1.11.1
 tqdm==4.64.1
