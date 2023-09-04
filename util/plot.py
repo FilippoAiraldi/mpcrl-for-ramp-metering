@@ -37,13 +37,14 @@ def _set_axis_opts(
     bottom=0,
     top=None,
     intx: bool = False,
+    nbins: int = 6
 ) -> None:
     """Internal utility to customize the x- and y-axis."""
     for ax in axs:
         ax.set_xlim(left=left, right=right)
         ax.set_ylim(bottom=bottom, top=top)
         if intx and not getattr(ax.xaxis.get_major_locator(), "_integer", False):
-            ax.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=5))
+            ax.xaxis.set_major_locator(MaxNLocator(integer=True, nbins=nbins))
 
 
 def _adjust_limits(axs: Iterable[Axes]) -> None:
@@ -116,7 +117,7 @@ def plot_traffic_quantities(
         for envsdatum in envsdata:
             # plot demands
             all_demands = envsdatum["demands"].reshape(-1, K, 3)
-            time = np.arange(all_demands.shape[1]) * EC.T * EC.steps * 60
+            time = np.arange(1, all_demands.shape[1] + 1) * EC.T * EC.steps * 60
             for i, (ax, lbl) in enumerate(
                 [(axs1[0], "$O_1$"), (axs1[0], "$O_2$"), (axs1[1], "$D_1$")]
             ):
@@ -131,11 +132,11 @@ def plot_traffic_quantities(
                 ax.plot(time, all_demands[idx, :, i], color=f"C{i}", label=lbl)
 
             # plot 1st, middle, and last on-ramp queues
-            idx = [0, 1, 2, 3, 9]
+            idx = [0, 2, 5, 19]
             O2_queue = envsdatum["state"][..., -1]
-            time = np.arange(O2_queue.shape[2]) * EC.T * EC.steps * 60
+            time = np.arange(1, O2_queue.shape[2] + 1) * EC.T * EC.steps * 60
             ax2.axhline(y=EC.ramp_max_queue["O2"], color="k", ls="--", label=None)
-            for i, j in enumerate(idx):
+            for i, j in enumerate(idx, start=3):
                 lbl = f"Ep. {j + 1}"
                 _plot_population(ax2, time, O2_queue[:, j], label=lbl, color=f"C{i}")
 
@@ -246,7 +247,8 @@ def plot_agent_quantities(
 
             # plot example of instantaneous TD error
             td_errors_per_ep = td_errors.reshape(n_agents, -1, timesteps_per_ep)
-            ax2.plot(td_errors_per_ep[0, 2], "o")
+            time = np.arange(1, td_errors_per_ep.shape[2] + 1) * EC.T * EC.steps * 60
+            ax2.plot(time, td_errors_per_ep[0, 5], "o")
 
         ax1.set_xlabel("Learning episode")
         ax1.set_ylabel(r"$\tau$")
