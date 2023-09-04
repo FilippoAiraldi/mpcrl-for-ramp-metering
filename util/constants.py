@@ -30,9 +30,7 @@ class EnvConstants:
     ramp_max_queue: ClassVar[dict[str, int]] = {"O2": 50}  # max queues (only ramp O2)
     ramp_min_flow_factor: ClassVar[int] = 10  # min queue on ram
     stage_cost_weights: ClassVar[dict[str, float]] = {  # weight of each contribution
-        "tts": 2.0,
-        "var": 1.6e3,
-        "cvi": 10.0,
+        "tts": 5.0, "var": 1.6e3, "cvi": 5.0
     }
 
 
