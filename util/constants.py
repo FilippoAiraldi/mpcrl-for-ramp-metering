@@ -30,7 +30,9 @@ class EnvConstants:
     ramp_max_queue: ClassVar[dict[str, int]] = {"O2": 50}  # max queues (only ramp O2)
     ramp_min_flow_factor: ClassVar[int] = 10  # min queue on ram
     stage_cost_weights: ClassVar[dict[str, float]] = {  # weight of each contribution
-        "tts": 5.0, "var": 1.6e3, "cvi": 5.0
+        "tts": 5.0,
+        "var": 1.6e3,
+        "cvi": 5.0,
     }
 
 
@@ -102,7 +104,8 @@ class MpcRlConstants:
             "a": ParInfo(a_, True, (1.1, 3.0), 1),  # NOTE: should always be >1
             "v_free": ParInfo(v_free_, True, (30, 300), 1),
             "weight_tts": ParInfo(
-                EC.stage_cost_weights["tts"] / 5, True, (1e-3, np.inf), 1),
+                EC.stage_cost_weights["tts"] / 5, True, (1e-3, np.inf), 1
+            ),
             "weight_var": ParInfo(
                 EC.stage_cost_weights["var"] * 100, True, (1e-3, np.inf), 1
             ),
