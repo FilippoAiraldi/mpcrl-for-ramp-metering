@@ -18,6 +18,23 @@ MARKERS = ("o", "s", "v", "^", ">", "<", "P", "x", "D")
 LINESTYLES = ("-", "--", "-.")
 OPTS = {"fill_between.alpha": 0.25}
 NP_RANDOM = np.random.default_rng(0)
+PARAM_LATEX = {
+    "rho_crit": r"$\tilde{\rho}_{crit}$",
+    "a": r"$\tilde{a}$",
+    "v_free": r"$\tilde{v}_{free}$",
+    "weight_tts": r"$\theta_T$",
+    "weight_var": r"$\theta_V$",
+    "weight_slack": r"$\theta_C$",
+    "weight_init_rho": r"$\theta^\rho_\lambda$",
+    "weight_init_v": r"$\theta^v_\lambda$",
+    "weight_init_w": r"$\theta^w_\lambda$",
+    "weight_stage_rho": r"$\theta^\rho_\ell$",
+    "weight_stage_v": r"$\theta^v_\ell$",
+    "weight_stage_w": r"$\theta^w_\ell$",
+    "weight_terminal_rho": r"$\theta^\rho_\Gamma$",
+    "weight_terminal_v": r"$\theta^v_\Gamma$",
+    "weight_terminal_w": r"$\theta^w_\Gamma$",
+}
 
 
 def set_mpl_defaults() -> None:
@@ -37,7 +54,7 @@ def _set_axis_opts(
     bottom=0,
     top=None,
     intx: bool = False,
-    nbins: int = 6
+    nbins: int = 6,
 ) -> None:
     """Internal utility to customize the x- and y-axis."""
     for ax in axs:
@@ -234,6 +251,7 @@ def plot_agent_quantities(
     if paper:
         fig1, ax1 = plt.subplots(1, 1, constrained_layout=True)
         fig2, ax2 = plt.subplots(1, 1, constrained_layout=True)
+        fig3, axs3 = plt.subplots(5, 3, constrained_layout=True, sharex=True)
         for agentsdatum in agentsdata:
             n_agents, n_episodes = agentsdatum["a"].shape[:2]
             td_errors = agentsdatum["td_errors"]
@@ -250,13 +268,35 @@ def plot_agent_quantities(
             time = np.arange(1, td_errors_per_ep.shape[2] + 1) * EC.T * EC.steps * 60
             ax2.plot(time, td_errors_per_ep[0, 5], "o")
 
+            # TODO: plot some of the parameters more nicely
+
+            # plot all the parameters for the appendix
+            rows = [
+                ("rho_crit", "a", "v_free"),
+                ("weight_tts", "weight_var", "weight_slack"),
+                ("weight_init_rho", "weight_init_v", "weight_init_w"),
+                ("weight_stage_rho", "weight_stage_v", "weight_stage_w"),
+                ("weight_terminal_rho", "weight_terminal_v", "weight_terminal_w"),
+            ]
+            # n_colors = len(plt.rcParams['axes.prop_cycle'])
+            episodes = np.arange(1, n_episodes + 1)
+            for row, axs in zip(rows, axs3):
+                for par_name, ax in zip(row, axs):
+                    parameter = agentsdatum[par_name].reshape(n_agents, n_episodes, -1)
+                    for i, p in enumerate(np.moveaxis(parameter, 2, 0)):
+                        # ls = LINESTYLES[i // n_colors]
+                        _plot_population(ax, episodes[::2], p[:, ::2], color=f"C{i}")
+                    ax.set_ylabel(PARAM_LATEX[par_name])
+
         ax1.set_xlabel("Learning episode")
         ax1.set_ylabel(r"$\tau$")
         ax2.set_xlabel("Time (min)")
         ax2.set_ylabel(r"$\tau$")
-        _adjust_limits((ax1, ax2))
+        for ax in axs3[-1]:
+            ax.set_xlabel("Learning episode")
+        _adjust_limits(chain([ax1, ax2], axs3.flatten()))
 
-        _save2tikz(fig1, fig2)
+        _save2tikz(fig1, fig2, fig3)
     else:
 
         def plot_pars(
