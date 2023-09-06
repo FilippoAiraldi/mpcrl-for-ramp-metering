@@ -235,6 +235,7 @@ def plot_costs(
         for ylbl, cost, ax in zip(ylbls, np.rollaxis(costs, 2), axs):
             _plot_population(ax, ep, cost, ls=ls)
             ax.set_ylabel(ylbl)
+            # ax.set_yscale("log")
 
     # set axis options
     axs[-1].set_xlabel("Learning episode")
@@ -253,7 +254,7 @@ def plot_agent_quantities(
         fig2, ax2 = plt.subplots(1, 1, constrained_layout=True)
         fig3, axs3 = plt.subplots(5, 3, constrained_layout=True, sharex=True)
         for agentsdatum in agentsdata:
-            n_agents, n_episodes = agentsdatum["a"].shape[:2]
+            n_agents, n_episodes = agentsdatum["weight_tts"].shape[:2]
             td_errors = agentsdatum["td_errors"]
 
             # plot moving average of TD error
@@ -262,6 +263,7 @@ def plot_agent_quantities(
             td_ma = td_ma[:, :: EC.steps * 2]  # reduce number of elements to plot
             episodes = np.linspace(1, n_episodes, td_ma.shape[1])
             _plot_population(ax1, episodes, td_ma)
+            # ax1.set_yscale("log")
 
             # plot example of instantaneous TD error
             td_errors_per_ep = td_errors.reshape(n_agents, -1, timesteps_per_ep)
