@@ -55,7 +55,7 @@ class HighwayTrafficMpc(Mpc[SymType]):
         super().__init__(nlp, Np, Nc, EC.steps)
 
         # create dynamics parameters
-        pars = {n: self.parameter(n) for n in env.realpars.keys()}
+        pars = {n: MRC.wrong_dynamics[n] for n in env.realpars}
 
         # create disturbances
         d = self.disturbance("d", env.nd)
