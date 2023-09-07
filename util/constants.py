@@ -100,7 +100,7 @@ class MpcRlConstants:
     #
     parameters: ClassVar[MappingProxyType[str, ParInfo]] = MappingProxyType(
         {
-            "rho_crit": ParInfo(rho_crit_, False, (10, EC.rho_max * 0.9), 1),
+            "rho_crit": ParInfo(rho_crit_, True, (10, EC.rho_max * 0.9), 1),
             "a": ParInfo(a_, True, (1.1, 3.0), 1),  # NOTE: must be > 1
             "v_free": ParInfo(v_free_, False, (30, 300), 1),
             "weight_tts": ParInfo(

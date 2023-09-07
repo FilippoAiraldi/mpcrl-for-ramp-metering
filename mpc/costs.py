@@ -6,6 +6,7 @@ from csnlp.util.math import quad_form
 
 from metanet import HighwayTrafficEnv
 from util.constants import MpcRlConstants as MRC
+from util.constants import rho_crit_
 
 if TYPE_CHECKING:
     from mpc.highway_traffic_mpc import HighwayTrafficMpc
@@ -60,7 +61,7 @@ def add_parametric_costs(
     w_stage_rho = mpc.parameter("weight_stage_rho", (n_segments, 1))
     w_stage_v = mpc.parameter("weight_stage_v", (n_segments, 1))
     w_stage_w = mpc.parameter("weight_stage_w", (n_origins, 1))
-    rho_crit = mpc.parameters["rho_crit"]
+    rho_crit = rho_crit_  # fixed, not learnt
     v_free = mpc.parameters["v_free"]
     for k in range(1, Np):
         J += gammas[k] * (

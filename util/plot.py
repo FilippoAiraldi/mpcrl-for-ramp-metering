@@ -15,7 +15,7 @@ from util.constants import STEPS_PER_SCENARIO as K
 from util.constants import EnvConstants as EC
 
 MARKERS = ("o", "s", "v", "^", ">", "<", "P", "x", "D")
-LINESTYLES = ("-", "--", "-.")
+LINESTYLES = ("-", "--", "-.", ":")
 OPTS = {"fill_between.alpha": 0.25}
 NP_RANDOM = np.random.default_rng(0)
 PARAM_LATEX = {
@@ -75,7 +75,8 @@ def _add_title(fig: Figure, labels: Sequence[str]) -> None:
     """Adds a title to the figure."""
     if len(labels) == 1:
         return
-    fig.suptitle(" vs ".join(f"{lb} ({ls})" for lb, ls in zip(labels, LINESTYLES)))
+    lss = cycle(LINESTYLES)
+    fig.suptitle(" vs ".join(f"{lb} ({ls})" for lb, ls in zip(labels, lss)))
 
 
 def _plot_population(
@@ -230,7 +231,7 @@ def plot_costs(
         envscosts.append(costs)
 
     # make plotting
-    for costs, ls in zip(envscosts, LINESTYLES):
+    for costs, ls in zip(envscosts, cycle(LINESTYLES)):
         ep = np.arange(1, costs.shape[1] + 1)
         for ylbl, cost, ax in zip(ylbls, np.rollaxis(costs, 2), axs):
             _plot_population(ax, ep, cost, ls=ls)
