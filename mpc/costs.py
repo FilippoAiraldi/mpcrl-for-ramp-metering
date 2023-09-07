@@ -6,7 +6,6 @@ from csnlp.util.math import quad_form
 
 from metanet import HighwayTrafficEnv
 from util.constants import MpcRlConstants as MRC
-from util.constants import a_, rho_crit_, v_free_
 
 if TYPE_CHECKING:
     from mpc.highway_traffic_mpc import HighwayTrafficMpc
