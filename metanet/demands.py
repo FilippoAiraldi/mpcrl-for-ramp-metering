@@ -176,7 +176,7 @@ def create_demands(
 
     elif kind == "random":
         time_ = np.concatenate([time + tf * r for r in range(reps)])
-        alpha = 2 / 100
+        alpha = 5 / 100
         L_ = np.tile(L, (reps, 2, 1))
         H_ = np.tile(H, (reps, 2, 1))
         K_ = np.concatenate([K + tf * r for r in range(reps)], -1)
