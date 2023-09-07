@@ -98,15 +98,11 @@ class MpcRlConstants:
         "a": EC.origin_capacities[1],  # action
     }
     #
-    wrong_dynamics: ClassVar[MappingProxyType[str, float]] = MappingProxyType(
-        {
-            "rho_crit": rho_crit_,
-            "a": a_,
-            "v_free": v_free_,
-        }
-    )
     parameters: ClassVar[MappingProxyType[str, ParInfo]] = MappingProxyType(
         {
+            "rho_crit": ParInfo(rho_crit_, False, (10, EC.rho_max * 0.9), 1),
+            "a": ParInfo(a_, False, (1.1, 3.0), 1),  # NOTE: must be > 1
+            "v_free": ParInfo(v_free_, False, (30, 300), 1),
             "weight_tts": ParInfo(
                 EC.stage_cost_weights["tts"] / 5, True, (1e-3, np.inf), 1
             ),

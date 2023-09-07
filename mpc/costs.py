@@ -61,8 +61,8 @@ def add_parametric_costs(
     w_stage_rho = mpc.parameter("weight_stage_rho", (n_segments, 1))
     w_stage_v = mpc.parameter("weight_stage_v", (n_segments, 1))
     w_stage_w = mpc.parameter("weight_stage_w", (n_origins, 1))
-    rho_crit = MRC.wrong_dynamics["rho_crit"]
-    v_free = MRC.wrong_dynamics["v_free"]
+    rho_crit = mpc.parameters["rho_crit"]
+    v_free = mpc.parameters["v_free"]
     for k in range(1, Np):
         J += gammas[k] * (
             quad_form(w_stage_rho, (rho[:, k] - rho_crit) / norm_rho)
