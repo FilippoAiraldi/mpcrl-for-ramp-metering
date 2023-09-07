@@ -284,11 +284,13 @@ def plot_agent_quantities(
             episodes = np.arange(1, n_episodes + 1)
             for row, axs in zip(rows, axs3):
                 for par_name, ax in zip(row, axs):
+                    ax.set_ylabel(PARAM_LATEX[par_name])
+                    if par_name not in agentsdatum:
+                        continue
                     parameter = agentsdatum[par_name].reshape(n_agents, n_episodes, -1)
                     for i, p in enumerate(np.moveaxis(parameter, 2, 0)):
                         # ls = LINESTYLES[i // n_colors]
                         _plot_population(ax, episodes[::2], p[:, ::2], color=f"C{i}")
-                    ax.set_ylabel(PARAM_LATEX[par_name])
 
         ax1.set_xlabel("Learning episode")
         ax1.set_ylabel(r"$\tau$")
