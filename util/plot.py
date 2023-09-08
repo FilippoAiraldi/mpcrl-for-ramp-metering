@@ -84,6 +84,7 @@ def _plot_population(
     x: npt.NDArray,
     y: npt.NDArray,
     use_median: bool = False,
+    log: bool = False,
     marker: Optional[str] = None,
     ls: Optional[str] = None,
     label: Optional[str] = None,
@@ -92,15 +93,10 @@ def _plot_population(
     """Internal utility to plot a quantity from some population of envs/agents."""
     y_avg = (np.nanmedian if use_median else np.nanmean)(y, 0)  # type: ignore[operator]
     y_std = 2 * np.nanstd(y, 0)
-    handles = ax.plot(x, y_avg, label=label, marker=marker, ls=ls, color=color)
-    ax.fill_between(
-        x,
-        y_avg - y_std,
-        y_avg + y_std,
-        alpha=OPTS["fill_between.alpha"],
-        color=handles[0].get_color(),
-        label=None,
-    )
+    method = ax.semilogy if log else ax.plot
+    c = method(x, y_avg, label=label, marker=marker, ls=ls, color=color)[0].get_color()
+    a = OPTS["fill_between.alpha"]
+    ax.fill_between(x, y_avg - y_std, y_avg + y_std, alpha=a, color=c, label=None)
 
 
 def _moving_average(x: np.ndarray, w: int, mode: str = "full") -> np.ndarray:
@@ -134,23 +130,17 @@ def plot_traffic_quantities(
 
         for envsdatum in envsdata:
             # plot demands
-            all_demands = envsdatum["demands"].reshape(-1, K, 3)
-            time = np.arange(1, all_demands.shape[1] + 1) * EC.T * EC.steps * 60
+            demands = envsdatum["demands"].reshape(-1, K, 3)
+            time = np.arange(1, demands.shape[1] + 1) * EC.T * EC.steps * 60
             for i, (ax, lbl) in enumerate(
                 [(axs1[0], "$O_1$"), (axs1[0], "$O_2$"), (axs1[1], "$D_1$")]
             ):
-                _plot_population(
-                    ax,
-                    time,
-                    all_demands[..., i],
-                    ls="--",
-                    color=f"C{i}",
-                )
-                idx = NP_RANDOM.integers(all_demands.shape[0])
-                ax.plot(time, all_demands[idx, :, i], color=f"C{i}", label=lbl)
+                _plot_population(ax, time, demands[..., i], ls="--", color=f"C{i}")
+                idx = NP_RANDOM.integers(demands.shape[0])
+                ax.plot(time, demands[idx, :, i], color=f"C{i}", label=lbl)
 
             # plot 1st, middle, and last on-ramp queues
-            idx = [0, 2, 5, 19]
+            idx = [0, 1, 2, 6]
             O2_queue = envsdatum["state"][..., -1]
             time = np.arange(1, O2_queue.shape[2] + 1) * EC.T * EC.steps * 60
             ax2.axhline(y=EC.ramp_max_queue["O2"], color="k", ls="--", label=None)
@@ -263,19 +253,18 @@ def plot_agent_quantities(
             td_ma = _moving_average(td_errors, timesteps_per_ep, "valid")
             td_ma = td_ma[:, :: EC.steps * 2]  # reduce number of elements to plot
             episodes = np.linspace(1, n_episodes, td_ma.shape[1])
-            _plot_population(ax1, episodes, td_ma)
-            # ax1.set_yscale("log")
+            _plot_population(ax1, episodes, td_ma, log=True)
 
             # plot example of instantaneous TD error
             td_errors_per_ep = td_errors.reshape(n_agents, -1, timesteps_per_ep)
             time = np.arange(1, td_errors_per_ep.shape[2] + 1) * EC.T * EC.steps * 60
-            ax2.plot(time, td_errors_per_ep[0, 5], "o")
+            ax2.plot(time, td_errors_per_ep[0, 3], "o")
 
             # TODO: plot some of the parameters more nicely
 
             # plot all the parameters for the appendix
             rows = [
-                ("rho_crit", "a", "v_free"),
+                ("a", "rho_crit", "v_free"),
                 ("weight_tts", "weight_var", "weight_slack"),
                 ("weight_init_rho", "weight_init_v", "weight_init_w"),
                 ("weight_stage_rho", "weight_stage_v", "weight_stage_w"),
@@ -283,15 +272,17 @@ def plot_agent_quantities(
             ]
             # n_colors = len(plt.rcParams['axes.prop_cycle'])
             episodes = np.arange(1, n_episodes + 1)
+            idx = np.arange(0, n_episodes, 2).tolist() + [n_episodes - 1]
             for row, axs in zip(rows, axs3):
                 for par_name, ax in zip(row, axs):
                     ax.set_ylabel(PARAM_LATEX[par_name])
                     if par_name not in agentsdatum:
+                        ax.set_axis_off()
                         continue
                     parameter = agentsdatum[par_name].reshape(n_agents, n_episodes, -1)
                     for i, p in enumerate(np.moveaxis(parameter, 2, 0)):
                         # ls = LINESTYLES[i // n_colors]
-                        _plot_population(ax, episodes[::2], p[:, ::2], color=f"C{i}")
+                        _plot_population(ax, episodes[idx], p[:, idx], color=f"C{i}")
 
         ax1.set_xlabel("Learning episode")
         ax1.set_ylabel(r"$\tau$")
