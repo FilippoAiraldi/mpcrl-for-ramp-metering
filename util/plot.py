@@ -443,7 +443,7 @@ def plot_agent_quantities(
 
 def other_plots():
     # plot of Veq
-    _, ax = plt.subplots(1, 1, constrained_layout=True)
+    fig1, ax1 = plt.subplots(1, 1, constrained_layout=True)
     fns = [
         r"sims/sim_15_dynamics_a.xz",
         r"sims/sim_15_dynamics_a_rho_wo_track_higher_var.xz",
@@ -452,7 +452,7 @@ def other_plots():
     rho = np.linspace(0, 160, 300).reshape(-1, 1, 1)
     rho_ = rho.flatten()
     v_free_true = EC.v_free * np.exp(-1 / EC.a * np.power(rho / EC.rho_crit, EC.a))
-    ax.plot(rho_, v_free_true.flatten(), "k--", label=r"True $V_{eq}$")
+    ax1.plot(rho_, v_free_true.flatten(), "k--", label=r"True $V_{eq}$")
     for (_, _, agentsdatum), lbl in zip(io.load_data(fns), lbls):
         n_agents, n_episodes = agentsdatum["a"].shape[:2]
         a = agentsdatum["a"].reshape(n_agents, n_episodes)
@@ -461,11 +461,49 @@ def other_plots():
         else:
             rho_crit = np.full((n_agents, n_episodes), 0.7 * EC.rho_crit)
         v_free = 1.3 * EC.v_free * np.exp(-1 / a * np.power(rho / rho_crit, a))
-        _plot_population(ax, rho_, v_free[..., 0].T, label=r"$V_{eq}$ Ep. 1 " + lbl)
-        _plot_population(
-            ax,
-            rho_,
-            v_free[..., -1].T,
-            label=r"$V_{eq}$ Ep. 80 " + lbl,
-        )
-    ax.legend()
+        _plot_population(ax1, rho_, v_free[..., 0].T, label=r"$V_{eq}$ Ep. 1 " + lbl)
+        _plot_population(ax1, rho_, v_free[..., -1].T, label=r"$V_{eq}$ Ep. 80 " + lbl)
+    _adjust_limits([ax1])
+    ax1.legend()
+
+    # plot comparison of performances of different parametrisations
+    fig2, axs2 = plt.subplots(3, 1, constrained_layout=True, sharex=True)
+    fns = [
+        r"sims/sim_15_no_dynamics.xz",
+        r"sims/sim_15_dynamics_a.xz",
+        r"sims/sim_15_dynamics_a_rho_wo_track.xz",
+        r"sims/sim_15_dynamics_a_rho_with_track.xz",
+        r"sims/sim_15_dynamics_a_v_wo_track.xz",
+        r"sims/sim_15_dynamics_a_v_with_track.xz",
+        r"sims/sim_15_dynamics_a_rho_v_wo_track.xz",
+        r"sims/sim_15_dynamics_a_rho_v_with_track.xz",
+    ]
+    labels = [
+        r"Not Learning Dynamics",
+        r"Learning $a$",
+        r"Learning $a$ and $\rho_{crit}$ (no tracking)",
+        r"Learning $a$ and $\rho_{crit}$ (with tracking)",
+        r"Learning $a$ and $v_{free}$ (no tracking)",
+        r"Learning $a$ and $v_{free}$ (with tracking)",
+        r"Learning $a$, $\rho_{crit}$ and $v_{free}$ (no tracking)",
+        r"Learning $a$, $\rho_{crit}$ and $v_{free}$ (with tracking)",
+    ]
+    labels = iter(labels)
+    costnames = ("tts", "var", "cvi")
+    ylbls = ("TTS", "Control variability", "Constraint violation")
+    envscosts: list[np.ndarray] = []
+    for _, envsdatum, _ in io.load_data(fns):
+        costs = np.stack([envsdatum[n].sum(2) for n in costnames], axis=-1)
+        envscosts.append(costs)
+    for costs, lbl in zip(envscosts, labels):
+        ep = np.arange(1, costs.shape[1] + 1)
+        for ylbl, cost, ax in zip(ylbls, np.rollaxis(costs, 2), axs2):
+            ax.set_ylabel(ylbl)
+            ax.plot(ep, np.nanmean(cost, 0), label=lbl if ylbl == "TTS" else None)
+            if ylbl.startswith("Constraint"):
+                ax.set_yscale("log")
+    axs2[-1].set_xlabel("Learning episode")
+    _adjust_limits(axs2)
+    fig2.legend(loc="outside upper center", ncols=2)
+
+    _save2tikz(fig1, fig2)
