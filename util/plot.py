@@ -11,6 +11,7 @@ from matplotlib.figure import Figure
 from matplotlib.lines import Line2D
 from matplotlib.ticker import MaxNLocator
 
+from util import io
 from util.constants import STEPS_PER_SCENARIO as K
 from util.constants import EnvConstants as EC
 
@@ -438,3 +439,33 @@ def plot_agent_quantities(
         for val, ax in zip((EC.a, EC.rho_crit, EC.v_free), (a_ax, rho_ax, v_ax)):
             if ax is not None:
                 plot_(val, ax)
+
+
+def other_plots():
+    # plot of Veq
+    _, ax = plt.subplots(1, 1, constrained_layout=True)
+    fns = [
+        r"sims/sim_15_dynamics_a.xz",
+        r"sims/sim_15_dynamics_a_rho_wo_track_higher_var.xz",
+    ]
+    lbls = [r"($a$)", r"($a, \rho_{crit}$)"]
+    rho = np.linspace(0, 160, 300).reshape(-1, 1, 1)
+    rho_ = rho.flatten()
+    v_free_true = EC.v_free * np.exp(-1 / EC.a * np.power(rho / EC.rho_crit, EC.a))
+    ax.plot(rho_, v_free_true.flatten(), "k--", label=r"True $V_{eq}$")
+    for (_, _, agentsdatum), lbl in zip(io.load_data(fns), lbls):
+        n_agents, n_episodes = agentsdatum["a"].shape[:2]
+        a = agentsdatum["a"].reshape(n_agents, n_episodes)
+        if "rho_crit" in agentsdatum:
+            rho_crit = agentsdatum["rho_crit"].reshape(n_agents, n_episodes)
+        else:
+            rho_crit = np.full((n_agents, n_episodes), 0.7 * EC.rho_crit)
+        v_free = 1.3 * EC.v_free * np.exp(-1 / a * np.power(rho / rho_crit, a))
+        _plot_population(ax, rho_, v_free[..., 0].T, label=r"$V_{eq}$ Ep. 1 " + lbl)
+        _plot_population(
+            ax,
+            rho_,
+            v_free[..., -1].T,
+            label=r"$V_{eq}$ Ep. 80 " + lbl,
+        )
+    ax.legend()

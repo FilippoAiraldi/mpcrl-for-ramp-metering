@@ -14,6 +14,8 @@ def launch_visualization(args: argparse.Namespace):
         plot.plot_costs(envsdata, names, args.paper)
     if args.agent:
         plot.plot_agent_quantities(agentsdata, names, args.paper)
+    if args.paper and args.others:
+        plot.other_plots()
     plt.show()
 
 
@@ -57,10 +59,16 @@ if __name__ == "__main__":
         action="store_true",
         help="Plots figures for paper.",
     )
+    group.add_argument(
+        "-O",
+        "--others",
+        action="store_true",
+        help="Plots other figures.",
+    )
 
     args = parser.parse_args()
     if args.all:
-        args.traffic = args.cost = args.agent = True
+        args.traffic = args.cost = args.agent = args.others = True
     del args.all
 
     launch_visualization(args)
