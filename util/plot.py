@@ -531,3 +531,5 @@ def other_plots():
         ax.set_xlabel("Time (min)")
     for ax in axs3[:, 0]:
         ax.set_ylabel("Location (km)")
+
+    _save2tikz(fig2, fig3)
