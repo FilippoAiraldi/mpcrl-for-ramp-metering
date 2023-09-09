@@ -506,4 +506,28 @@ def other_plots():
     _adjust_limits(axs2)
     fig2.legend(loc="outside upper center", ncols=2)
 
-    _save2tikz(fig1, fig2)
+    # heatmap of traffic quantities
+    fig3, axs3 = plt.subplots(3, 2, constrained_layout=True, sharex=True, sharey=True)
+    fn = r"sims/sim_15_dynamics_a_rho_wo_track_higher_var.xz"
+    _, envsdatum, _ = next(io.load_data((fn,)))
+    rho, v, _ = np.array_split(envsdatum["state"], 3, axis=-1)  # rho, v and w
+    q = envsdatum["flow"][..., :3]
+    rho, v, q = (o.mean(0) for o in (rho, v, q))
+    time, loc = np.meshgrid(
+        np.arange(1, rho.shape[1] + 1), np.arange(1, rho.shape[2] + 1)
+    )
+    cmplbls = [r"$\rho$ (veh/km/lane)", r"$v$ (km/h)", r"$q$ (veh/h)"]
+    for arr, cmplbl, axs in zip((rho, v, q), cmplbls, axs3):
+        arr_first_ep, arr_last_ep = arr[0], arr[-1]
+        vmax = max(arr_first_ep.max(), arr_last_ep.max())
+        kwargs = {"vmin": 0, "vmax": vmax, "cmap": "RdBu_r"}
+        axs[0].pcolormesh(time, loc, arr_first_ep.T, **kwargs)
+        pcm = axs[1].pcolormesh(time, loc, arr_last_ep.T, **kwargs)
+        fig3.colorbar(pcm, ax=axs, label=cmplbl)
+
+    axs3[0, 0].set_title("Episode 1")
+    axs3[0, 1].set_title(f"Episode {rho.shape[0]}")
+    for ax in axs3[2, :]:
+        ax.set_xlabel("Time (min)")
+    for ax in axs3[:, 0]:
+        ax.set_ylabel("Location (km)")
