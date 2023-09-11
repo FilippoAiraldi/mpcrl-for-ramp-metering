@@ -131,7 +131,8 @@ def plot_traffic_quantities(
 
         for envsdatum in envsdata:
             # plot demands
-            demands = envsdatum["demands"].reshape(-1, K, 3)
+            demands = envsdatum["demands"]
+            demands = demands.reshape(-1, *demands.shape[2:])
             time = np.arange(1, demands.shape[1] + 1) * EC.T * EC.steps * 60
             for i, (ax, lbl) in enumerate(
                 [(axs1[0], "$O_1$"), (axs1[0], "$O_2$"), (axs1[1], "$D_1$")]
@@ -443,7 +444,7 @@ def plot_agent_quantities(
 
 def other_plots():
     # plot of Veq
-    fig1, ax1 = plt.subplots(1, 1, constrained_layout=True)
+    _, ax1 = plt.subplots(1, 1, constrained_layout=True)
     fns = [
         r"sims/sim_15_dynamics_a.xz",
         r"sims/sim_15_dynamics_a_rho_wo_track_higher_var.xz",
@@ -467,44 +468,41 @@ def other_plots():
     ax1.legend()
 
     # plot comparison of performances of different parametrisations
-    fig2, axs2 = plt.subplots(3, 1, constrained_layout=True, sharex=True)
-    fns = [
-        r"sims/sim_15_no_dynamics.xz",
-        r"sims/sim_15_dynamics_a.xz",
-        r"sims/sim_15_dynamics_a_rho_wo_track.xz",
-        r"sims/sim_15_dynamics_a_rho_with_track.xz",
-        r"sims/sim_15_dynamics_a_v_wo_track.xz",
-        r"sims/sim_15_dynamics_a_v_with_track.xz",
-        r"sims/sim_15_dynamics_a_rho_v_wo_track.xz",
-        r"sims/sim_15_dynamics_a_rho_v_with_track.xz",
+    fig2, axs2_all = plt.subplots(2, 2, constrained_layout=True, sharex=True)
+    axs2 = [axs2_all[0, 0], *axs2_all[1, :]]
+    fns_and_labels = [
+        ("no_dynamics.xz", r"None"),
+        ("dynamics_a.xz", r"$a$"),
+        ("dynamics_a_rho_wo_track.xz", r"$a$, $\rho_{crit}$ (ours)"),
+        ("dynamics_a_rho_with_track.xz", r"$a$, $\rho_{crit}$ (tracking)"),
+        ("dynamics_a_v_wo_track.xz", r"$a$, $v_{free}$"),
+        ("dynamics_a_v_with_track.xz", r"$a$, $v_{free}$ (tracking)"),
+        ("dynamics_a_rho_v_wo_track.xz", r"$a$, $\rho_{crit}$, $v_{free}$"),
+        ("dynamics_a_rho_v_with_track.xz", r"$a$, $\rho_{crit}$, $v_{free}$ (tracking)"),
     ]
-    labels = [
-        r"Not Learning Dynamics",
-        r"Learning $a$",
-        r"Learning $a$ and $\rho_{crit}$ (no tracking)",
-        r"Learning $a$ and $\rho_{crit}$ (with tracking)",
-        r"Learning $a$ and $v_{free}$ (no tracking)",
-        r"Learning $a$ and $v_{free}$ (with tracking)",
-        r"Learning $a$, $\rho_{crit}$ and $v_{free}$ (no tracking)",
-        r"Learning $a$, $\rho_{crit}$ and $v_{free}$ (with tracking)",
-    ]
-    labels = iter(labels)
+    fns, labels = zip(*fns_and_labels)
     costnames = ("tts", "var", "cvi")
     ylbls = ("TTS", "Control variability", "Constraint violation")
     envscosts: list[np.ndarray] = []
-    for _, envsdatum, _ in io.load_data(fns):
+    for _, envsdatum, _ in io.load_data(f"sims/sim_15_{fn}" for fn in fns):
         costs = np.stack([envsdatum[n].sum(2) for n in costnames], axis=-1)
         envscosts.append(costs)
-    for costs, lbl in zip(envscosts, labels):
+    for costs, marker in zip(envscosts, MARKERS):
         ep = np.arange(1, costs.shape[1] + 1)
         for ylbl, cost, ax in zip(ylbls, np.rollaxis(costs, 2), axs2):
-            ax.set_ylabel(ylbl)
-            ax.plot(ep, np.nanmean(cost, 0), label=lbl if ylbl == "TTS" else None)
             if ylbl.startswith("Constraint"):
+                ax.plot(ep, np.nanmean(cost, 0), marker=marker, ls="")
                 ax.set_yscale("log")
-    axs2[-1].set_xlabel("Learning episode")
+            else:
+                ax.plot(ep, np.nanmean(cost, 0))
+            ax.set_ylabel(ylbl)
+    for ax in axs2[1:]:
+        ax.set_xlabel("Learning episode")
     _adjust_limits(axs2)
-    fig2.legend(loc="outside upper center", ncols=2)
+    for lbl, marker in zip(labels, MARKERS):  # just for legend
+        axs2_all[0, 1].plot(0, 0, marker=marker, label=lbl)
+    axs2_all[0, 1].set_axis_off()
+    axs2_all[0, 1].legend(labels, loc="center", ncol=2)
 
     # heatmap of traffic quantities
     fig3, axs3 = plt.subplots(3, 2, constrained_layout=True, sharex=True, sharey=True)
@@ -529,7 +527,8 @@ def other_plots():
     axs3[0, 1].set_title(f"Episode {rho.shape[0]}")
     for ax in axs3[2, :]:
         ax.set_xlabel("Time (min)")
-    for ax in axs3[:, 0]:
-        ax.set_ylabel("Location (km)")
+    for ax in axs3[:3, 0]:
+        ax.set_yticks([1, 2, 3])
+        ax.set_yticklabels((r"$S_1$", r"$S_2$", r"$S_3$"))
 
     _save2tikz(fig2, fig3)
