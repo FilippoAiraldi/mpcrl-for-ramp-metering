@@ -245,7 +245,8 @@ def plot_agent_quantities(
     if paper:
         fig1, ax1 = plt.subplots(1, 1, constrained_layout=True)
         fig2, ax2 = plt.subplots(1, 1, constrained_layout=True)
-        fig3, axs3 = plt.subplots(5, 3, constrained_layout=True, sharex=True)
+        fig3, axs3 = plt.subplots(2, 2, constrained_layout=True, sharex=True)
+        fig4, axs4 = plt.subplots(5, 3, constrained_layout=True, sharex=True)
         for agentsdatum in agentsdata:
             n_agents, n_episodes = agentsdatum["weight_tts"].shape[:2]
             td_errors = agentsdatum["td_errors"]
@@ -262,7 +263,21 @@ def plot_agent_quantities(
             time = np.arange(1, td_errors_per_ep.shape[2] + 1) * EC.T * EC.steps * 60
             ax2.plot(time, td_errors_per_ep[0, 3], "o")
 
-            # TODO: plot some of the parameters more nicely
+            # plot some of the parameters more nicely
+            episodes = np.arange(1, n_episodes + 1)
+            parameters = [
+                ("a", EC.a),
+                ("rho_crit", EC.rho_crit),
+                ("weight_tts", EC.stage_cost_weights["tts"]),
+                ("weight_var", EC.stage_cost_weights["var"]),
+            ]
+            for (name, true_parameter), ax in zip(parameters, axs3.flat):
+                ax.axhline(y=true_parameter, color="darkgrey", ls="--")
+                parameter = agentsdatum[name].reshape(n_agents, n_episodes)
+                _plot_population(ax, episodes, parameter)
+                ax.set_ylabel(PARAM_LATEX[name])
+                if name == "weight_var":
+                    ax.set_yscale("log")
 
             # plot all the parameters for the appendix
             rows = [
@@ -275,7 +290,7 @@ def plot_agent_quantities(
             # n_colors = len(plt.rcParams['axes.prop_cycle'])
             episodes = np.arange(1, n_episodes + 1)
             idx = np.arange(0, n_episodes, 2).tolist() + [n_episodes - 1]
-            for row, axs in zip(rows, axs3):
+            for row, axs in zip(rows, axs4):
                 for par_name, ax in zip(row, axs):
                     ax.set_ylabel(PARAM_LATEX[par_name])
                     if par_name not in agentsdatum:
@@ -292,9 +307,11 @@ def plot_agent_quantities(
         ax2.set_ylabel(r"$\tau$")
         for ax in axs3[-1]:
             ax.set_xlabel("Learning episode")
-        _adjust_limits(chain([ax1, ax2], axs3.flatten()))
+        for ax in axs4[-1]:
+            ax.set_xlabel("Learning episode")
+        _adjust_limits(chain([ax1, ax2], axs3.flat, axs4.flat))
 
-        _save2tikz(fig1, fig2, fig3)
+        _save2tikz(fig1, fig2, fig3, fig4)
     else:
 
         def plot_pars(
