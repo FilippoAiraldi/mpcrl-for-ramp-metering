@@ -1,5 +1,6 @@
+from collections.abc import Iterable
 from itertools import chain, takewhile
-from typing import Iterable, Optional, TypeVar, Union
+from typing import TypeVar
 
 import casadi as cs
 import numpy as np
@@ -26,7 +27,7 @@ class HighwayTrafficMpc(Mpc[SymType]):
         env: HighwayTrafficEnv,
         discount: float,
         parametric_cost_terms: bool,
-        seed: Optional[int] = None,
+        seed: int | None = None,
     ) -> None:
         """Builds an instance of the MPC controller for traffic control.
 
@@ -150,9 +151,9 @@ class HighwayTrafficMpc(Mpc[SymType]):
 
     def __call__(
         self,
-        pars: Optional[dict[str, npt.ArrayLike]] = None,
-        vals0: Optional[dict[str, npt.ArrayLike]] = None,
-    ) -> Union[Solution[SymType], list[Solution[SymType]]]:
+        pars: dict[str, npt.ArrayLike] | None = None,
+        vals0: dict[str, npt.ArrayLike] | None = None,
+    ) -> Solution[SymType] | list[Solution[SymType]]:
         if not self.nlp.is_multi:
             return self.nlp.solve(pars, vals0)
 

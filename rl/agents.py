@@ -1,5 +1,5 @@
 from logging import DEBUG, INFO
-from typing import Literal, Type, TypeVar
+from typing import Literal, TypeVar
 
 import casadi as cs
 import numpy as np
@@ -85,7 +85,7 @@ class HighwayTrafficPkAgent(Agent[SymType]):
 
     @classmethod
     def wrapped(
-        cls: Type[AgentType], verbose: Literal[0, 1, 2, 3], *agent_args, **agent_kwargs
+        cls: type[AgentType], verbose: Literal[0, 1, 2, 3], *agent_args, **agent_kwargs
     ) -> AgentType:
         """Allows to build an instance of the agent that can be wrapped in the following
         wrappers (from inner to outer, where the outer returns last):
@@ -117,7 +117,7 @@ class HighwayTrafficLstdQLearningAgent(LstdQLearningAgent[SymType, float]):
 
     @classmethod
     def wrapped(
-        cls: Type[AgentType], verbose: Literal[0, 1, 2, 3], *agent_args, **agent_kwargs
+        cls: type[AgentType], verbose: Literal[0, 1, 2, 3], *agent_args, **agent_kwargs
     ) -> AgentType:
         """Allows to build an instance of the agent that can be wrapped in the following
         wrappers (from inner to outer, where the outer returns last):

@@ -1,4 +1,5 @@
-from typing import Callable, Literal, TypeVar, Union
+from collections.abc import Callable
+from typing import Literal, TypeVar
 from warnings import warn
 
 import casadi as cs
@@ -14,7 +15,7 @@ def get_network(
     origin_capacities: tuple[float, float],
     rho_max: float,
     sym_type: Literal["SX", "MX"],
-) -> tuple[metanet.Network, dict[str, Union[cs.SX, cs.MX]]]:
+) -> tuple[metanet.Network, dict[str, cs.SX | cs.MX]]:
     """Builds the target highway network.
 
     Parameters

@@ -1,5 +1,5 @@
 from functools import cached_property
-from typing import Any, Literal, Optional, SupportsFloat, Type, TypeVar
+from typing import Any, Literal, SupportsFloat, TypeVar
 
 import casadi as cs
 import gymnasium as gym
@@ -148,7 +148,7 @@ class HighwayTrafficEnv(
         )
 
         # initialize storage for past demands
-        self.demands: Optional[list[npt.NDArray[np.floating]]] = (
+        self.demands: list[npt.NDArray[np.floating]] | None = (
             [] if store_demands else None
         )
 
@@ -178,7 +178,7 @@ class HighwayTrafficEnv(
         return len(self.network.origins)
 
     def reset(
-        self, *, seed: Optional[int] = None, options: Optional[dict[str, Any]] = None
+        self, *, seed: int | None = None, options: dict[str, Any] | None = None
     ) -> tuple[npt.NDArray[np.floating], dict[str, Any]]:
         """Resets the environment to an initial internal state, returning an initial
         observation and info.
@@ -297,8 +297,8 @@ class HighwayTrafficEnv(
 
     @classmethod
     def wrapped(
-        cls: Type[EnvType],
-        monitor_deques_size: Optional[int] = None,
+        cls: type[EnvType],
+        monitor_deques_size: int | None = None,
         normalize_rewards: bool = True,
         normalization_gamma: float = 0.99,
         *env_args,

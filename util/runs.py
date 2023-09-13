@@ -2,7 +2,6 @@ import contextlib
 import re
 import unicodedata
 from datetime import datetime
-from typing import Optional
 
 import joblib
 from tqdm import tqdm
@@ -40,7 +39,7 @@ def slugify(value: str, allow_unicode: bool = False) -> str:
     return re.sub(r"[-\s]+", "-", value).strip("-_")
 
 
-def get_runname(candidate: Optional[str] = None) -> str:
+def get_runname(candidate: str | None = None) -> str:
     """Gets the name for this run, and makes sure it can be used as filename.
 
     Parameters

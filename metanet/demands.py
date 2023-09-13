@@ -1,5 +1,5 @@
 from itertools import chain
-from typing import Literal, Union
+from typing import Literal
 
 import numpy as np
 import numpy.typing as npt
@@ -124,7 +124,7 @@ def create_demands(
     steps_per_iteration: int = 1,
     kind: Literal["constant", "random"] = "constant",
     noise: tuple[float, float, float] = (100.0, 100.0, 2.5),
-    seed: Union[None, int, np.random.SeedSequence, np.random.Generator] = None,
+    seed: None | int | np.random.SeedSequence | np.random.Generator = None,
 ) -> Demands:
     """Creates the demands for the highway origins O1 and O2, and the destination D1.
 

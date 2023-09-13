@@ -1,5 +1,5 @@
+from collections.abc import Iterable, Sequence
 from itertools import chain, cycle, repeat
-from typing import Iterable, Optional, Sequence
 
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
@@ -86,10 +86,10 @@ def _plot_population(
     y: npt.NDArray,
     use_median: bool = False,
     log: bool = False,
-    marker: Optional[str] = None,
-    ls: Optional[str] = None,
-    label: Optional[str] = None,
-    color: Optional[str] = None,
+    marker: str | None = None,
+    ls: str | None = None,
+    label: str | None = None,
+    color: str | None = None,
 ) -> None:
     """Internal utility to plot a quantity from some population of envs/agents."""
     y_avg = (np.nanmedian if use_median else np.nanmean)(y, 0)  # type: ignore[operator]
@@ -495,7 +495,10 @@ def other_plots():
         ("dynamics_a_v_wo_track.xz", r"$a$, $v_{free}$"),
         ("dynamics_a_v_with_track.xz", r"$a$, $v_{free}$ (tracking)"),
         ("dynamics_a_rho_v_wo_track.xz", r"$a$, $\rho_{crit}$, $v_{free}$"),
-        ("dynamics_a_rho_v_with_track.xz", r"$a$, $\rho_{crit}$, $v_{free}$ (tracking)"),
+        (
+            "dynamics_a_rho_v_with_track.xz",
+            r"$a$, $\rho_{crit}$, $v_{free}$ (tracking)",
+        ),
     ]
     fns, labels = zip(*fns_and_labels)
     costnames = ("tts", "var", "cvi")

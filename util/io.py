@@ -1,5 +1,6 @@
+from collections.abc import Collection, Iterable, Iterator
 from pathlib import Path
-from typing import Any, Collection, Iterable, Iterator, Literal, Optional
+from typing import Any, Literal
 from warnings import warn
 
 import numpy as np
@@ -103,9 +104,8 @@ def save_data(
     filename: str,
     agent_type: Literal["pk", "lstdq"],
     data: Collection[Any],
-    compression: Optional[
-        Literal["lzma", "bz2", "gzip", "brotli", "blosc2", "matlab"]
-    ] = None,
+    compression: None
+    | (Literal["lzma", "bz2", "gzip", "brotli", "blosc2", "matlab"]) = None,
     **info: Any,
 ) -> None:
     """Saves the simulation data to a file.
