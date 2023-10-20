@@ -48,7 +48,7 @@ pip install -r requirements.txt
 
 The repository code is structured in the following way
 
-- **`metanet`** contains the implementation of the training environment, which represent the traffic network benchmark, and is based on the METANET modelling framework. The implementation follows the standarda OpenAI's `gym` style
+- **`metanet`** contains the implementation of the training environment, which represent the traffic network benchmark, and is based on the METANET modelling framework, implemented in [sym-metanet](https://github.com/FilippoAiraldi/sym-metanet). The API follows the standarda OpenAI's `gym` style
 - **`mpc`** contains the implementation of the MPC optimization scheme, which is based on [csnlp](https://github.com/FilippoAiraldi/casadi-nlp)
 - **`resouces`** contains media and other miscellaneous resources
 - **`rl`** contains the implementation of the RL agents, which are based on [mpcrl](https://github.com/FilippoAiraldi/mpc-reinforcement-learning)
