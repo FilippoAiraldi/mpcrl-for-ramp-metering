@@ -460,41 +460,40 @@ def plot_agent_quantities(
 
 
 def other_plots():
-    # plot of Veq
-    _, ax1 = plt.subplots(1, 1, constrained_layout=True)
-    fns = [
-        r"sims/sim_15_dynamics_a.xz",
-        r"sims/sim_15_dynamics_a_rho_wo_track_higher_var.xz",
-    ]
-    lbls = [r"($a$)", r"($a, \rho_{crit}$)"]
-    rho = np.linspace(0, 160, 300).reshape(-1, 1, 1)
-    rho_ = rho.flatten()
-    v_free_true = EC.v_free * np.exp(-1 / EC.a * np.power(rho / EC.rho_crit, EC.a))
-    ax1.plot(rho_, v_free_true.flatten(), "k--", label=r"True $V_{eq}$")
-    for (_, _, agentsdatum), lbl in zip(io.load_data(fns), lbls):
-        n_agents, n_episodes = agentsdatum["a"].shape[:2]
-        a = agentsdatum["a"].reshape(n_agents, n_episodes)
-        if "rho_crit" in agentsdatum:
-            rho_crit = agentsdatum["rho_crit"].reshape(n_agents, n_episodes)
-        else:
-            rho_crit = np.full((n_agents, n_episodes), 0.7 * EC.rho_crit)
-        v_free = 1.3 * EC.v_free * np.exp(-1 / a * np.power(rho / rho_crit, a))
-        _plot_population(ax1, rho_, v_free[..., 0].T, label=r"$V_{eq}$ Ep. 1 " + lbl)
-        _plot_population(ax1, rho_, v_free[..., -1].T, label=r"$V_{eq}$ Ep. 80 " + lbl)
-    _adjust_limits([ax1])
-    ax1.legend()
+    # # plot of Veq
+    # _, ax1 = plt.subplots(1, 1, constrained_layout=True)
+    # fns = [
+    #     r"sims/sim_15_dynamics_a.xz",
+    #     r"sims/sim_15_dynamics_a_rho_wo_track_higher_var.xz",
+    # ]
+    # lbls = [r"($a$)", r"($a, \rho_{crit}$)"]
+    # rho = np.linspace(0, 160, 300).reshape(-1, 1, 1)
+    # rho_ = rho.flatten()
+    # v_free_true = EC.v_free * np.exp(-1 / EC.a * np.power(rho / EC.rho_crit, EC.a))
+    # ax1.plot(rho_, v_free_true.flatten(), "k--", label=r"True $V_{eq}$")
+    # for (_, _, agentsdatum), lbl in zip(io.load_data(fns), lbls):
+    #     n_agents, n_episodes = agentsdatum["a"].shape[:2]
+    #     a = agentsdatum["a"].reshape(n_agents, n_episodes)
+    #     if "rho_crit" in agentsdatum:
+    #         rho_crit = agentsdatum["rho_crit"].reshape(n_agents, n_episodes)
+    #     else:
+    #         rho_crit = np.full((n_agents, n_episodes), 0.7 * EC.rho_crit)
+    #     v_free = 1.3 * EC.v_free * np.exp(-1 / a * np.power(rho / rho_crit, a))
+    #     _plot_population(ax1, rho_, v_free[..., 0].T, label=r"$V_{eq}$ Ep. 1 " + lbl)
+    #     _plot_population(ax1, rho_, v_free[..., -1].T, label=r"$V_{eq}$ Ep. 80 " + lbl)
+    # _adjust_limits([ax1])
+    # ax1.legend()
 
     # plot comparison of performances of different parametrisations
-    fig2, axs2_all = plt.subplots(2, 2, constrained_layout=True, sharex=True)
-    axs2 = [axs2_all[0, 0], *axs2_all[1, :]]
+    fig2, axs2 = plt.subplots(4, 1, constrained_layout=True, sharex=True)
     fns_and_labels = [
         ("no_dynamics.xz", r"None"),
-        ("dynamics_a.xz", r"$a$"),
         ("dynamics_a_rho_wo_track.xz", r"$a$, $\rho_{crit}$ (ours)"),
-        ("dynamics_a_rho_with_track.xz", r"$a$, $\rho_{crit}$ (tracking)"),
         ("dynamics_a_v_wo_track.xz", r"$a$, $v_{free}$"),
-        ("dynamics_a_v_with_track.xz", r"$a$, $v_{free}$ (tracking)"),
         ("dynamics_a_rho_v_wo_track.xz", r"$a$, $\rho_{crit}$, $v_{free}$"),
+        ("dynamics_a.xz", r"$a$"),
+        ("dynamics_a_rho_with_track.xz", r"$a$, $\rho_{crit}$ (tracking)"),
+        ("dynamics_a_v_with_track.xz", r"$a$, $v_{free}$ (tracking)"),
         (
             "dynamics_a_rho_v_with_track.xz",
             r"$a$, $\rho_{crit}$, $v_{free}$ (tracking)",
@@ -507,22 +506,19 @@ def other_plots():
     for _, envsdatum, _ in io.load_data(f"sims/sim_15_{fn}" for fn in fns):
         costs = np.stack([envsdatum[n].sum(2) for n in costnames], axis=-1)
         envscosts.append(costs)
-    for costs, marker in zip(envscosts, MARKERS):
+    for costs in envscosts:
         ep = np.arange(1, costs.shape[1] + 1)
-        for ylbl, cost, ax in zip(ylbls, np.rollaxis(costs, 2), axs2):
-            if ylbl.startswith("Constraint"):
-                ax.plot(ep, np.nanmean(cost, 0), marker=marker, ls="")
-                ax.set_yscale("log")
-            else:
-                ax.plot(ep, np.nanmean(cost, 0))
+        for ylbl, cost, ax in zip(ylbls, np.rollaxis(costs, 2), axs2[1:]):
+            ax.plot(ep, np.nanmean(cost, 0))
             ax.set_ylabel(ylbl)
-    for ax in axs2[1:]:
-        ax.set_xlabel("Learning episode")
+            if ylbl.startswith("Constraint"):
+                ax.set_yscale("log")
+    axs2[-1].set_xlabel("Learning episode")
     _adjust_limits(axs2)
-    for lbl, marker in zip(labels, MARKERS):  # just for legend
-        axs2_all[0, 1].plot(0, 0, marker=marker, label=lbl)
-    axs2_all[0, 1].set_axis_off()
-    axs2_all[0, 1].legend(labels, loc="center", ncol=2)
+    for lbl in labels:  # just for legend
+        axs2[0].plot(0, 0, label=lbl)
+    axs2[0].set_axis_off()
+    axs2[0].legend(labels, loc="center", ncol=2)
 
     # heatmap of traffic quantities
     fig3, axs3 = plt.subplots(3, 2, constrained_layout=True, sharex=True, sharey=True)

@@ -9,13 +9,13 @@
   <img src="https://raw.githubusercontent.com/FilippoAiraldi/mpcrl-for-ramp-metering/simulations/resources/network.png" alt="network" height="200">
 </div>
 
-This repository contains the source code used to produce the results obtained in [our paper](TODO) submitted to TODO.
+This repository contains the source code used to produce the results obtained in [Reinforcement Learning with Model Predictive Control for Highway Ramp Metering](TODO) submitted to [IEEE Transactions on Intelligent Transportation Systems](https://ieee-itss.org/pub/t-its/).
 
 In this work, we propose to formulate the ramp metering control problem as a Markov Decision Process (MDP) and solve it using Reinforcement Learning (RL), where Model Predictive Control (MPC) acts as the function approximator. This combination allows us to leverage both the flexible, data-driven nature of RL and structured, model-based approach of MPC to come up with a learning-based control scheme that is able to tune its parametrisation automatically to enhance closed-loop performance.
 
 If you find the paper or this repository helpful in your publications, please consider citing it.
 
-<!-- ```latex
+<!-- ```latex TODO
 article{airaldi2022learning,
   author = {Airaldi, Filippo and De Schutter, Bart and Dabiri, Azita},
   title = {Reinforcement Learning with Model Predictive Control for Highway Ramp Metering},
@@ -64,7 +64,7 @@ The repository code is structured in the following way
 Training simulations can easily be launched via the command below. The provided arguments are set to reproduce the same main results found in the paper, assuming there are no discrepancies due to OS, CPU, etc..
 
 ```bash
-python -u train.py --agent-type=lstdq --gamma=0.98 --update-freq=240 --lr=1.0 --lr-decay=0.925 --max-update=0.3 --replaymem-size=2400 --replaymem-sample=0.5 --replaymem-sample-latest=0.5 --exp-chance=0.5 --exp-strength=0.025 --exp-decay=0.5 --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym_type=SX --seed=0 --verbose=1 --n_jobs=15 --runname=${runname}
+python train.py --agent-type=lstdq --gamma=0.98 --update-freq=240 --lr=1.0 --lr-decay=0.925 --max-update=0.3 --replaymem-size=2400 --replaymem-sample=0.5 --replaymem-sample-latest=0.5 --exp-chance=0.5 --exp-strength=0.025 --exp-decay=0.5 --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym_type=SX --seed=0 --verbose=1 --n_jobs=15 --runname=${runname}
 ```
 
 Results will be saved under the filename `${runname}.xz`. For help about the implications of each different argument, run
@@ -83,7 +83,7 @@ To visualize simulation results, simply run
 python visualization.py ${runname1}.xz ... ${runnameN}.xz --all
 ```
 
-You can additionally pass `--paper`, which will cause the paper figures to be created (in this case, the simulation results filepaths are hardcoded). For example, run the following to reproduce the main figures in the paper
+You can additionally pass `--paper`, which will cause the paper figures to be created (in this case, some of the simulation results' filepaths have been hardcoded for simplicity). For example, run the following to reproduce the main figures in the paper
 
 ```bash
 python visualization.py sims/sim_15_dynamics_a_rho_wo_track_higher_var.xz --all --paper
