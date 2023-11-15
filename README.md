@@ -3,7 +3,7 @@
 [![Source Code License](https://img.shields.io/badge/license-GPL-blueviolet)](https://github.com/FilippoAiraldi/mpcrl-for-ramp-metering/blob/simulations/LICENSE)
 ![Python 3.11.4](https://img.shields.io/badge/python-3.11.4-green.svg)
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
-<!-- [![Maintainability](https://api.codeclimate.com/v1/badges/0f8d97e0b178bb04f0af/maintainability)](https://codeclimate.com/github/FilippoAiraldi/learning-safety-in-mpc-based-rl/maintainability) -->
+[![Maintainability](https://api.codeclimate.com/v1/badges/29611d19b6592f5d2ac2/maintainability)](https://codeclimate.com/github/FilippoAiraldi/mpcrl-for-ramp-metering/maintainability)
 
 <div align="center">
   <img src="https://raw.githubusercontent.com/FilippoAiraldi/mpcrl-for-ramp-metering/simulations/resources/network.png" alt="network" height="200">
