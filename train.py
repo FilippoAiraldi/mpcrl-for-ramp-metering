@@ -6,7 +6,7 @@ from time import perf_counter
 import numpy as np
 from joblib import Parallel, delayed
 
-from rl import evaluate_pk_agent, train_lstdq_agent
+from rl import train_lstdq_agent
 from util import save_data, tqdm_joblib
 from util.constants import STEPS_PER_SCENARIO
 from util.runs import get_runname
@@ -14,38 +14,32 @@ from util.runs import get_runname
 
 def launch_training(args: argparse.Namespace) -> None:
     seeds = np.random.SeedSequence(args.seed).generate_state(args.agents)
-    if args.agent_type == "pk":
-        fun = lambda n: evaluate_pk_agent(
-            agent_n=n,
-            episodes=args.episodes,
-            scenarios=args.scenarios,
-            discount_factor=args.gamma,
-            demands_type=args.demands_type,
-            sym_type=args.sym_type,
-            seed=seeds[n],
-            verbose=args.verbose,
-        )
-    elif args.agent_type == "lstdq":
-        fun = lambda n: train_lstdq_agent(  # type: ignore[assignment,return-value]
-            agent_n=n,
-            episodes=args.episodes,
-            scenarios=args.scenarios,
-            update_freq=args.update_freq,
-            discount_factor=args.gamma,
-            learning_rate=args.lr,
-            learning_rate_decay=args.lr_decay,
-            exploration_chance=args.exp_chance,
-            exploration_strength=args.exp_strength,
-            exploration_decay=args.exp_decay,
-            experience_replay_size=args.replaymem_size,
-            experience_replay_sample=args.replaymem_sample,
-            experience_replay_sample_latest=args.replaymem_sample_latest,
-            max_percentage_update=args.max_update,
-            demands_type=args.demands_type,
-            sym_type=args.sym_type,
-            seed=seeds[n],
-            verbose=args.verbose,
-        )
+    if args.agent_type == "lstdq":
+
+        def fun(n: int):
+            return train_lstdq_agent(
+                agent_n=n,
+                episodes=args.episodes,
+                scenarios=args.scenarios,
+                update_freq=args.update_freq,
+                discount_factor=args.gamma,
+                learning_rate=args.lr,
+                learning_rate_decay=args.lr_decay,
+                exploration_chance=args.exp_chance,
+                exploration_strength=args.exp_strength,
+                exploration_decay=args.exp_decay,
+                experience_replay_size=args.replaymem_size,
+                experience_replay_sample=args.replaymem_sample,
+                experience_replay_sample_latest=args.replaymem_sample_latest,
+                max_percentage_update=args.max_update,
+                demands_type=args.demands_type,
+                sym_type=args.sym_type,
+                seed=seeds[n],
+                verbose=args.verbose,
+            )
+
+    else:
+        raise ValueError(f"unknown agent type {args.agent_type}")
 
     date = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     start = perf_counter()
@@ -75,7 +69,7 @@ if __name__ == "__main__":
         "--agent-type",
         "--agent_type",
         type=str,
-        choices=("pk", "lstdq"),
+        choices=("lstdq",),  # TODO: add here alinea and a dqn agent
         help="Type of agent to simulate.",
         required=True,
     )
