@@ -142,11 +142,11 @@ def plot_traffic_quantities(
                 ax.plot(time, demands[idx, :, i], color=f"C{i}", label=lbl)
 
             # plot 1st, middle, and last on-ramp queues
-            idx = [0, 1, 2, 6]
+            idxs = [0, 1, 2, 6]
             O2_queue = envsdatum["state"][..., -1]
             time = np.arange(1, O2_queue.shape[2] + 1) * EC.T * EC.steps * 60
             ax2.axhline(y=EC.ramp_max_queue["O2"], color="k", ls="--", label=None)
-            for i, j in enumerate(idx, start=3):
+            for i, j in enumerate(idxs, start=3):
                 lbl = f"Ep. {j + 1}"
                 _plot_population(ax2, time, O2_queue[:, j], label=lbl, color=f"C{i}")
 

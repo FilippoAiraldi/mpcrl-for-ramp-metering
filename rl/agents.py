@@ -95,7 +95,7 @@ class HighwayTrafficPkAgent(Agent[SymType]):
         ----------
         cls : Type[AgentType]
             The type of agent to instantiate.
-        verbose : {0, 1, 2,  3}
+        verbose : {0, 1, 2, 3}
             The level of verbosity for the logging wrapper.
 
         Returns
@@ -107,6 +107,8 @@ class HighwayTrafficPkAgent(Agent[SymType]):
 
 
 class HighwayTrafficLstdQLearningAgent(LstdQLearningAgent[SymType, float]):
+    """LSTD Q-learning agent for the traffic control task."""
+
     def on_episode_start(self, env: HighwayTrafficEnv, episode: int) -> None:
         _update_fixed_parameters(self.fixed_parameters, env)
         super().on_episode_start(env, episode)
@@ -128,7 +130,7 @@ class HighwayTrafficLstdQLearningAgent(LstdQLearningAgent[SymType, float]):
         ----------
         cls : Type[AgentType]
             The type of agent to instantiate.
-        verbose : {0, 1, 2,  3}
+        verbose : {0, 1, 2, 3}
             The level of verbosity for the logging wrapper.
 
         Returns

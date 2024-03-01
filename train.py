@@ -183,18 +183,18 @@ if __name__ == "__main__":
         "--verbose", type=int, choices=(0, 1, 2, 3), default=1, help="Verbosity level."
     )
 
-    args = parser.parse_args()
+    args_ = parser.parse_args()
     assert (
-        0.0 <= args.replaymem_sample <= 1.0
-    ), f"Replay sample size must be in [0,1]; got {args.replaymem_sample} instead."
+        0.0 <= args_.replaymem_sample <= 1.0
+    ), f"Replay sample size must be in [0,1]; got {args_.replaymem_sample} instead."
     assert (
-        0.0 <= args.exp_chance <= 1.0
-    ), f"Chance of exploration must be in [0,1]; got {args.replaymem_sample} instead."
+        0.0 <= args_.exp_chance <= 1.0
+    ), f"Chance of exploration must be in [0,1]; got {args_.replaymem_sample} instead."
     assert (
-        0.0 <= args.exp_decay <= 1.0
-    ), f"Exploration decay must be in [0,1]; got {args.replaymem_sample} instead."
-    args.runname = get_runname(candidate=args.runname)
-    if args.agents == 1:
-        args.n_jobs = 1  # don't parallelize
+        0.0 <= args_.exp_decay <= 1.0
+    ), f"Exploration decay must be in [0,1]; got {args_.replaymem_sample} instead."
+    args_.runname = get_runname(candidate=args_.runname)
+    if args_.agents == 1:
+        args_.n_jobs = 1  # don't parallelize
 
-    launch_training(args)
+    launch_training(args_)
