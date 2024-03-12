@@ -217,6 +217,7 @@ def plot_costs(
     # process costs
     costnames = ("tts", "var", "cvi")
     ylbls = ("TTS", "Control variability", "Constraint violation")
+    logs = (False, False, True)
     envscosts: list[np.ndarray] = []
     for envsdatum in envsdata:
         costs = np.stack([envsdatum[n].sum(2) for n in costnames], axis=-1)
@@ -225,10 +226,9 @@ def plot_costs(
     # make plotting
     for costs, ls in zip(envscosts, cycle(LINESTYLES)):
         ep = np.arange(1, costs.shape[1] + 1)
-        for ylbl, cost, ax in zip(ylbls, np.rollaxis(costs, 2), axs):
-            _plot_population(ax, ep, cost, ls=ls)
+        for ylbl, cost, log, ax in zip(ylbls, np.rollaxis(costs, 2), logs, axs):
+            _plot_population(ax, ep, cost, ls=ls, log=log)
             ax.set_ylabel(ylbl)
-            # ax.set_yscale("log")
 
     # set axis options
     axs[-1].set_xlabel("Learning episode")
