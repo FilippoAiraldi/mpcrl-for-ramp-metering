@@ -53,7 +53,7 @@ The repository code is structured in the following way
 - **`rl`** contains the implementation of the RL agents, which are based on [mpcrl](https://github.com/FilippoAiraldi/mpc-reinforcement-learning)
 - **`sim`** contains [lzma](https://docs.python.org/3/library/lzma.html)-compressed simulation results of different variants of the proposed approach
 - **`util`** contains utility classes and functions for, e.g., constant, plotting, I/O, etc.
-- **`train.py`** launches simulations for agents
+- **`launch.py`** launches simulations for different agents
 - **`visualization.py`** visualizes the simulation results.
 
 ---
@@ -63,13 +63,13 @@ The repository code is structured in the following way
 Training simulations can easily be launched via the command below. The provided arguments are set to reproduce the same main results found in the paper, assuming there are no discrepancies due to OS, CPU, etc..
 
 ```bash
-python train.py --agent-type=lstdq --gamma=0.98 --update-freq=240 --lr=1.0 --lr-decay=0.925 --max-update=0.3 --replaymem-size=2400 --replaymem-sample=0.5 --replaymem-sample-latest=0.5 --exp-chance=0.5 --exp-strength=0.025 --exp-decay=0.5 --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym_type=SX --seed=0 --verbose=1 --n_jobs=15 --runname=${runname}
+python launch.py --agent-type=lstdq --gamma=0.98 --update-freq=240 --lr=1.0 --lr-decay=0.925 --max-update=0.3 --replaymem-size=2400 --replaymem-sample=0.5 --replaymem-sample-latest=0.5 --exp-chance=0.5 --exp-strength=0.025 --exp-decay=0.5 --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym_type=SX --seed=0 --verbose=1 --n_jobs=15 --runname=${runname}
 ```
 
 Results will be saved under the filename `${runname}.xz`. For help about the implications of each different argument, run
 
 ```bash
-python train.py --help
+python launch.py --help
 ```
 
 ---
