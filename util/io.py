@@ -102,7 +102,7 @@ def postprocess_agent_data(
 
 def save_data(
     filename: str,
-    agent_type: Literal["lstdq"],
+    agent_type: Literal["lstdq", "pi-alinea"],
     data: Collection[Any],
     compression: None
     | (Literal["lzma", "bz2", "gzip", "brotli", "blosc2", "matlab"]) = None,
@@ -122,7 +122,7 @@ def save_data(
          - "brotli": .bt
          - "blosc2": .bl2
          - "matlab": .mat
-    agent_type : {"lstdq"}  # TODO: add alinea and dqn agents
+    agent_type : {"lstdq", "pi-alinea"}  # TODO: add alinea and dqn agents
         Type of agent that was simulated.  Used to deduce which post-processing strategy
         to apply.
     data : collection
@@ -136,6 +136,9 @@ def save_data(
         env_data, agent_data = zip(*data)
         info["envs"] = postprocess_env_data(env_data)
         info["agents"] = postprocess_agent_data(agent_type, agent_data)
+    elif agent_type == "pi-alinea":
+        env_data = data
+        info["envs"] = postprocess_env_data(env_data)
     else:
         raise NotImplementedError(f"agent type '{agent_type}' not implemented")
     io.save(filename, compression, **info)

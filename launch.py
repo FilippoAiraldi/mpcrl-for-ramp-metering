@@ -6,6 +6,7 @@ from time import perf_counter
 import numpy as np
 from joblib import Parallel, delayed
 
+from other_agents import eval_pi_alinea_agent
 from rl import train_lstdq_agent
 from util import save_data, tqdm_joblib
 from util.constants import STEPS_PER_SCENARIO
@@ -38,6 +39,21 @@ def launch_training(args: argparse.Namespace) -> None:
                 verbose=args.verbose,
             )
 
+    elif args.agent_type == "pi-alinea":
+
+        def fun(n: int):
+            return eval_pi_alinea_agent(
+                agent_n=n,
+                episodes=args.episodes,
+                scenarios=args.scenarios,
+                gains=(args.Kp, args.Ki),
+                queue_management=args.queue_management,
+                demands_type=args.demands_type,
+                sym_type=args.sym_type,
+                seed=seeds[n],
+                verbose=args.verbose,
+            )
+
     else:
         raise ValueError(f"unknown agent type {args.agent_type}")
 
@@ -61,18 +77,20 @@ def launch_training(args: argparse.Namespace) -> None:
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
-        description="Launches simulation for different MPC-based RL agents.",
+        description="Launches simulation for different traffic agents.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
-    group = parser.add_argument_group("RL algorithm parameters")
+    group = parser.add_argument_group("Algorithm parameters")
     group.add_argument(
         "--agent-type",
         "--agent_type",
         type=str,
-        choices=("lstdq",),  # TODO: add here alinea and a dqn agent
+        choices=("lstdq", "pi-alinea"),  # TODO: add here alinea and a dqn agent
         help="Type of agent to simulate.",
         required=True,
     )
+
+    group = parser.add_argument_group("MPC-RL parameters")
     group.add_argument("--gamma", type=float, default=1.0, help="Discount factor.")
     group.add_argument(
         "--update-freq",
@@ -136,6 +154,17 @@ if __name__ == "__main__":
         default=exp(-1 / 5),
         help="Multiplicative decay rate of exploration chance and strength.",
     )
+
+    group = parser.add_argument_group("PI-ALINEA parameters")
+    group.add_argument("--Kp", type=float, default=70.0, help="Proportional gain.")
+    group.add_argument("--Ki", type=float, default=4.0, help="Integral gain.")
+    group.add_argument(
+        "--queue-management",
+        "--queue_management",
+        action="store_true",
+        help="Use a queue management stratey to avoid queue exceeding a max length.",
+    )
+
     group = parser.add_argument_group("Simulation details")
     group.add_argument(
         "--agents", type=int, default=1, help="Number of agent to simulate."
@@ -187,6 +216,9 @@ if __name__ == "__main__":
     assert (
         0.0 <= args_.exp_decay <= 1.0
     ), f"Exploration decay must be in [0,1]; got {args_.replaymem_sample} instead."
+    assert (
+        args_.Kp >= 0 and args_.Ki >= 0
+    ), f"PI-ALINEA gains must be non-negative; got {args_.Kp} and {args_.Ki} instead."
     args_.runname = get_runname(candidate=args_.runname)
     if args_.agents == 1:
         args_.n_jobs = 1  # don't parallelize

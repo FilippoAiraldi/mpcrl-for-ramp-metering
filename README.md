@@ -45,10 +45,11 @@ pip install -r requirements.txt
 
 ### Structure
 
-The repository code is structured in the following way
+The repository code is structured in the following way (in alphabetical order)
 
 - **`metanet`** contains the implementation of the training environment, which represent the traffic network benchmark, and is based on the METANET modelling framework, implemented in [sym-metanet](https://github.com/FilippoAiraldi/sym-metanet). The API follows the standarda OpenAI's `gym` style
 - **`mpc`** contains the implementation of the MPC optimization scheme, which is based on [csnlp](https://github.com/FilippoAiraldi/casadi-nlp)
+- **`other_agents`** contains implementations of the other agents compared against in the paper (PI-ALINEA, TODO).
 - **`resouces`** contains media and other miscellaneous resources
 - **`rl`** contains the implementation of the RL agents, which are based on [mpcrl](https://github.com/FilippoAiraldi/mpc-reinforcement-learning)
 - **`sim`** contains [lzma](https://docs.python.org/3/library/lzma.html)-compressed simulation results of different variants of the proposed approach
@@ -58,18 +59,26 @@ The repository code is structured in the following way
 
 ---
 
-## Training
+## Launching Simulations
 
-Training simulations can easily be launched via the command below. The provided arguments are set to reproduce the same main results found in the paper, assuming there are no discrepancies due to OS, CPU, etc..
+Training simulations can easily be launched via the command below. The provided arguments are set to reproduce the same main results found in the paper, assuming there are no discrepancies due to OS, CPU, etc.. For help about the implications of each different argument, run
+
+```bash
+python launch.py --help
+```
+
+In what follows, we provide the commands to reproduce the main results in the paper. Note that the `runname` variable is used to name the output file, which will be saved under the filename `${runname}.xz`.
+
+### MPC-based RL Agent (training)
 
 ```bash
 python launch.py --agent-type=lstdq --gamma=0.98 --update-freq=240 --lr=1.0 --lr-decay=0.925 --max-update=0.3 --replaymem-size=2400 --replaymem-sample=0.5 --replaymem-sample-latest=0.5 --exp-chance=0.5 --exp-strength=0.025 --exp-decay=0.5 --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym_type=SX --seed=0 --verbose=1 --n_jobs=15 --runname=${runname}
 ```
 
-Results will be saved under the filename `${runname}.xz`. For help about the implications of each different argument, run
+### PI-ALINEA Agent (evaluation)
 
 ```bash
-python launch.py --help
+python launch.py --agent-type=pi-alinea --Kp=70.0 --Ki=4.0 --queue-management --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym_type=SX --seed=0 --verbose=1 --n_jobs=15 --runname=${runname}
 ```
 
 ---
@@ -82,7 +91,7 @@ To visualize simulation results, simply run
 python visualization.py ${runname1}.xz ... ${runnameN}.xz --all
 ```
 
-You can additionally pass `--paper`, which will cause the paper figures to be created (in this case, some of the simulation results' filepaths have been hardcoded for simplicity). For example, run the following to reproduce the main figures in the paper
+You can additionally pass `--paper`, which will cause the paper figures to be created (in this case, some of the simulation results' filepaths have been hardcoded for simplicity). For example, run the following to reproduce a part of the main figures in the paper
 
 ```bash
 python visualization.py sims/sim_15_dynamics_a_rho_wo_track_higher_var.xz --all --paper
