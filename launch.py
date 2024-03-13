@@ -5,7 +5,7 @@ from time import perf_counter
 import numpy as np
 from joblib import Parallel, delayed
 
-from other_agents import eval_pi_alinea_agent
+from other_agents import eval_mpc_agent, eval_pi_alinea_agent
 from rl import train_lstdq_agent
 from util import save_data, tqdm_joblib
 from util.constants import STEPS_PER_SCENARIO
@@ -32,6 +32,20 @@ def launch_training(args: argparse.Namespace) -> None:
                 experience_replay_sample=args.replaymem_sample,
                 experience_replay_sample_latest=args.replaymem_sample_latest,
                 max_percentage_update=args.max_update,
+                demands_type=args.demands_type,
+                sym_type=args.sym_type,
+                seed=seeds[n],
+                verbose=args.verbose,
+            )
+
+    elif args.agent_type == "mpc":
+
+        def fun(n: int):
+            return eval_mpc_agent(
+                agent_n=n,
+                episodes=args.episodes,
+                scenarios=args.scenarios,
+                discount_factor=args.gamma,
                 demands_type=args.demands_type,
                 sym_type=args.sym_type,
                 seed=seeds[n],
@@ -84,7 +98,7 @@ if __name__ == "__main__":
         "--agent-type",
         "--agent_type",
         type=str,
-        choices=("lstdq", "pi-alinea"),  # TODO: add here alinea and a dqn agent
+        choices=("lstdq", "mpc", "pi-alinea", "ddpg"),
         help="Type of agent to simulate.",
         required=True,
     )
