@@ -69,16 +69,26 @@ python launch.py --help
 
 In what follows, we provide the commands to reproduce the main results in the paper. Note that the `runname` variable is used to name the output file, which will be saved under the filename `${runname}.xz`.
 
-### MPC-based RL Agent (training)
+### MPC-based RL Agent
+
+To train MPC-based RL agents, run
 
 ```bash
 python launch.py --agent-type=lstdq --gamma=0.98 --update-freq=240 --lr=1.0 --lr-decay=0.925 --max-update=0.3 --replaymem-size=2400 --replaymem-sample=0.5 --replaymem-sample-latest=0.5 --exp-chance=0.5 --exp-strength=0.025 --exp-decay=0.5 --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym_type=SX --seed=0 --verbose=1 --n_jobs=15 --runname=${runname}
 ```
 
-### PI-ALINEA Agent (evaluation)
+### PI-ALINEA Agent (evaluation and fine-tuning)
+
+To evaluate PI-ALINEA agents, run
 
 ```bash
 python launch.py --agent-type=pi-alinea --Kp=32.07353865774536 --Ki=0.5419114131900662 --queue-management --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym_type=SX --seed=0 --verbose=1 --n_jobs=15 --runname=${runname}
+```
+
+The proportional and integral gains in PI-ALINEA can be fine-tuned by running
+
+```bash
+python other_agents/pi_alinea --tuned --n-trials=100 --agent=8
 ```
 
 ---
