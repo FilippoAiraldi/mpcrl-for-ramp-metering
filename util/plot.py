@@ -463,8 +463,8 @@ def other_plots():
     # # plot of Veq
     # _, ax1 = plt.subplots(1, 1, constrained_layout=True)
     # fns = [
-    #     r"sims/sim_15_dynamics_a.xz",
-    #     r"sims/sim_15_dynamics_a_rho_wo_track_higher_var.xz",
+    #     r"sims/lstdq_15_dynamics_a.xz",
+    #     r"sims/lstdq_15_dynamics_a_rho_wo_track_higher_var.xz",
     # ]
     # lbls = [r"($a$)", r"($a, \rho_{crit}$)"]
     # rho = np.linspace(0, 160, 300).reshape(-1, 1, 1)
@@ -503,7 +503,7 @@ def other_plots():
     costnames = ("tts", "var", "cvi")
     ylbls = ("TTS", "Control variability", "Constraint violation")
     envscosts: list[np.ndarray] = []
-    for _, envsdatum, _ in io.load_data(f"sims/sim_15_{fn}" for fn in fns):
+    for _, envsdatum, _ in io.load_data(f"sims/lstdq_15_{fn}" for fn in fns):
         costs = np.stack([envsdatum[n].sum(2) for n in costnames], axis=-1)
         envscosts.append(costs)
     for costs in envscosts:

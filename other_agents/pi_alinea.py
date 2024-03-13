@@ -85,7 +85,7 @@ def eval_pi_alinea_agent(
     )
 
     # define some agent parameters
-    name = f"Pi-Alinea{agent_n}"
+    name = f"Pi-Alinea-Agent{agent_n}"
     Kp, Ki = gains
     downstread_density_desired = MRC.parameters["rho_crit"].value
     ramp = "O2"

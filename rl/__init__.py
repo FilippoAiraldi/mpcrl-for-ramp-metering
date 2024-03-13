@@ -120,7 +120,7 @@ def train_lstdq_agent(
         max_percentage_update=max_percentage_update,
         record_td_errors=True,
         use_last_action_on_fail=True,
-        name=f"LstdQAgent{agent_n}",
+        name=f"MpcRl-LstdQAgent{agent_n}",
         verbose=verbose,
     )
 
