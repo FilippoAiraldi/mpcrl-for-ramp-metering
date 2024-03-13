@@ -13,6 +13,7 @@ repos:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
     -   id: check-added-large-files
+        args: [--maxkb=50000]
 
 -   repo: https://github.com/asottile/pyupgrade
     rev: v3.15.0
