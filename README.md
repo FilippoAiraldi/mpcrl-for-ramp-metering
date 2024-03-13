@@ -51,7 +51,7 @@ The repository code is structured in the following way (in alphabetical order)
 - **`mpc`** contains the implementation of the MPC optimization scheme, which is based on [csnlp](https://github.com/FilippoAiraldi/casadi-nlp)
 - **`other_agents`** contains implementations of the other agents compared against in the paper (PI-ALINEA, TODO).
 - **`resouces`** contains media and other miscellaneous resources
-- **`rl`** contains the implementation of the RL agents, which are based on [mpcrl](https://github.com/FilippoAiraldi/mpc-reinforcement-learning)
+- **`rl`** contains the implementation of the MPC-based RL agents, which are based on [mpcrl](https://github.com/FilippoAiraldi/mpc-reinforcement-learning)
 - **`sim`** contains [lzma](https://docs.python.org/3/library/lzma.html)-compressed simulation results of different variants of the proposed approach
 - **`util`** contains utility classes and functions for, e.g., constant, plotting, I/O, etc.
 - **`launch.py`** launches simulations for different agents

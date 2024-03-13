@@ -14,6 +14,7 @@ from util.runs import get_runname
 
 def launch_training(args: argparse.Namespace) -> None:
     seeds = np.random.SeedSequence(args.seed).generate_state(args.agents)
+
     if args.agent_type == "lstdq":
 
         def fun(n: int):
