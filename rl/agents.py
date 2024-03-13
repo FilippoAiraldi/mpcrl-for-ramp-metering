@@ -37,7 +37,7 @@ def _wrap_agent(
         frequencies: dict[str, int] = {}
         if verbose >= 2:
             frequencies["on_episode_end"] = 1
-            frequencies["on_updatea"] = 1
+            frequencies["on_update"] = 1
             level = DEBUG
         if verbose >= 3:
             frequencies["on_env_step"] = int(EC.Tscenario / EC.T / EC.steps)
