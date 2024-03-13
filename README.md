@@ -78,7 +78,7 @@ python launch.py --agent-type=lstdq --gamma=0.98 --update-freq=240 --lr=1.0 --lr
 ### PI-ALINEA Agent (evaluation)
 
 ```bash
-python launch.py --agent-type=pi-alinea --Kp=70.0 --Ki=4.0 --queue-management --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym_type=SX --seed=0 --verbose=1 --n_jobs=15 --runname=${runname}
+python launch.py --agent-type=pi-alinea --Kp=32.07353865774536 --Ki=0.5419114131900662 --queue-management --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym_type=SX --seed=0 --verbose=1 --n_jobs=15 --runname=${runname}
 ```
 
 ---

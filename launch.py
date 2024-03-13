@@ -1,6 +1,5 @@
 import argparse
 from datetime import datetime
-from math import exp
 from time import perf_counter
 
 import numpy as np
@@ -52,7 +51,7 @@ def launch_training(args: argparse.Namespace) -> None:
                 sym_type=args.sym_type,
                 seed=seeds[n],
                 verbose=args.verbose,
-            )
+            )[0]
 
     else:
         raise ValueError(f"unknown agent type {args.agent_type}")
@@ -151,13 +150,17 @@ if __name__ == "__main__":
         "--exp-decay",
         "--exp_decay",
         type=float,
-        default=exp(-1 / 5),
+        default=0.5,
         help="Multiplicative decay rate of exploration chance and strength.",
     )
 
     group = parser.add_argument_group("PI-ALINEA parameters")
-    group.add_argument("--Kp", type=float, default=70.0, help="Proportional gain.")
-    group.add_argument("--Ki", type=float, default=4.0, help="Integral gain.")
+    group.add_argument(
+        "--Kp", type=float, default=32.07353865774536, help="Proportional gain."
+    )
+    group.add_argument(
+        "--Ki", type=float, default=0.5419114131900662, help="Integral gain."
+    )
     group.add_argument(
         "--queue-management",
         "--queue_management",

@@ -1,8 +1,15 @@
+import argparse
 import logging
 from typing import Literal
 
 import numpy as np
 from gymnasium import Env
+
+if __name__ == "__main__":
+    import os
+    import sys
+
+    sys.path.append(os.getcwd())
 
 from metanet import HighwayTrafficEnv
 from mpc.highway_traffic_mpc import _find_index_of_ramp_and_segment
@@ -38,7 +45,7 @@ def eval_pi_alinea_agent(
     sym_type: Literal["SX", "MX"],
     seed: int,
     verbose: Literal[0, 1, 2, 3],
-) -> Env:
+) -> tuple[Env, float]:
     """Launches a simulation for the training of a second-order LSTD Q-learning agent in
     the traffic control environment.
 
@@ -65,8 +72,9 @@ def eval_pi_alinea_agent(
 
     Returns
     -------
-    Env
-        The wrapped instances of the traffic environment.
+    Env and float
+        The wrapped instances of the traffic environment, and the corresponding RL
+        cumulative return.
     """
     # create env for training
     env = HighwayTrafficEnv.wrapped(
@@ -123,4 +131,79 @@ def eval_pi_alinea_agent(
 
         # log episode end
         logger.info(f"episode {episode} ended with rewards={rewards:.3f}.")
-    return env
+    return env, rewards
+
+
+def _tune(n_trials: int, n_agents: int) -> None:
+    import optuna
+    from joblib import Parallel, delayed
+
+    # fixed parameters
+    episodes = 10
+    scenarios = 2
+    demands_type = "random"
+    sym_type = "SX"
+    seed = 0
+    seeds = np.random.SeedSequence(seed).generate_state(n_agents)
+    verbose = 0
+    queue_management = True
+
+    def single_agent(n: int, Kp: float, Ki: float) -> float:
+        """Launches a simulation for a single agent."""
+        return eval_pi_alinea_agent(
+            agent_n=n,
+            episodes=episodes,
+            scenarios=scenarios,
+            gains=(Kp, Ki),
+            queue_management=queue_management,
+            demands_type=demands_type,
+            sym_type=sym_type,
+            seed=seeds[n],
+            verbose=verbose,
+        )[1]
+
+    with Parallel(n_jobs=n_agents) as parallel:
+
+        def objective(trial: optuna.Trial) -> float:
+            """Defines the function to be optimized, i.e., the RL returns."""
+            Kp = trial.suggest_float("Kp", 1e-6, 100.0)
+            Ki = trial.suggest_float("Ki", 1e-6, 20.0)
+            R = parallel(delayed(single_agent)(i, Kp, Ki) for i in range(n_agents))
+            return sum(R) / n_agents
+
+        # create study and launch the tuning
+        sampler = optuna.samplers.TPESampler(seed=seed)  # for reproducibility
+        study = optuna.create_study(study_name="pi-alinea", sampler=sampler)
+        study.optimize(objective, n_trials=n_trials)
+        print("Best trial:", study.best_trial.number)
+        print("Best avg return:", study.best_trial.value)
+        print("Best hyperparameters:", study.best_params)
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Launches simulation for different traffic agents.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+    )
+    parser.add_argument(
+        "--tune",
+        action="store_true",
+        help="Uses OPTUNA to tune a PI-ALINEA controller.",
+    )
+    parser.add_argument(
+        "--n-trials",
+        "--n_trials",
+        type=int,
+        default=100,
+        help="Numer of tuning trials.",
+    )
+    parser.add_argument(
+        "--agents",
+        type=int,
+        default=8,
+        help="Numer of agents to simulate per trial.",
+    )
+
+    args = parser.parse_args()
+    if args.tune:
+        _tune(args.n_trials, args.agents)
