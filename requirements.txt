@@ -7,4 +7,3 @@ mpcrl==1.1.7rc4
 sym-metanet[all]==1.0.7
 scipy==1.11.1
 tqdm==4.64.1
-optuna==3.5.0
