@@ -138,7 +138,6 @@ def _tune(n_trials: int, n_agents: int) -> None:
     import optuna
     from joblib import Parallel, delayed
 
-    # fixed parameters
     episodes = 10
     scenarios = 2
     demands_type = "random"
@@ -147,6 +146,8 @@ def _tune(n_trials: int, n_agents: int) -> None:
     seeds = np.random.SeedSequence(seed).generate_state(n_agents)
     verbose = 0
     queue_management = True
+    sampler = optuna.samplers.TPESampler(seed=seed)  # for reproducibility
+    study = optuna.create_study(study_name="pi-alinea", sampler=sampler)
 
     def single_agent(n: int, Kp: float, Ki: float) -> float:
         """Launches a simulation for a single agent."""
@@ -171,13 +172,21 @@ def _tune(n_trials: int, n_agents: int) -> None:
             R = parallel(delayed(single_agent)(i, Kp, Ki) for i in range(n_agents))
             return sum(R) / n_agents
 
-        # create study and launch the tuning
-        sampler = optuna.samplers.TPESampler(seed=seed)  # for reproducibility
-        study = optuna.create_study(study_name="pi-alinea", sampler=sampler)
         study.optimize(objective, n_trials=n_trials)
-        print("Best trial:", study.best_trial.number)
-        print("Best avg return:", study.best_trial.value)
-        print("Best hyperparameters:", study.best_params)
+
+    print("Best trial:", study.best_trial.number)
+    print("Best avg return:", study.best_trial.value)
+    print("Best hyperparameters:", study.best_params)
+
+    import matplotlib.pyplot as plt
+
+    _, ax = plt.subplots(1, 1, constrained_layout=True)
+    t = list(range(1, len(study.trials) + 1))
+    y = [t.value for t in study.trials]
+    ax.plot(t, y, color="C0")
+    ax.set_xlabel("Trial number")
+    ax.set_ylabel(f"Average return (over {n_agents} agents)")
+    plt.show()
 
 
 if __name__ == "__main__":
