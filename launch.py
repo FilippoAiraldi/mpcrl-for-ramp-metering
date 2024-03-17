@@ -5,7 +5,7 @@ from time import perf_counter
 import numpy as np
 from joblib import Parallel, delayed
 
-from other_agents import eval_mpc_agent, eval_pi_alinea_agent
+from other_agents import eval_nonlearning_mpc_agent, eval_pi_alinea_agent
 from rl import train_lstdq_agent
 from util import save_data, tqdm_joblib
 from util.constants import STEPS_PER_SCENARIO
@@ -39,10 +39,10 @@ def launch_training(args: argparse.Namespace) -> None:
                 verbose=args.verbose,
             )
 
-    elif args.agent_type == "mpc":
+    elif args.agent_type == "nonlearning-mpc":
 
         def fun(n: int):
-            return eval_mpc_agent(
+            return eval_nonlearning_mpc_agent(
                 agent_n=n,
                 episodes=args.episodes,
                 scenarios=args.scenarios,
@@ -99,7 +99,7 @@ if __name__ == "__main__":
         "--agent-type",
         "--agent_type",
         type=str,
-        choices=("lstdq", "mpc", "pi-alinea", "ddpg"),
+        choices=("lstdq", "nonlearning-mpc", "pi-alinea", "ddpg"),
         help="Type of agent to simulate.",
         required=True,
     )

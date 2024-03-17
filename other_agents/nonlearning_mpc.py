@@ -48,7 +48,7 @@ class HighwayTrafficAgent(Agent[SymType]):
         return _wrap_agent(cls(*agent_args, **agent_kwargs), False, verbose)
 
 
-def eval_mpc_agent(
+def eval_nonlearning_mpc_agent(
     agent_n: int,
     episodes: int,
     scenarios: int,
