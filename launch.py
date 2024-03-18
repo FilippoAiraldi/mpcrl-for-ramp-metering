@@ -97,7 +97,6 @@ if __name__ == "__main__":
     group = parser.add_argument_group("Algorithm parameters")
     group.add_argument(
         "--agent-type",
-        "--agent_type",
         type=str,
         choices=("lstdq", "nonlearning-mpc", "pi-alinea", "ddpg"),
         help="Type of agent to simulate.",
@@ -108,7 +107,6 @@ if __name__ == "__main__":
     group.add_argument("--gamma", type=float, default=1.0, help="Discount factor.")
     group.add_argument(
         "--update-freq",
-        "--update_freq",
         type=int,
         default=STEPS_PER_SCENARIO // 2,
         help="Update frequency of the learning agent (in terms of env-steps)",
@@ -117,53 +115,44 @@ if __name__ == "__main__":
         "--lr", type=float, default=1e-1, help="Learning rate of the agent."
     )
     group.add_argument(
-        "--lr-decay", "--lr_decay", type=float, default=1.0, help="Learning rate decay."
+        "--lr-decay", type=float, default=1.0, help="Learning rate decay."
     )
     group.add_argument(
         "--max-update",
-        "--max_update",
         type=float,
         default=1 / 5,
         help="Maximum value parameters can be updated as percentage of current value.",
     )
     group.add_argument(
         "--replaymem-size",
-        "--replaymem_size",
         type=int,
         default=STEPS_PER_SCENARIO * 10,
         help="Maximum size of the experience replay buffer.",
     )
     group.add_argument(
         "--replaymem-sample",
-        "--replaymem_sample",
         type=float,
         default=0.5,
         help="Size of the replay memory samples as percentage of maximum replay size.",
     )
     group.add_argument(
         "--replaymem-sample-latest",
-        "--replaymem_sample_latest",
         type=float,
         default=0.2,
-        help="Size of the replay memory sample to dedicate to latest transitions.",
+        help="Size of the replay memory samples as percentage to dedicate to latest "
+        "transitions.",
     )
     group.add_argument(
         "--exp-chance",
-        "--exp_chance",
         type=float,
         default=0.1,
         help="Chance of exploration (epsilon-greedy strategy).",
     )
     group.add_argument(
-        "--exp-strength",
-        "--exp_strength",
-        type=float,
-        default=5e-2,
-        help="Strength of exploration.",
+        "--exp-strength", type=float, default=5e-2, help="Strength of exploration."
     )
     group.add_argument(
         "--exp-decay",
-        "--exp_decay",
         type=float,
         default=0.5,
         help="Multiplicative decay rate of exploration chance and strength.",
@@ -178,7 +167,6 @@ if __name__ == "__main__":
     )
     group.add_argument(
         "--queue-management",
-        "--queue_management",
         action="store_true",
         help="Use a queue management stratey to avoid queue exceeding a max length.",
     )
@@ -198,7 +186,6 @@ if __name__ == "__main__":
     )
     group.add_argument(
         "--demands-type",
-        "--demands_type",
         type=str,
         choices=("constant", "random"),
         default="constant",
@@ -207,14 +194,13 @@ if __name__ == "__main__":
     group = parser.add_argument_group("Others")
     group.add_argument(
         "--sym-type",
-        "--sym_type",
         type=str,
         choices=("SX", "MX"),
         default="SX",
         help="Type of CasADi symbolic variable.",
     )
     group.add_argument(
-        "--runname", type=str, default=None, help="Name of the simulation run."
+        "--runname", type=get_runname, default="", help="Name of the simulation run."
     )
     group.add_argument("--seed", type=int, default=1909, help="RNG seed.")
     group.add_argument(
@@ -223,21 +209,7 @@ if __name__ == "__main__":
     group.add_argument(
         "--verbose", type=int, choices=(0, 1, 2, 3), default=1, help="Verbosity level."
     )
-
     args_ = parser.parse_args()
-    assert (
-        0.0 <= args_.replaymem_sample <= 1.0
-    ), f"Replay sample size must be in [0,1]; got {args_.replaymem_sample} instead."
-    assert (
-        0.0 <= args_.exp_chance <= 1.0
-    ), f"Chance of exploration must be in [0,1]; got {args_.replaymem_sample} instead."
-    assert (
-        0.0 <= args_.exp_decay <= 1.0
-    ), f"Exploration decay must be in [0,1]; got {args_.replaymem_sample} instead."
-    assert (
-        args_.Kp >= 0 and args_.Ki >= 0
-    ), f"PI-ALINEA gains must be non-negative; got {args_.Kp} and {args_.Ki} instead."
-    args_.runname = get_runname(candidate=args_.runname)
     if args_.agents == 1:
         args_.n_jobs = 1  # don't parallelize
 
