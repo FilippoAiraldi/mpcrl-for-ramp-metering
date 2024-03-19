@@ -8,7 +8,6 @@ import numpy.typing as npt
 import sym_metanet
 from csnlp.util.io import SupportsDeepcopyAndPickle
 from gymnasium.spaces import Box
-from gymnasium.wrappers import NormalizeReward
 from mpcrl.wrappers.envs import MonitorInfos
 
 from metanet.costs import get_stage_cost
@@ -299,27 +298,17 @@ class HighwayTrafficEnv(
     def wrapped(
         cls: type[EnvType],
         monitor_deques_size: int | None = None,
-        normalize_rewards: bool = True,
-        normalization_gamma: float = 0.99,
-        *env_args,
-        **env_kwargs,
+        *env_args: Any,
+        **env_kwargs: Any,
     ) -> EnvType:
-        """Allows to build an instance of the env that can be wrapped in the following
-        wrappers (from inner to outer, where the outer returns last):
-         - `MonitorInfos`
-         - `NormalizeReward`
+        """Returns an instance of the env wrapped in following `MonitorInfos`.
 
         Parameters
         ----------
         cls : Type[EnvType]
             The type of env to instantiate.
         monitor_deques_size : int, optional
-            Size of the monitor deques. Only valid if `monitor_infos=True`.
-        normalize_rewards : bool, optional
-            Whether to wrap the env in an instance of `NormalizeReward` or not.
-        normalization_gamma : float, optional
-            Normalization discount factor. Should be the same as the one used by the RL
-            agent. Only valid if `normalize_rewards=True`.
+            Size of the monitor deques.
 
         Returns
         -------
@@ -328,10 +317,6 @@ class HighwayTrafficEnv(
         """
         env = cls(*env_args, **env_kwargs)
         env = MonitorInfos(env, monitor_deques_size)
-        if normalize_rewards:
-            env = NormalizeReward(  # type: ignore[assignment]
-                env, normalization_gamma, 1e-6
-            )
         return env
 
     def __str__(self):

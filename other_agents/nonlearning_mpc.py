@@ -87,10 +87,7 @@ def eval_nonlearning_mpc_agent(
     """
     # create env for evaluation
     env = HighwayTrafficEnv.wrapped(
-        demands_type=demands_type,
-        sym_type=sym_type,
-        n_scenarios=scenarios,
-        normalize_rewards=False,
+        demands_type=demands_type, sym_type=sym_type, n_scenarios=scenarios
     )
 
     # create controller
