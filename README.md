@@ -89,7 +89,7 @@ python launch.py --agent-type=lstdq --gamma=0.98 --update-freq=240 --lr=1.0 --lr
 Evaluate with
 
 ```bash
-python launch.py --agent-type=mpc --gamma=0.98 --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym-type=SX --seed=0 --verbose=1 --n-jobs=15 --runname=${runname}
+python launch.py --agent-type=nonlearning-mpc --gamma=0.98 --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym-type=SX --seed=0 --verbose=1 --n-jobs=15 --runname=${runname}
 ```
 
 ### PI-ALINEA
