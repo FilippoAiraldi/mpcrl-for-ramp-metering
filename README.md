@@ -89,7 +89,7 @@ python launch.py --agent-type=lstdq --gamma=0.98 --update-freq=240 --lr=1.0 --lr
 Evaluate with
 
 ```bash
-python launch.py --agent-type=mpc --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym-type=SX --seed=0 --verbose=1 --n-jobs=15 --runname=${runname}
+python launch.py --agent-type=mpc --gamma=0.98 --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym-type=SX --seed=0 --verbose=1 --n-jobs=15 --runname=${runname}
 ```
 
 ### PI-ALINEA
@@ -111,7 +111,7 @@ python other_agents/pi_alinea --tuned --n-trials=100 --agent=8
 Train with
 
 ```bash
-python launch.py --agent-type=lstdq --gamma=0.98 --update-freq=240 --lr=1.0 --lr-decay=0.925 --max-update=0.3 --replaymem-size=2400 --replaymem-sample=0.5 --replaymem-sample-latest=0.5 --exp-chance=0.5 --exp-strength=0.025 --exp-decay=0.5 --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym-type=SX --seed=0 --verbose=1 --n-jobs=15 --runname=${runname}
+python launch.py --agent-type=ddpq --gamma=0.98 #TODO
 ```
 
 ---
