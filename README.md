@@ -56,7 +56,7 @@ The repository code is structured in the following way (in alphabetical order)
 
 - **`metanet`** contains the implementation of the training environment, which represent the traffic network benchmark, and is based on the METANET modelling framework, implemented in [sym-metanet](https://github.com/FilippoAiraldi/sym-metanet). The API follows the standarda OpenAI's `gym` style
 - **`mpc`** contains the implementation of the MPC optimization scheme, which is based on [csnlp](https://github.com/FilippoAiraldi/casadi-nlp)
-- **`other_agents`** contains implementations of the other agents compared against in the paper (PI-ALINEA, non-learning MPC, DDPG).
+- **`other_agents`** contains implementations of the other agents compared against in the paper (non-learning MPC, PI-ALINEA, and DDPG).
 - **`resouces`** contains media and other miscellaneous resources
 - **`rl`** contains the implementation of the MPC-based RL agents, which are based on [mpcrl](https://github.com/FilippoAiraldi/mpc-reinforcement-learning)
 - **`sim`** contains [lzma](https://docs.python.org/3/library/lzma.html)-compressed simulation results of different variants of the proposed approach
@@ -84,6 +84,14 @@ Train with
 python launch.py --agent-type=lstdq --gamma=0.98 --update-freq=240 --lr=1.0 --lr-decay=0.925 --max-update=0.3 --replaymem-size=2400 --replaymem-sample=0.5 --replaymem-sample-latest=0.5 --exp-chance=0.5 --exp-strength=0.025 --exp-decay=0.5 --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym-type=SX --seed=0 --verbose=1 --n-jobs=15 --runname=${runname}
 ```
 
+### Non-learning MPC
+
+Evaluate with
+
+```bash
+python launch.py --agent-type=mpc --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym-type=SX --seed=0 --verbose=1 --n-jobs=15 --runname=${runname}
+```
+
 ### PI-ALINEA
 
 Evaluate with
@@ -96,14 +104,6 @@ The proportional and integral gains in PI-ALINEA can be fine-tuned by running
 
 ```bash
 python other_agents/pi_alinea --tuned --n-trials=100 --agent=8
-```
-
-### Non-learning MPC
-
-Evaluate with
-
-```bash
-python launch.py --agent-type=mpc --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym-type=SX --seed=0 --verbose=1 --n-jobs=15 --runname=${runname}
 ```
 
 ### DDPG
