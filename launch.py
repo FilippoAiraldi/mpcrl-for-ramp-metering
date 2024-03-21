@@ -5,7 +5,7 @@ from time import perf_counter
 import numpy as np
 from joblib import Parallel, delayed
 
-from other_agents import eval_nonlearning_mpc_agent, eval_pi_alinea_agent
+from other_agents import eval_nonlearning_mpc_agent, eval_pi_alinea_agent, train_ddpg
 from rl import train_lstdq_agent
 from util import save_data, tqdm_joblib
 from util.constants import STEPS_PER_SCENARIO
@@ -67,6 +67,26 @@ def launch_training(args: argparse.Namespace) -> None:
                 seed=seeds[n],
                 verbose=args.verbose,
             )[0]
+
+    elif args.agent_type == "ddpg":
+
+        def fun(n: int):
+            return train_ddpg(
+                episodes=args.episodes,
+                scenarios=args.scenarios,
+                learning_rate=args.lr,
+                batch_size=args.batch_size,
+                buffer_size=args.buffer_size,
+                tau=args.tau,
+                noise_std=args.noise_std,
+                noise_decay_rate=args.noise_decay_rate,
+                device=args.device,
+                gamma=args.gamma,
+                demands_type=args.demands_type,
+                sym_type=args.sym_type,
+                seed=int(seeds[n]),
+                verbose=args.verbose,
+            )
 
     else:
         raise ValueError(f"unknown agent type {args.agent_type}")
@@ -169,6 +189,44 @@ if __name__ == "__main__":
         "--queue-management",
         action="store_true",
         help="Use a queue management stratey to avoid queue exceeding a max length.",
+    )
+
+    group = parser.add_argument_group("DDPG")
+    group.add_argument(
+        "--tau",
+        type=float,
+        default=1e-2,
+        help="Smoothing factor for target actor and critic updates.",
+    )
+    group.add_argument(
+        "--batch-size",
+        type=int,
+        default=512,
+        help="Minibatch size for each gradient update.",
+    )
+    group.add_argument(
+        "--buffer-size",
+        type=int,
+        default=200_000,
+        help="Size of the replay buffer (from which the mini-batches are drawn).",
+    )
+    group.add_argument(
+        "--noise-std",
+        type=float,
+        default=0.3,
+        help="Std of the action noise (Ornstein-Uhlenbeck).",
+    )
+    group.add_argument(
+        "--noise-decay-rate",
+        type=float,
+        default=5e-6,
+        help="Decay rate of the std of the action noise.",
+    )
+    group.add_argument(
+        "--device",
+        type=str,
+        default="cpu",
+        help="Device to use for training (e.g. 'cpu', 'cuda:0').",
     )
 
     group = parser.add_argument_group("Simulation details")
