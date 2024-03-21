@@ -31,7 +31,8 @@ class HighwayTrafficEnv(
     ## Action Space
 
     The action is an array containing only one element, which can take any non-negative
-    value.
+    value. However, if `control_O2_rate=True` in the constructor, then the action is
+    the rate at which the on-ramp O2 is metered, and is contained between 0 and 1.
 
     ## Observation Space
 
@@ -69,6 +70,7 @@ class HighwayTrafficEnv(
         sym_type: Literal["SX", "MX"],
         n_scenarios: int,
         store_demands: bool = True,
+        control_O2_rate: bool = False,
     ) -> None:
         """Initializes the environment.
 
@@ -83,6 +85,9 @@ class HighwayTrafficEnv(
             affects also the length of each env's episode).
         store_demands : bool, optional
             Whether to store past demands in memory or not, by default `True`.
+        control_O2_rate : bool, optional
+            A flag to indicate whether the on-ramp O2 should be controlled by rate or by
+            flow; by default `False`.
         """
         gym.Env.__init__(self)
         SupportsDeepcopyAndPickle.__init__(self)
@@ -90,6 +95,7 @@ class HighwayTrafficEnv(
         self.demands_type = demands_type
         self.n_scenarios = n_scenarios
         self.time = np.arange(0.0, EC.Tscenario, EC.T)
+        self.control_O2_rate = control_O2_rate
 
         # create dynamics
         self.network, sympars = get_network(
@@ -98,6 +104,7 @@ class HighwayTrafficEnv(
             origin_capacities=EC.origin_capacities,
             rho_max=EC.rho_max,
             sym_type=sym_type,
+            control_O2_rate=control_O2_rate,
         )
         self.network.step(
             init_conditions={self.network.origins_by_name["O1"]: {"r": 1}},
@@ -128,7 +135,9 @@ class HighwayTrafficEnv(
         ns = self.ns
         na = self.na
         self.observation_space = Box(0.0, np.inf, (ns,), np.float64)
-        self.action_space = Box(0.0, np.inf, (na,), np.float64)
+        self.action_space = Box(
+            0.0, 1.0 if control_O2_rate else np.inf, (na,), np.float64
+        )
 
         # set reward/cost ranges and functions
         self.reward_range = (0.0, float("inf"))
@@ -238,7 +247,7 @@ class HighwayTrafficEnv(
         # compute initial state
         x0 = options.get("steady_state_x0", self._last_initial_state)
         d = cs.DM(self.demand[0, 0])
-        u = options.get("last_action", d[1])
+        u = options.get("last_action", 1.0 if self.control_O2_rate else d[1])
         p = cs.DM(self.realpars.values())
         f = lambda x: self.dynamics(x, u, d, p)[0].full().ravel()
         state, err, iters = steady_state(
@@ -252,8 +261,13 @@ class HighwayTrafficEnv(
         self._last_initial_state = state  # save to warmstart next reset steady-state
         self.state = state.reshape(-1, 1).repeat(EC.steps, 1)
 
-        # now get the actual control action sufficient for the steady-state state
-        self.last_action = self.dynamics(state, u, d, p)[1][-1].full().reshape(self.na)
+        # now, get the last action - easy if we control the rate - trickier if we
+        # control the flow, as we need to get the actual control action sufficient for
+        # the steady-state state
+        self.last_action = np.reshape(
+            1.0 if self.control_O2_rate else self.dynamics(state, u, d, p)[1][-1],
+            self.na,
+        )
         return state, {"steady_state_error": err, "steady_state_iters": iters}
 
     def step(

@@ -4,7 +4,7 @@ from warnings import warn
 
 import casadi as cs
 import numpy as np
-import sym_metanet as metanet
+import sym_metanet as mn
 
 Tx = TypeVar("Tx")
 
@@ -15,7 +15,8 @@ def get_network(
     origin_capacities: tuple[float, float],
     rho_max: float,
     sym_type: Literal["SX", "MX"],
-) -> tuple[metanet.Network, dict[str, cs.SX | cs.MX]]:
+    control_O2_rate: bool = False,
+) -> tuple[mn.Network, dict[str, cs.SX | cs.MX]]:
     """Builds the target highway network.
 
     Parameters
@@ -30,6 +31,9 @@ def get_network(
         Maximum density
     sym_type : 'SX' or 'MX'
         Type of CasADi symbolic variable.
+    control_O2_rate : bool, optional
+        A flag to indicate whether the on-ramp O2 should be controlled by rate or by
+        flow; by default `False`.
 
     Returns
     -------
@@ -38,24 +42,28 @@ def get_network(
     dict of str-symvar
         The symbolic variables for `rho_crit`, `a`, and `v_free`.
     """
-    metanet.engines.use("casadi", sym_type=sym_type)
-    a_sym = metanet.engine.var("a")  # model parameter (adim)
-    v_free_sym = metanet.engine.var("v_free")  # free flow speed (km/h)
-    rho_crit_sym = metanet.engine.var("rho_crit_sym")  # critical capacity (veh/km/lane)
-    N1 = metanet.Node(name="N1")
-    N2 = metanet.Node(name="N2")
-    N3 = metanet.Node(name="N3")
-    L1 = metanet.Link(
+    mn.engines.use("casadi", sym_type=sym_type)
+    a_sym = mn.engine.var("a")  # model parameter (adim)
+    v_free_sym = mn.engine.var("v_free")  # free flow speed (km/h)
+    rho_crit_sym = mn.engine.var("rho_crit_sym")  # critical capacity (veh/km/lane)
+    N1 = mn.Node(name="N1")
+    N2 = mn.Node(name="N2")
+    N3 = mn.Node(name="N3")
+    L1 = mn.Link(
         2, lanes, segment_length, rho_max, rho_crit_sym, v_free_sym, a_sym, name="L1"
     )
-    L2 = metanet.Link(
+    L2 = mn.Link(
         1, lanes, segment_length, rho_max, rho_crit_sym, v_free_sym, a_sym, name="L2"
     )
-    O1 = metanet.MeteredOnRamp(origin_capacities[0], name="O1")
-    O2 = metanet.SimplifiedMeteredOnRamp(origin_capacities[1], "unlimited", name="O2")
-    D1 = metanet.CongestedDestination(name="D1")
+    O1 = mn.MeteredOnRamp(origin_capacities[0], name="O1")
+    O2 = (
+        mn.MeteredOnRamp(origin_capacities[1], name="O2")
+        if control_O2_rate
+        else mn.SimplifiedMeteredOnRamp(origin_capacities[1], "unlimited", name="O2")
+    )
+    D1 = mn.CongestedDestination(name="D1")
     net = (
-        metanet.Network()
+        mn.Network()
         .add_path(origin=O1, path=(N1, L1, N2, L2, N3), destination=D1)
         .add_origin(O2, N2)
     )
