@@ -308,7 +308,7 @@ class HighwayTrafficEnv(
         cls : Type[EnvType]
             The type of env to instantiate.
         monitor_deques_size : int, optional
-            Size of the monitor deques.
+            Size of the monitor deques. If `0` is passed, then no wrapper is applied.
 
         Returns
         -------
@@ -316,7 +316,8 @@ class HighwayTrafficEnv(
             Wrapped instance of the environment.
         """
         env = cls(*env_args, **env_kwargs)
-        env = MonitorInfos(env, monitor_deques_size)
+        if monitor_deques_size != 0:
+            env = MonitorInfos(env, monitor_deques_size)
         return env
 
     def __str__(self):
