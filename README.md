@@ -130,6 +130,16 @@ You can additionally pass `--paper`, which will cause the paper figures to be cr
 python visualization.py sims/sim_15_dynamics_a_rho_wo_track_higher_var.xz --all --paper
 ```
 
+### Saved Results
+
+Here we clarify the naming convention used for the saved simulation results, that can be found in the **`sims`** folder. Note that in each of the saved files, after decompression, you can find the arguments that were used to launch the simulation, as well as the simulation results themselves (which may differ from agent type to agent type).
+
+Filenames always start with the name of the algorithm used, followed by the number of agents that were simulated. Then, additional information on each simulation can follow
+
+- **MPC-based RL**: for these simulations (a.k.a., `lstdq`), we also report whether and which of the dynamics parameters (among `a`, `rho_crit`, and `v_free`) were allowed to be learnt, and if these were also used as tracking setpoints in the MPC objective (more details in the paper)
+- **PI-ALINEA**: included is also whether the queue management strategy was enabled or not
+- **DDPG**: #TODO
+
 ## License
 
 The repository is provided under the GNU General Public License. See the [LICENSE](https://github.com/FilippoAiraldi/mpcrl-for-ramp-metering/blob/simulations/LICENSE) file included with this repository.
