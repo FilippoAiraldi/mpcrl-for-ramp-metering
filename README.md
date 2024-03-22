@@ -111,7 +111,7 @@ python other_agents/pi_alinea --tuned --n-trials=100 --agent=8
 Train with
 
 ```bash
-python launch.py --agent-type=ddpq --gamma=0.98 #TODO
+python launch.py --agent-type=ddpq --lr=1e-3 --gamma=0.98 --tau=1e-2 --batch-size=512 --buffer-size=200_000 --noise-std=0.3 --noise-decay-rate=5e-6 --devices=${your_devices} --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym-type=SX --seed=0 --verbose=1 --n-jobs=4 --runname=${runname}
 ```
 
 ---
@@ -138,7 +138,6 @@ Filenames always start with the name of the algorithm used, followed by the numb
 
 - **MPC-based RL**: for these simulations (a.k.a., `lstdq`), we also report whether and which of the dynamics parameters (among `a`, `rho_crit`, and `v_free`) were allowed to be learnt, and if these were also used as tracking setpoints in the MPC objective (more details in the paper)
 - **PI-ALINEA**: included is also whether the queue management strategy was enabled or not
-- **DDPG**: #TODO
 
 ## License
 
