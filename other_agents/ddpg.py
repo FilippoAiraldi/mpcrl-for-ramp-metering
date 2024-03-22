@@ -76,6 +76,7 @@ class ReplayBufferWithLookAhead(ReplayBuffer):
             # increment the corresponding indices
             inds[should_be_incremented] += 1
 
+        inds %= size
         next_obs = self.next_observations[inds, env_inds]
         done = self.dones[inds, env_inds].reshape(-1, 1)
         timeout = self.timeouts[inds, env_inds].reshape(-1, 1)
