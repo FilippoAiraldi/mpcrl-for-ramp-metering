@@ -4,6 +4,7 @@ from operator import neg
 from typing import Any, Literal
 
 import numpy as np
+from gymnasium import Env, ObservationWrapper, spaces
 from gymnasium.wrappers import TransformReward
 from stable_baselines3 import TD3
 from stable_baselines3.common.buffers import ReplayBuffer
@@ -14,6 +15,7 @@ from stable_baselines3.common.type_aliases import ReplayBufferSamples
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 from metanet import HighwayTrafficEnv
+from util import EnvConstants as EC
 from util import MpcRlConstants as MRC
 from util.constants import STEPS_PER_SCENARIO
 
@@ -137,6 +139,30 @@ class EvalCallbackWithVaryingFrequency(EvalCallback):
         return True
 
 
+class AugmentedObservationWrapper(ObservationWrapper):
+    """Wrapper that augments the observation with disturbances and previous input."""
+
+    def __init__(self, env: HighwayTrafficEnv) -> None:
+        super().__init__(env)
+        na = env.na
+        nd = env.nd
+        obs = env.observation_space
+        self.observation_space = spaces.Box(
+            np.concatenate((obs.low, np.zeros(nd * EC.steps + na))),
+            np.concatenate((obs.high, np.full(nd * EC.steps, np.inf), np.ones(na))),
+            dtype=obs.dtype,
+            seed=obs.np_random,
+        )
+
+    def observation(self, state: np.ndarray) -> np.ndarray:
+        env: HighwayTrafficEnv = self.env
+        new_state = np.concatenate(
+            (state, env.demand[env.demand.t].T, env.last_action), axis=None
+        )
+        assert self.observation_space.contains(new_state), "Invalid observation."
+        return new_state
+
+
 def make_env(
     gamma: float,
     scenarios: int,
@@ -154,8 +180,7 @@ def make_env(
         n_scenarios=scenarios,
         monitor_deques_size=None if evaluation else 0,  # do not record in training
     )
-    # TODO: implement wrapper to append disturbances and previous input to the state,
-    # and change its observation space accordingly
+    env = AugmentedObservationWrapper(env)
     env = TransformReward(env, neg)
     env = Monitor(env)
     venv = DummyVecEnv([lambda: env])
@@ -174,8 +199,6 @@ def train_ddpg(
     buffer_size: int,
     tau: float,
     gamma: float,
-    # train_freq: int | tuple[int, str],
-    # gradient_steps: int,
     noise_std: float,
     noise_decay_rate: float,
     device: str,
@@ -183,7 +206,45 @@ def train_ddpg(
     sym_type: Literal["SX", "MX"],
     seed: int,
     verbose: int,
-):
+) -> Env:
+    """Trains a DDPG agent on the traffic environment.
+
+    Parameters
+    ----------
+    episodes : int
+        Number of episodes to train the agent for.
+    scenarios : int
+        Number of demands' scenarios per episode.
+    learning_rate : float
+        The learning rate of the RL algorithm.
+    batch_size : int
+        Size of mini-batches sampled from the replay buffer when updating.
+    buffer_size : int
+        Size of the whole replay buffer.
+    tau : float
+        The soft update coefficient (target = tau * target + (1 - tau) * current).
+    gamma : float
+        Discount factor.
+    noise_std : float
+        Standard deviation of the action noise (Ornstein-Uhlenbeck).
+    noise_decay_rate : float
+        Decay rate of the std of the action noise.
+    device : "auto", or "cpu", or "cuda:0", etc.
+        Device to use for training.
+    demands_type : {"constant", "random"}
+        Type of demands affecting the network.
+    sym_type : {"SX", "MX"}
+        The type of casadi symbols to use during the simulation.
+    seed : int
+        RNG seed for the simulation.
+    verbose : {0, 1, 2, 3}
+        Level of verbosity of the agent's logger.
+
+    Returns
+    -------
+    Env
+        The wrapped instance of the traffic environment.
+    """
     # create the model
     lookahead = MRC.prediction_horizon
     env = make_env(gamma, scenarios, demands_type, sym_type, seed=seed)
@@ -191,7 +252,7 @@ def train_ddpg(
     action_noise = OrnsteinUhlenbeckActionNoise(
         np.zeros(na), np.full(na, noise_std), dt=1.0
     )
-    model = TD3(
+    model = TD3(  # use DDPG because it allows for delaying the policy updates
         "MlpPolicy",
         env,
         learning_rate=learning_rate,
@@ -199,14 +260,14 @@ def train_ddpg(
         batch_size=batch_size,
         tau=tau,
         gamma=gamma**lookahead,  # to account for lookahead target estimation
-        # train_freq=...,  # TODO: understand this
-        # gradient_steps=...,  # TODO: understand this
+        train_freq=(1, "episode"),
+        gradient_steps=-1,
         action_noise=action_noise,
         replay_buffer_class=ReplayBufferWithLookAhead,
         replay_buffer_kwargs={"lookahead": lookahead, "gamma": gamma},
         policy_delay=lookahead,  # keep only this trick
-        policy_kwargs={"n_critics": 1},  # remove TD3 trick to obtain DDPG
-        target_noise_clip=0.0,  # remove TD3 trick to obtain DDPG
+        policy_kwargs={"n_critics": 1},  # remove twin critics trick
+        target_noise_clip=0.0,  # remove additional noise trick
         verbose=verbose,
         seed=seed,
         device=device,
@@ -221,11 +282,7 @@ def train_ddpg(
     )
     eval_freqs = [(STEPS_PER_EP, 80), (STEPS_PER_EP * 10, 1_000_000)]
     eval_cb = EvalCallbackWithVaryingFrequency(
-        eval_env=eval_env,
-        n_eval_episodes=1,
-        eval_freq=eval_freqs,
-        best_model_save_path="sims",
-        verbose=verbose,
+        eval_env=eval_env, n_eval_episodes=1, eval_freq=eval_freqs, verbose=verbose
     )
     decay_action_noise_cb = DecayNoiseCallback(action_noise, noise_decay_rate)
     callback = [decay_action_noise_cb, eval_cb]
@@ -233,8 +290,4 @@ def train_ddpg(
     # launch the training
     total_timesteps = STEPS_PER_EP * episodes
     model.learn(total_timesteps=total_timesteps, log_interval=1, callback=callback)
-
-    # save the eval env for 1) normalization data and 2) logged evaluation results
-    eval_env.save("sims/vec_normalize.pkl")
-
-    # TODO: in io.save, save the model (?), and the eval_env with its monitor info
+    return eval_env.venv.envs[0].env.env.env  # ugly, but we only want the MonitorInfos

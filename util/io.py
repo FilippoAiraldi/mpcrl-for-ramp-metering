@@ -136,10 +136,8 @@ def save_data(
         env_data, agent_data = zip(*data)
         info["envs"] = postprocess_env_data(env_data)
         info["agents"] = postprocess_agent_data(agent_type, agent_data)
-    elif agent_type in {"nonlearning-mpc", "pi-alinea"}:
+    elif agent_type in {"nonlearning-mpc", "pi-alinea", "ddpg"}:
         info["envs"] = postprocess_env_data(data)
-    elif agent_type == "ddpg":
-        raise NotImplementedError("DDPG agent not implemented yet!")
     else:
         raise NotImplementedError(f"agent type '{agent_type}' not implemented")
     io.save(filename, compression, **info)
