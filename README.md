@@ -111,7 +111,7 @@ python other_agents/pi_alinea --tuned --n-trials=100 --agent=8
 Train with
 
 ```bash
-python launch.py --agent-type=ddpq --lr=1e-3 --gamma=0.98 --tau=1e-2 --batch-size=512 --buffer-size=200_000 --noise-std=0.3 --noise-decay-rate=5e-6 --devices=${your_devices} --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym-type=SX --seed=0 --verbose=1 --n-jobs=4 --runname=${runname}
+python launch.py --agent-type=ddpg --lr=1e-3 --gamma=0.98 --tau=1e-2 --batch-size=512 --buffer-size=200_000 --noise-std=0.3 --noise-decay-rate=5e-6 --devices=${your_devices} --agents=15 --episodes=80 --scenarios=2 --demands-type=random --sym-type=SX --seed=0 --verbose=1 --n-jobs=4 --runname=${runname}
 ```
 
 ---
