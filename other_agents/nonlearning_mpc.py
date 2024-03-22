@@ -70,7 +70,7 @@ def eval_nonlearning_mpc_agent(
     scenarios : int
         Number of demands' scenarios per episode.
     discount_factor : float
-        Discount factor (used only in the MPC; no learning occurs in the PK agent).
+        Discount factor.
     demands_type : {"constant", "random"}
         Type of demands affecting the network.
     sym_type : {"SX", "MX"}

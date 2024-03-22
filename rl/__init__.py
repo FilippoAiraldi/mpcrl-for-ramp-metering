@@ -41,13 +41,13 @@ def train_lstdq_agent(
     agent_n : int
         Number of the agent. Used to formulate its name.
     episodes : int
-        Number of episodes to evaluate the agent for.
+        Number of episodes to train the agent for.
     scenarios : int
         Number of demands' scenarios per episode.
     update_freq : int
         Frequency (in terms of env steps) with which to update the agent's parameters.
     discount_factor : float
-        Discount factor (used only in the MPC; no learning occurs in the PK agent).
+        Discount factor.
     learning_rate : float
         The learning rate of the RL algorithm.
     learning_rate_decay : float
