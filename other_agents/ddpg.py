@@ -12,6 +12,7 @@ from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.noise import OrnsteinUhlenbeckActionNoise
 from stable_baselines3.common.type_aliases import ReplayBufferSamples
+from stable_baselines3.common.utils import set_random_seed
 from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 from metanet import HighwayTrafficEnv
@@ -245,6 +246,8 @@ def train_ddpg(
     Env
         The wrapped instance of the traffic environment.
     """
+    set_random_seed(seed, using_cuda="cuda" in device)
+
     # create the model
     lookahead = MRC.prediction_horizon
     env = make_env(gamma, scenarios, demands_type, sym_type, seed=seed)
@@ -266,7 +269,7 @@ def train_ddpg(
         replay_buffer_class=ReplayBufferWithLookAhead,
         replay_buffer_kwargs={"lookahead": lookahead, "gamma": gamma},
         policy_delay=lookahead,  # keep only this trick
-        policy_kwargs={"n_critics": 1},  # remove twin critics trick
+        policy_kwargs={"n_critics": 1, "net_arch": [256, 256]},  # remove twin critic
         target_noise_clip=0.0,  # remove additional noise trick
         verbose=verbose,
         seed=seed,

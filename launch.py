@@ -80,7 +80,7 @@ def launch_training(args: argparse.Namespace) -> None:
                 tau=args.tau,
                 noise_std=args.noise_std,
                 noise_decay_rate=args.noise_decay_rate,
-                device=args.device,
+                device=args.devices[n % len(args.devices)],
                 gamma=args.gamma,
                 demands_type=args.demands_type,
                 sym_type=args.sym_type,
@@ -223,10 +223,11 @@ if __name__ == "__main__":
         help="Decay rate of the std of the action noise.",
     )
     group.add_argument(
-        "--device",
+        "--devices",
         type=str,
-        default="cpu",
-        help="Device to use for training (e.g. 'cpu', 'cuda:0').",
+        nargs="+",
+        default=["cpu"],
+        help="List of torch devices to use, e.g., `cpu`, `cuda:0`, etc..",
     )
 
     group = parser.add_argument_group("Simulation details")
