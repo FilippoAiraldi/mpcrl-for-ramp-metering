@@ -9,6 +9,8 @@ from csnlp.util import io
 from mpcrl.wrappers.agents import RecordUpdates
 from mpcrl.wrappers.envs import MonitorInfos
 
+INFOS_TO_SAVE = {"state", "action", "flow", "tts", "var", "cvi"}
+
 
 def postprocess_env_data(
     data: Iterable[MonitorInfos],
@@ -29,7 +31,11 @@ def postprocess_env_data(
     # convert data into lists
     dataiter = iter(data)
     datum = next(dataiter)
-    processed = {k: [v] for k, v in datum.finalized_step_infos(np.nan).items()}
+    processed = {
+        k: [v]
+        for k, v in datum.finalized_step_infos(np.nan).items()
+        if k in INFOS_TO_SAVE
+    }
     step_info_keys = list(processed.keys())  # keys without "demands"
     processed["demands"] = [datum.demands]
     for datum in dataiter:
@@ -41,7 +47,7 @@ def postprocess_env_data(
         # append demands
         processed["demands"].append(datum.demands)
 
-    # convert lists to arrays, adjust some shapes, and check for nans
+    # convert lists to arrays, check dtype, and check for nans
     out = {}
     for k, v in processed.items():
         a = np.asarray(v)
