@@ -151,7 +151,7 @@ def save_data(
 
 def load_data(
     filenames: Iterable[str],
-) -> Iterator[tuple[str, dict[str, np.ndarray], dict[str, np.ndarray]]]:
+) -> Iterator[tuple[str, dict[str, np.ndarray], dict[str, np.ndarray], dict[str, Any]]]:
     """Loads post-processed compressed data into env and agent data.
 
     Parameters
@@ -161,17 +161,17 @@ def load_data(
 
     Yields
     ------
-    iterator of (name, env data, agent data)
+    iterator of (name, env data, agent data, args)
         Returns an iterator with the name of the simulation, followed by env data and
         agent data (can contain more than one env and agent, if multiple were
-        simulated).
+        simulated). Finally, the other args used in the simulation are returned.
     """
     for i, fn in enumerate(filenames):
         name = Path(fn).stem
         data = io.load(fn)
         envsdata = data.pop("envs")
         agentsdata = data.pop("agents", {})
-
-        details = (f" -{k}: {v}" for k, v in data.items())
-        print(f"p{i}) {name}", *details, sep="\n")
-        yield name, envsdata, agentsdata
+        args = data.pop("args", {})
+        details = "\n".join(f" -{k}: {v}" for k, v in data.items())
+        print(f"p{i}) {name}", details, f" -args: {args}", sep="\n")
+        yield name, envsdata, agentsdata, args

@@ -1,5 +1,6 @@
 from collections.abc import Iterable, Sequence
 from itertools import chain, cycle, repeat
+from typing import Any
 
 import matplotlib as mpl
 import matplotlib.gridspec as gridspec
@@ -210,7 +211,10 @@ def plot_traffic_quantities(
 
 
 def plot_costs(
-    envsdata: list[dict[str, npt.NDArray]], labels: list[str], paper: bool
+    envsdata: list[dict[str, npt.NDArray]],
+    labels: list[str],
+    argss: list[dict[str, Any]],
+    paper: bool,
 ) -> None:
     fig, axs = plt.subplots(3, 1, constrained_layout=True, sharex=True)
 
@@ -229,6 +233,20 @@ def plot_costs(
         for ylbl, cost, log, ax in zip(ylbls, np.rollaxis(costs, 2), logs, axs):
             _plot_population(ax, ep, cost, ls=ls, log=log)
             ax.set_ylabel(ylbl)
+
+    # for each envdatum, print also the avg+/-std of each cost
+    for lbl, costs, atype in zip(labels, envscosts, (a["agent_type"] for a in argss)):
+        if atype not in {"pi-alinea", "nonlearning-mpc"}:
+            costs = costs[:, -1, None]  # for trained agents, use only last
+            lbl += " (last)"
+        else:
+            lbl += " (all)"
+        avg = np.nanmean(costs, axis=(0, 1))
+        std = np.nanstd(costs, axis=(0, 1))
+        print(
+            f"{lbl:<50}",
+            *(f'{f"{n}={a:.2f}±{s:.2f}":<20}' for n, a, s in zip(costnames, avg, std)),
+        )
 
     # set axis options
     axs[-1].set_xlabel("Learning episode")
@@ -503,7 +521,7 @@ def other_plots():
     costnames = ("tts", "var", "cvi")
     ylbls = ("TTS", "Control variability", "Constraint violation")
     envscosts: list[np.ndarray] = []
-    for _, envsdatum, _ in io.load_data(f"sims/lstdq_15_{fn}" for fn in fns):
+    for _, envsdatum, _, _ in io.load_data(f"sims/lstdq_15_{fn}" for fn in fns):
         costs = np.stack([envsdatum[n].sum(2) for n in costnames], axis=-1)
         envscosts.append(costs)
     for costs in envscosts:
@@ -523,7 +541,7 @@ def other_plots():
     # heatmap of traffic quantities
     fig3, axs3 = plt.subplots(3, 2, constrained_layout=True, sharex=True, sharey=True)
     fn = r"sims/sim_15_dynamics_a_rho_wo_track_higher_var.xz"
-    _, envsdatum, _ = next(io.load_data((fn,)))
+    _, envsdatum, _, _ = next(io.load_data((fn,)))
     rho, v, _ = np.array_split(envsdatum["state"], 3, axis=-1)  # rho, v and w
     q = envsdatum["flow"][..., :3]
     rho, v, q = (o.mean(0) for o in (rho, v, q))

@@ -1,5 +1,3 @@
-from collections.abc import Sequence
-from itertools import chain, repeat
 from operator import neg
 from typing import Any, Literal
 
@@ -105,39 +103,6 @@ class DecayNoiseCallback(BaseCallback):
 
     def _on_step(self) -> bool:
         self.noise._sigma *= self.decay_rate
-        return True
-
-
-class EvalCallbackWithVaryingFrequency(EvalCallback):
-    """An EvalCallback that evaluates the policy with varying frequencies."""
-
-    def __init__(
-        self, *args: Any, eval_freq: Sequence[tuple[int, int]], **kwargs: Any
-    ) -> None:
-        """Instantiates the callback with the given evaluation frequencies.
-
-        Parameters
-        ----------
-        args, kwargs
-            See `EvalCallback`.
-        eval_freq : sequence of (freq, count)
-            A sequence of tuples, where each tuple contains the evaluation frequency and
-            the corresponding number of evaluations to perform at that frequency. When
-            the number of evaluations is exhausted, the frequency is updated to the next
-            tuple in the list. The last tuple is repeated indefinitely.
-        """
-        super().__init__(*args, **kwargs)
-        self.eval_freqs = chain(eval_freq, repeat(eval_freq[-1]))
-        self.eval_freq, self.eval_cnt = next(self.eval_freqs)
-
-    def _on_step(self) -> bool:
-        if self.eval_freq > 0 and self.n_calls % self.eval_freq == 0:
-            out = super()._on_step()
-            self.eval_cnt -= 1
-            if self.eval_cnt <= 0:
-                self.eval_freq, self.eval_cnt = next(self.eval_freqs)
-                self.n_calls = 0  # reset also counter to properly eval with new freq
-            return out
         return True
 
 
@@ -256,7 +221,7 @@ def train_ddpg(
     action_noise = OrnsteinUhlenbeckActionNoise(
         np.zeros(na), np.full(na, noise_std), dt=1.0
     )
-    model = TD3(  # use DDPG because it allows for delaying the policy updates
+    model = TD3(  # use TD3 because it allows for delaying the policy updates
         "MlpPolicy",
         env,
         learning_rate=learning_rate,
@@ -284,9 +249,8 @@ def train_ddpg(
     eval_env = make_env(
         gamma, scenarios, demands_type, sym_type, evaluation=True, seed=seed
     )
-    eval_freqs = [(STEPS_PER_EP, 80), (STEPS_PER_EP * 10, 1_000_000)]
-    eval_cb = EvalCallbackWithVaryingFrequency(
-        eval_env=eval_env, n_eval_episodes=1, eval_freq=eval_freqs, verbose=verbose
+    eval_cb = EvalCallback(
+        eval_env=eval_env, n_eval_episodes=1, eval_freq=STEPS_PER_EP, verbose=verbose
     )
     decay_action_noise_cb = DecayNoiseCallback(action_noise, noise_decay_rate)
     callback = [decay_action_noise_cb, eval_cb]
