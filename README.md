@@ -124,7 +124,7 @@ To visualize simulation results, simply run
 python visualization.py ${runname1}.xz ... ${runnameN}.xz --all
 ```
 
-You can additionally pass `--paper`, which will cause the paper figures to be created (in this case, some of the simulation results' filepaths have been hardcoded for simplicity). For example, run the following to reproduce a part of the main figures in the paper
+You can additionally pass `--paper`, which will cause the paper's figures (or their ancestors) to be created. In this case, some of the simulation results' filepaths have been hardcoded for simplicity. For example, run the following to reproduce a part of the main figures in the paper
 
 ```bash
 python visualization.py sims/sim_15_dynamics_a_rho_wo_track_higher_var.xz --all --paper

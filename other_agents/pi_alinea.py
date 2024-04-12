@@ -84,7 +84,7 @@ def eval_pi_alinea_agent(
     # define some agent parameters
     name = f"Pi-Alinea-Agent{agent_n}"
     Kp, Ki = gains
-    downstread_density_desired = MRC.parameters["rho_crit"].value
+    downstream_density_desired = MRC.parameters["rho_crit"].value
     ramp = "O2"
     i_ramp, i_seg = _find_index_of_ramp_and_segment(env.network, ramp)
     w_max = EC.ramp_max_queue[ramp]
@@ -105,7 +105,7 @@ def eval_pi_alinea_agent(
         while not (truncated or terminated):
             # compute PI-ALINEA control
             downstream_density = state[i_seg]
-            action += Ki * (downstread_density_desired - downstream_density) - Kp * (
+            action += Ki * (downstream_density_desired - downstream_density) - Kp * (
                 downstream_density - downstream_density_prev
             )
 

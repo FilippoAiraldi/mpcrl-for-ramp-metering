@@ -91,6 +91,7 @@ def _plot_population(
     ls: str | None = None,
     label: str | None = None,
     color: str | None = None,
+    positive: bool = False,
 ) -> None:
     """Internal utility to plot a quantity from some population of envs/agents."""
     y_avg = (np.nanmedian if use_median else np.nanmean)(y, 0)  # type: ignore[operator]
@@ -98,7 +99,10 @@ def _plot_population(
     method = ax.semilogy if log else ax.plot
     c = method(x, y_avg, label=label, marker=marker, ls=ls, color=color)[0].get_color()
     a = OPTS["fill_between.alpha"]
-    ax.fill_between(x, y_avg - y_std, y_avg + y_std, alpha=a, color=c, label=None)
+    lb = y_avg - y_std
+    if positive:
+        np.maximum(lb, 0, out=lb)
+    ax.fill_between(x, lb, y_avg + y_std, alpha=a, color=c, label=None)
 
 
 def _moving_average(x: np.ndarray, w: int, mode: str = "full") -> np.ndarray:
@@ -149,7 +153,9 @@ def plot_traffic_quantities(
             ax2.axhline(y=EC.ramp_max_queue["O2"], color="k", ls="--", label=None)
             for i, j in enumerate(idxs, start=3):
                 lbl = f"Ep. {j + 1}"
-                _plot_population(ax2, time, O2_queue[:, j], label=lbl, color=f"C{i}")
+                _plot_population(
+                    ax2, time, O2_queue[:, j], label=lbl, color=f"C{i}", positive=True
+                )
 
         _adjust_limits(chain(axs1, (ax2,)))
         axs1[0].set_ylabel("Entering flow (veh/h)")
