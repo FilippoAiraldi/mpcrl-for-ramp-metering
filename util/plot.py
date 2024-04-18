@@ -85,20 +85,23 @@ def _plot_population(
     ax: Axes,
     x: npt.NDArray,
     y: npt.NDArray,
+    *,
     use_median: bool = False,
     log: bool = False,
     marker: str | None = None,
     ls: str | None = None,
     label: str | None = None,
     color: str | None = None,
+    fill: bool = True,
 ) -> None:
     """Internal utility to plot a quantity from some population of envs/agents."""
     y_avg = (np.nanmedian if use_median else np.nanmean)(y, 0)  # type: ignore[operator]
     y_std = 2 * np.nanstd(y, 0)
     method = ax.semilogy if log else ax.plot
     c = method(x, y_avg, label=label, marker=marker, ls=ls, color=color)[0].get_color()
-    a = OPTS["fill_between.alpha"]
-    ax.fill_between(x, y_avg - y_std, y_avg + y_std, alpha=a, color=c, label=None)
+    if fill:
+        a = OPTS["fill_between.alpha"]
+        ax.fill_between(x, y_avg - y_std, y_avg + y_std, alpha=a, color=c, label=None)
 
 
 def _moving_average(x: np.ndarray, w: int, mode: str = "full") -> np.ndarray:
@@ -218,25 +221,28 @@ def plot_costs(
 ) -> None:
     fig, axs = plt.subplots(3, 1, constrained_layout=True, sharex=True)
 
+    # for each agent, check if it is learning-based or not
+    learnings = [a["agent_type"] not in {"pi-alinea", "nonlearning-mpc"} for a in argss]
+
     # process costs
     costnames = ("tts", "var", "cvi")
     ylbls = ("TTS", "Control variability", "Constraint violation")
-    logs = (False, False, True)
+    logs = (False, True, False)
     envscosts: list[np.ndarray] = []
     for envsdatum in envsdata:
         costs = np.stack([envsdatum[n].sum(2) for n in costnames], axis=-1)
         envscosts.append(costs)
 
     # make plotting
-    for costs, ls in zip(envscosts, cycle(LINESTYLES)):
+    for costs, learning, ls in zip(envscosts, learnings, cycle(LINESTYLES)):
         ep = np.arange(1, costs.shape[1] + 1)
         for ylbl, cost, log, ax in zip(ylbls, np.rollaxis(costs, 2), logs, axs):
-            _plot_population(ax, ep, cost, ls=ls, log=log)
+            _plot_population(ax, ep, cost, ls=ls, log=log, fill=learning)
             ax.set_ylabel(ylbl)
 
     # for each envdatum, print also the avg+/-std of each cost
-    for lbl, costs, atype in zip(labels, envscosts, (a["agent_type"] for a in argss)):
-        if atype not in {"pi-alinea", "nonlearning-mpc"}:
+    for lbl, costs, learning in zip(labels, envscosts, learnings):
+        if learning:
             costs = costs[:, -1, None]  # for trained agents, use only last
             lbl += " (last)"
         else:
