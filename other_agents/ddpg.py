@@ -6,7 +6,7 @@ from gymnasium import Env, ObservationWrapper, spaces
 from gymnasium.wrappers import TransformReward
 from stable_baselines3 import TD3
 from stable_baselines3.common.buffers import ReplayBuffer
-from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
+from stable_baselines3.common.callbacks import BaseCallback
 from stable_baselines3.common.monitor import Monitor
 from stable_baselines3.common.noise import OrnsteinUhlenbeckActionNoise
 from stable_baselines3.common.type_aliases import ReplayBufferSamples
@@ -135,7 +135,6 @@ def make_env(
     scenarios: int,
     demands_type: Literal["constant", "random"],
     sym_type: Literal["SX", "MX"],
-    evaluation: bool = False,
     seed: int | None = None,
 ) -> VecNormalize:
     """Creates and appropriately wraps the traffic env for training or evaluation."""
@@ -145,15 +144,12 @@ def make_env(
         demands_type=demands_type,
         sym_type=sym_type,
         n_scenarios=scenarios,
-        monitor_deques_size=None if evaluation else 0,  # do not record in training
     )
     env = AugmentedObservationWrapper(env)
     env = TransformReward(env, neg)
     env = Monitor(env)
     venv = DummyVecEnv([lambda: env])
-    venv = VecNormalize(
-        venv, not evaluation, clip_obs=np.inf, clip_reward=np.inf, gamma=gamma
-    )
+    venv = VecNormalize(venv, clip_obs=np.inf, clip_reward=np.inf, gamma=gamma)
     venv.seed(seed)
     return venv
 
@@ -227,6 +223,7 @@ def train_ddpg(
         learning_rate=learning_rate,
         buffer_size=buffer_size,
         batch_size=batch_size,
+        learning_starts=0,
         tau=tau,
         gamma=gamma**lookahead,  # to account for lookahead target estimation
         train_freq=(1, "episode"),
@@ -242,20 +239,9 @@ def train_ddpg(
         device=device,
     )
 
-    # create training callbacks - NOTE: unfortunately, I found no way of seeding the env
-    # at each evaluation step, so I cannot guarantee complete reproducibility. Evaluate
-    # every time after each of the first 80 episodes, then every 10 episodes
-    STEPS_PER_EP = STEPS_PER_SCENARIO * scenarios - 1
-    eval_env = make_env(
-        gamma, scenarios, demands_type, sym_type, evaluation=True, seed=seed
-    )
-    eval_cb = EvalCallback(
-        eval_env=eval_env, n_eval_episodes=1, eval_freq=STEPS_PER_EP, verbose=verbose
-    )
-    decay_action_noise_cb = DecayNoiseCallback(action_noise, noise_decay_rate)
-    callback = [decay_action_noise_cb, eval_cb]
-
     # launch the training
+    cb = DecayNoiseCallback(action_noise, noise_decay_rate)
+    STEPS_PER_EP = STEPS_PER_SCENARIO * scenarios - 1
     total_timesteps = STEPS_PER_EP * episodes
-    model.learn(total_timesteps=total_timesteps, log_interval=1, callback=callback)
-    return eval_env.venv.envs[0].env.env.env  # ugly, but we only want the MonitorInfos
+    model.learn(total_timesteps=total_timesteps, log_interval=1, callback=cb)
+    return model.get_env().venv.envs[0].env.env.env  # ugly, but we need MonitorInfos

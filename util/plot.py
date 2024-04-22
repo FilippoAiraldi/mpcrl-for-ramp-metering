@@ -227,28 +227,26 @@ def plot_costs(
 ) -> None:
     fig, axs = plt.subplots(3, 1, constrained_layout=True, sharex=True)
 
-    # for each agent, check if it is learning-based or not
-    learnings = [a["agent_type"] not in {"pi-alinea", "nonlearning-mpc"} for a in argss]
-
     # process costs
     costnames = ("tts", "var", "cvi")
     ylbls = ("TTS", "Control variability", "Constraint violation")
-    logs = (False, True, False)
+    logs = (False, True, True)
     envscosts: list[np.ndarray] = []
     for envsdatum in envsdata:
         costs = np.stack([envsdatum[n].sum(2) for n in costnames], axis=-1)
         envscosts.append(costs)
 
     # make plotting
-    for costs, learning, ls in zip(envscosts, learnings, cycle(LINESTYLES)):
+    for costs, args, ls in zip(envscosts, argss, cycle(LINESTYLES)):
+        fill = args["agent_type"] == "lstdq"
         ep = np.arange(1, costs.shape[1] + 1)
         for ylbl, cost, log, ax in zip(ylbls, np.rollaxis(costs, 2), logs, axs):
-            _plot_population(ax, ep, cost, ls=ls, log=log, positive=True, fill=learning)
+            _plot_population(ax, ep, cost, ls=ls, log=log, positive=True, fill=fill)
             ax.set_ylabel(ylbl)
 
     # for each envdatum, print also the avg+/-std of each cost
-    for lbl, costs, learning in zip(labels, envscosts, learnings):
-        if learning:
+    for lbl, costs, args in zip(labels, envscosts, argss):
+        if args["agent_type"] not in {"pi-alinea", "nonlearning-mpc"}:
             costs = costs[:, -1, None]  # for trained agents, use only last
             lbl += " (last)"
         else:
