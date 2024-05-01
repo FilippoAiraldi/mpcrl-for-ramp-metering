@@ -130,6 +130,8 @@ You can additionally pass `--paper`, which will cause the paper's figures (or th
 python visualization.py sims/sim_15_dynamics_a_rho_wo_track_higher_var.xz --all --paper
 ```
 
+Please note that not all the simulations support the `--all` flag, as some of them do not cotain all the necessary information to create all the figures (depending on the simulated agent type).
+
 ### Saved Results
 
 Here we clarify the naming convention used for the saved simulation results, that can be found in the **`sims`** folder. Note that in each of the saved files, after decompression, you can find the arguments that were used to launch the simulation, as well as the simulation results themselves (which may differ from agent type to agent type).

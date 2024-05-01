@@ -230,7 +230,7 @@ def plot_costs(
     # process costs
     costnames = ("tts", "var", "cvi")
     ylbls = ("TTS", "Control variability", "Constraint violation")
-    logs = (False, True, True)
+    logs = (False, False, True)
     envscosts: list[np.ndarray] = []
     for envsdatum in envsdata:
         costs = np.stack([envsdatum[n].sum(2) for n in costnames], axis=-1)
