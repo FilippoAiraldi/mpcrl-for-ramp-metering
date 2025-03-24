@@ -9,7 +9,7 @@
   <img src="https://raw.githubusercontent.com/FilippoAiraldi/mpcrl-for-ramp-metering/simulations/resources/network.png" alt="network" height="200">
 </div>
 
-This repository contains the source code used to produce the results obtained in [Reinforcement Learning with Model Predictive Control for Highway Ramp Metering](https://arxiv.org/abs/2311.08820) submitted to [IEEE Transactions on Intelligent Transportation Systems](https://ieee-itss.org/pub/t-its/).
+This repository contains the source code used to produce the results obtained in [Reinforcement Learning with Model Predictive Control for Highway Ramp Metering](https://ieeexplore.ieee.org/document/10930610) (pre-print is [here](https://arxiv.org/abs/2311.08820)).
 
 In this work, we propose to formulate the ramp metering control problem as a Markov Decision Process (MDP) and solve it using Reinforcement Learning (RL), where Model Predictive Control (MPC) acts as the function approximator. This combination allows us to leverage both the flexible, data-driven nature of RL and structured, model-based approach of MPC to come up with a learning-based control scheme that is able to tune its parametrisation automatically to enhance closed-loop performance.
 
@@ -17,12 +17,11 @@ If you find the paper or this repository helpful in your publications, please co
 
 ```bibtex
 @article{airaldi2023reinforcement,
-  title = {Reinforcement Learning with Model Predictive Control for Highway Ramp Metering},
-  author = {Airaldi, Filippo and De Schutter, Bart and Dabiri, Azita},
-  journal={arXiv preprint arXiv:2311.08820},
-  year = {2023},
-  doi = {10.48550/ARXIV.2311.08820},
-  url = {https://arxiv.org/abs/2311.08820}
+  author  = {Airaldi, Filippo and Schutter, Bart De and Dabiri, Azita},
+  journal = {IEEE Transactions on Intelligent Transportation Systems}, 
+  title   = {Reinforcement Learning With Model Predictive Control for Highway Ramp Metering}, 
+  year    = {2025},
+  pages   = {1-17}
 }
 ```
 
