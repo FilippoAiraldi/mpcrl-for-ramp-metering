@@ -18,8 +18,8 @@ If you find the paper or this repository helpful in your publications, please co
 ```bibtex
 @article{airaldi2023reinforcement,
   author  = {Airaldi, Filippo and Schutter, Bart De and Dabiri, Azita},
-  journal = {IEEE Transactions on Intelligent Transportation Systems}, 
-  title   = {Reinforcement Learning With Model Predictive Control for Highway Ramp Metering}, 
+  journal = {IEEE Transactions on Intelligent Transportation Systems},
+  title   = {Reinforcement Learning With Model Predictive Control for Highway Ramp Metering},
   year    = {2025},
   pages   = {1-17}
 }
@@ -123,13 +123,29 @@ To visualize simulation results, simply run
 python visualization.py ${runname1}.xz ... ${runnameN}.xz --all
 ```
 
-You can additionally pass `--paper`, which will cause the paper's figures (or their ancestors) to be created. In this case, some of the simulation results' filepaths have been hardcoded for simplicity. For example, run the following to reproduce a part of the main figures in the paper
+You can additionally pass `--paper`, which will cause the paper's figures (or their ancestors) to be created as PGFPlots source code. In this case, some of the simulation results' filepaths have been hardcoded for simplicity. Please note that not all the simulations support the `--all` flag, as some of them do not contain all the necessary information to create all the figures (depending on the simulated agent type).
+
+### Reproducing Figures from the Paper
+
+Here we explain how to reproduce the figures from the paper, aside from minor graphical and design improvements/adjustments made directly in PGFPlots which are available in the LaTeX source code.
+
+#### Figures 3, 5, 6, 7, 8, 9, 10
+
+Running the following command
 
 ```bash
-python visualization.py sims/sim_15_dynamics_a_rho_wo_track_higher_var.xz --all --paper
+python visualization.py sims/lstdq_15_dynamics_a_rho_wo_track_higher_var.xz --all --paper
 ```
 
-Please note that not all the simulations support the `--all` flag, as some of them do not cotain all the necessary information to create all the figures (depending on the simulated agent type).
+plots the main results, yielding directly Fig. 3, 5-10. Note that, as aforementioned, to generate Fig. 9 some paths have been hardcoded for the sake of simplicity.
+
+#### Figure 4
+
+To generate this figure, we need to combine multiple simulation results by running
+
+```bash
+python visualization.py sims\lstdq_15_dynamics_a_rho_wo_track_higher_var.xz sims\ddpg_15.xz sims\nonlearning_mpc_15.xz sims\pi_alinea_15_with_queue_manag.xz --cost
+```
 
 ### Saved Results
 

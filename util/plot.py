@@ -117,14 +117,18 @@ def _moving_average(x: np.ndarray, w: int, mode: str = "full") -> np.ndarray:
 
 def _save2tikz(*figs: Figure) -> None:
     """Saves the figure to a tikz file. See https://pypi.org/project/tikzplotlib/."""
+    from os import makedirs
+
     import tikzplotlib
+
+    makedirs("pgfplots", exist_ok=True)
 
     for fig in figs:
         mpl.lines.Line2D._us_dashSeq = property(lambda self: self._dash_pattern[1])
         mpl.lines.Line2D._us_dashOffset = property(lambda self: self._dash_pattern[0])
         mpl.legend.Legend._ncol = property(lambda self: self._ncols)
         tikzplotlib.save(
-            f"figure_{fig.number}.tex",
+            f"pgfplots/figure_{fig.number}.tex",
             figure=fig,
             extra_axis_parameters={r"tick scale binop=\times"},
         )
@@ -550,7 +554,7 @@ def other_plots():
 
     # heatmap of traffic quantities
     fig3, axs3 = plt.subplots(3, 2, constrained_layout=True, sharex=True, sharey=True)
-    fn = r"sims/sim_15_dynamics_a_rho_wo_track_higher_var.xz"
+    fn = r"sims/lstdq_15_dynamics_a_rho_wo_track_higher_var.xz"
     _, envsdatum, _, _ = next(io.load_data((fn,)))
     rho, v, _ = np.array_split(envsdatum["state"], 3, axis=-1)  # rho, v and w
     q = envsdatum["flow"][..., :3]

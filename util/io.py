@@ -110,8 +110,9 @@ def save_data(
     filename: str,
     agent_type: Literal["lstdq", "nonlearning-mpc", "pi-alinea", "ddpg"],
     data: Collection[Any],
-    compression: None
-    | (Literal["lzma", "bz2", "gzip", "brotli", "blosc2", "matlab"]) = None,
+    compression: None | (
+        Literal["lzma", "bz2", "gzip", "brotli", "blosc2", "matlab"]
+    ) = None,
     **info: Any,
 ) -> None:
     """Saves the simulation data to a file.
