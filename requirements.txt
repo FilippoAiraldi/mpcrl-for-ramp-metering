@@ -5,7 +5,10 @@ tikzplotlib==0.10.1
 webcolors==1.13
 casadi==3.6.3
 csnlp==1.5.7
+numba==0.57.1
+gymnasium==0.28.1
 mpcrl==1.1.7rc4
+networkx==3.1
 sym-metanet[all]==1.0.7
 scipy==1.11.1
 tqdm==4.64.1
