@@ -102,7 +102,7 @@ python launch.py --agent-type=pi-alinea --Kp=32.07353865774536 --Ki=0.5419114131
 The proportional and integral gains in PI-ALINEA can be fine-tuned by running
 
 ```bash
-python other_agents/pi_alinea --tuned --n-trials=100 --agent=8
+python other_agents/pi_alinea.py --tune --n-trials=100 --agent=8
 ```
 
 ### DDPG
