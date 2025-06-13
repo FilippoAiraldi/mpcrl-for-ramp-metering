@@ -1,2 +1,4 @@
+pandas==2.2.1
+sympy==1.12
 torch==2.2.1
 stable-baselines3==2.2.1
