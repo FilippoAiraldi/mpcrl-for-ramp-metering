@@ -5,8 +5,6 @@ from time import perf_counter
 import numpy as np
 from joblib import Parallel, delayed
 
-from other_agents import eval_nonlearning_mpc_agent, eval_pi_alinea_agent, train_ddpg
-from rl import train_lstdq_agent
 from util import save_data, tqdm_joblib
 from util.constants import STEPS_PER_SCENARIO
 from util.runs import get_runname
@@ -16,6 +14,7 @@ def launch_training(args: argparse.Namespace) -> None:
     seeds = np.random.SeedSequence(args.seed).generate_state(args.agents)
 
     if args.agent_type == "lstdq":
+        from rl import train_lstdq_agent
 
         def fun(n: int):
             return train_lstdq_agent(
@@ -40,6 +39,7 @@ def launch_training(args: argparse.Namespace) -> None:
             )
 
     elif args.agent_type == "nonlearning-mpc":
+        from other_agents.nonlearning_mpc import eval_nonlearning_mpc_agent
 
         def fun(n: int):
             return eval_nonlearning_mpc_agent(
@@ -54,6 +54,7 @@ def launch_training(args: argparse.Namespace) -> None:
             )
 
     elif args.agent_type == "pi-alinea":
+        from other_agents.pi_alinea import eval_pi_alinea_agent
 
         def fun(n: int):
             return eval_pi_alinea_agent(
@@ -69,6 +70,7 @@ def launch_training(args: argparse.Namespace) -> None:
             )[0]
 
     elif args.agent_type == "ddpg":
+        from other_agents.ddpg import train_ddpg
 
         def fun(n: int):
             return train_ddpg(
