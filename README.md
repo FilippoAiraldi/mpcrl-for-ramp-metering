@@ -17,7 +17,7 @@ If you find the paper or this repository helpful in your publications, please co
 
 ```bibtex
 @article{airaldi2023reinforcement,
-  author  = {Airaldi, Filippo and Schutter, Bart De and Dabiri, Azita},
+  author  = {Airaldi, Filippo and De Schutter, Bart and Dabiri, Azita},
   journal = {IEEE Transactions on Intelligent Transportation Systems},
   title   = {Reinforcement Learning With Model Predictive Control for Highway Ramp Metering},
   year    = {2025},
